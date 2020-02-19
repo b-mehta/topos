@@ -1,4 +1,5 @@
-/- should be in mathlib -/
+/- Author: E.W.Ayers
+   This should be in mathlib. Some simp and extensionality lemmas for comma and over. -/
 import category_theory.comma
 
 namespace category_theory

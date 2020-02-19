@@ -1,4 +1,4 @@
-/- Author: E.W.Ayers. -/
+/- Author: E.W.Ayers -/
 
 import category_theory.comma
 import category_theory.limits.shapes.finite_limits
