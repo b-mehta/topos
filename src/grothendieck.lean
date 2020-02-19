@@ -1,5 +1,5 @@
 /- Author: E.W.Ayers.
-   This section roughly follows Chapter 3, §1, §2 of Sheaves in Topology and Logic.
+   This section roughly follows Chapter 3, §1, §2 of Sheaves in Geology and Logic by Saunders Maclane and Ieke M.
  -/
 
 import category_theory.whiskering
