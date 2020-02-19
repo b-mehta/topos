@@ -13,8 +13,8 @@ begin
 end
 
 variables {L X Y Z : C} {f : X ⟶ Z} {g : Y ⟶ Z} {lx : L ⟶ X} {ly : L ⟶ Y} {e : lx ≫ f = ly ≫ g}
-@[simp] def pullback_cone.simp_left : ((pullback_cone.mk lx ly e).π).app walking_cospan.left = lx := by refl
-@[simp] def pullback_cone.simp_right : ((pullback_cone.mk lx ly e).π).app walking_cospan.right = ly := by refl
+@[simp] lemma pullback_cone.simp_left : ((pullback_cone.mk lx ly e).π).app walking_cospan.left = lx := rfl
+@[simp] lemma pullback_cone.simp_right : ((pullback_cone.mk lx ly e).π).app walking_cospan.right = ly := rfl
 
 @[simp] lemma limit.lift_self_id (F : J ⥤ C) [has_limit F] :
   limit.lift F (limit.cone F) = 𝟙 (limit F) :=
@@ -33,18 +33,14 @@ begin
   apply limit.hom_ext,
   intro j, cases j,
   apply h1, apply h2,
-  have c, apply @pullback.condition _ _ _ _ _ f g _,
-  have xx : _ ≫ _ = limits.limit.π (cospan f g) walking_cospan.one,
-    apply limits.limit.w (cospan f g) walking_cospan.hom.inl,
-  rw ← xx,
-  rw ← category.assoc,
-  rw h1, simp,
+  rw ← limits.limit.w (cospan f g) walking_cospan.hom.inl, 
+  rw ← category.assoc, rw h1, rw category.assoc
 end
 
 @[simp] lemma pullback.lift_self_id {X Y Z : C} {f : X ⟶ Z} {g : Y ⟶ Z} [has_limit (cospan f g)]
 : @pullback.lift _ _ _ X Y Z f g _ pullback.fst pullback.snd pullback.condition = 𝟙 _ :=
 begin
-  rw ←  limit.lift_self_id (cospan f g),
+  rw ← limit.lift_self_id (cospan f g),
   dunfold pullback.lift limits.limit.cone pullback pullback_cone.mk pullback.fst pullback.snd limits.has_limit.cone limits.limit,
   congr, apply cone.ext, refl,
   simp, ext, cases x, refl, refl, apply limits.limit.w (cospan f g) walking_cospan.hom.inl,
@@ -59,6 +55,9 @@ begin
   apply pullback.hom_ext, simp, simp, rw pullback.condition, simp,
   simp,
 end
+lemma pullback.with_id_l' {X Y : C} (f : X ⟶ Y) :
+  is_limit (pullback_cone.mk f (𝟙 X) (show f ≫ (𝟙 Y) = (𝟙 X) ≫ f, by simp)) :=
+sorry
 
 /- [todo] find a way of showing this is iso to `pullback (𝟙 Y) f` -/
 lemma pullback.with_id_r [@has_pullbacks C 𝒞] {X Y : C} (f : X ⟶ Y) :
