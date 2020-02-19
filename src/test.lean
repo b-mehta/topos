@@ -1,11 +1,9 @@
 import category_theory.limits.shapes
 import category_theory.limits.types
--- import category_theory.opposites
 
 universes v v₂ u
 
 open category_theory category_theory.category category_theory.limits
-open opposite
 
 -- Mathlib PR 1998:
 -- def has_binary_products_of_terminal_and_pullbacks 
@@ -32,6 +30,7 @@ open opposite
 --                    dsimp [pullback_cone.mk], apply subsingleton.elim, 
 --                  end}}}}
 
+-- Start with a long instance. Probably belongs in mathlib if it wasn't so poorly done
 def has_equalizers_of_pullbacks_and_binary_products
   (C : Type u) [𝒞 : category.{v} C] [has_binary_products.{v} C] [has_pullbacks.{v} C] :
   has_equalizers.{v} C :=
@@ -97,6 +96,7 @@ def has_equalizers_of_pullbacks_and_binary_products
       }
       }}}
 
+-- The pasting lemma for pullbacks. Something like this will invariably be useful
 lemma pasting (C : Type u) [𝒞 : category.{v} C] [has_pullbacks.{v} C] {U V W X Y Z : C}
   (f : U ⟶ V) (g : V ⟶ W) (h : U ⟶ X) (k : V ⟶ Y) (l : W ⟶ Z) (m : X ⟶ Y) (n : Y ⟶ Z) 
   (left_comm : f ≫ k = h ≫ m) (right_comm : g ≫ l = k ≫ n)
@@ -198,10 +198,13 @@ lemma pasting (C : Type u) [𝒞 : category.{v} C] [has_pullbacks.{v} C] {U V W 
 
 namespace category_theory
 
+-- Define what it means for χ to classify the mono f.
+-- Should this be a class? I don't think so but maybe
 def classifies {C : Type u} [𝒞 : category.{v} C] [@has_pullbacks C 𝒞] 
   {Ω Ω₀ : C} (true : Ω₀ ⟶ Ω) {U X : C} {f : U ⟶ X} (h : @mono _ 𝒞 _ _ f) (χ : X ⟶ Ω)
   := Σ' (k : U ⟶ Ω₀) (comm : k ≫ true = f ≫ χ), is_limit (pullback_cone.mk _ _ comm)
 
+-- A subobject classifier is a mono which classifies every mono uniquely
 class has_subobject_classifier (C : Type u) [𝒞 : category.{v} C] [@has_pullbacks C 𝒞] :=
 (Ω Ω₀ : C)
 (truth : Ω₀ ⟶ Ω)
@@ -211,6 +214,7 @@ class has_subobject_classifier (C : Type u) [𝒞 : category.{v} C] [@has_pullba
 
 variables {C : Type u} [𝒞 : category.{v} C] [@has_pullbacks C 𝒞] [has_subobject_classifier C]
 
+-- convenience defs
 def subobj.Ω : C := 
 @has_subobject_classifier.Ω _ 𝒞 _ _
 def subobj.Ω₀ : C := 
@@ -226,6 +230,14 @@ def subobj.classifies_uniquely {U X} {f : U ⟶ X} (h : @mono _ 𝒞 _ _ f) (χ�
   classifies subobj.truth h χ₁ → classifies subobj.truth h χ₂ → χ₁ = χ₂ :=
 @has_subobject_classifier.uniq' _ 𝒞 _ _ _ _ _ h χ₁ χ₂
 
+-- subobject classifier => there is a terminal object.
+-- TODO: make a lemma saying subobj.Ω₀ = ⊤_C
+-- NB: together with the commented out instance at the top and the instance below that, this shows
+-- that every category with a subobj classifier and pullbacks has binary products and equalizers
+-- It's a todo in mathlib to show binary products implies finite products, and we have
+-- in mathlib and these together imply finite limits exist.
+-- So when we define (elem) toposes, we only need assume pullbacks and subobj classifier 
+-- and not all finite limits (but of course cartesian closed is still necessary and such)
 instance terminal_of_subobj (C : Type u) [𝒞 : category.{v} C] [@has_pullbacks C 𝒞] [has_subobject_classifier C] : @has_terminal C 𝒞 :=
 { has_limits_of_shape := 
   { has_limit := λ F,
@@ -268,18 +280,18 @@ instance terminal_of_subobj (C : Type u) [𝒞 : category.{v} C] [@has_pullbacks
 
 instance: has_pullbacks.{u} (Type u) := ⟨limits.has_limits_of_shape_of_has_limits⟩
 
--- this is a bit weird... need to look at the maths proof that we can classify in set
+-- this is a bit weird... need to look at the maths proof that we can classify in Set
 instance: has_subobject_classifier Type :=
 { Ω := Prop
 , Ω₀ := unit
 , truth := λ _, true
 , true_mono' := ⟨λ A f g _, begin ext i, apply subsingleton.elim end⟩
-, classifies' := λ A B f mon, ⟨λ b, ∃ (a : A), f a = b, 
+, classifies' := λ A B f mon, ⟨λ b, ∃ (a : A), f a = b, -- is this the right prop to use?
   begin
     refine ⟨λ _, unit.star, _, _⟩, 
     funext, simp, use x, 
     refine ⟨λ c i, _, sorry, sorry⟩, 
-    show A, -- set t : B := c.π.app walking_cospan.right i,  
+    show A,
     set π₁ := pullback_cone.fst c,
     set π₂ := pullback_cone.snd c,
     have: π₁ ≫ _ = π₂ ≫ _ := pullback_cone.condition c, 
