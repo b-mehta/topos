@@ -1,9 +1,10 @@
-import category_theory.limits.shapes.pullbacks
-namespace  category_theory.limits
-open category_theory
+import category_theory.limits.shapes
+
+open category_theory category_theory.category category_theory.limits
+
 universes u v
 variables {C : Type u} [𝒞 : category.{v} C]
-variables {J K : Type v} [small_category J] [small_category K]
+variables {J : Type v} [small_category J]
 include 𝒞
 
 lemma cone.ext {F : J ⥤ C} : Π (c₁ c₂: cone F), (c₁.X = c₂.X) → (c₁.π == c₂.π) → c₁ = c₂ :=
@@ -46,6 +47,27 @@ begin
   simp, ext, cases x, refl, refl, apply limits.limit.w (cospan f g) walking_cospan.hom.inl,
 end
 
+lemma pullback.with_id_l' {X Y : C} (f : X ⟶ Y) :
+  is_limit (pullback_cone.mk f (𝟙 X) (show f ≫ (𝟙 Y) = (𝟙 X) ≫ f, by simp)) :=
+{ lift := λ c, (c.π).app walking_cospan.right,
+  fac' := λ c j, 
+  begin
+    cases j, -- BM: note triple cases
+    have := pullback_cone.condition c, 
+    erw ← pullback_cone.condition c, simp,
+    erw comp_id,
+    show pullback_cone.snd c ≫ (f ≫ 𝟙 Y) = _, 
+    have := c.π.naturality walking_cospan.hom.inr, 
+    erw id_comp at this, rw this, simp
+  end,
+  uniq' := 
+  begin
+    intros c r J, 
+    have J1 : r ≫ f = (c.π).app walking_cospan.left := J walking_cospan.left,
+    have J2 : r ≫ (𝟙 X) = (c.π).app walking_cospan.right := J walking_cospan.right,
+    erw ← J2, symmetry, apply comp_id
+  end
+}
 /- Note that we need `has_pullbacks` even though this particular pullback always exists, because here we are showing that the
 constructive limit derived using has_pullbacks has to be iso to this simple definition.  -/
 lemma pullback.with_id_l [@has_pullbacks C 𝒞] {X Y : C} (f : X ⟶ Y) :
@@ -55,9 +77,6 @@ begin
   apply pullback.hom_ext, simp, simp, rw pullback.condition, simp,
   simp,
 end
-lemma pullback.with_id_l' {X Y : C} (f : X ⟶ Y) :
-  is_limit (pullback_cone.mk f (𝟙 X) (show f ≫ (𝟙 Y) = (𝟙 X) ≫ f, by simp)) :=
-sorry
 
 /- [todo] find a way of showing this is iso to `pullback (𝟙 Y) f` -/
 lemma pullback.with_id_r [@has_pullbacks C 𝒞] {X Y : C} (f : X ⟶ Y) :
@@ -92,5 +111,3 @@ begin
     rw c, rw ← category.assoc,  rw e, simp,
   show a ≫ pullback.snd = b ≫ pullback.snd, assumption,
 end
-
-end category_theory.limits
