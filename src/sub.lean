@@ -1,58 +1,76 @@
-import category_theory.whiskering
-import category_theory.opposites
-import category_theory.limits.shapes.finite_limits
-import category_theory.limits.shapes.terminal
-import category_theory.limits.shapes.pullbacks
-import category_theory.epi_mono
-import category_theory.category.Cat
-import category_theory.yoneda
-import .pullbacks
+/- Author: E.W.Ayers
+    Definition of the subobject category. -/
+
+import .pullbacks .comma
+
 universes u v w
 
 namespace category_theory
 
-/-- The subobject category -/
-structure sub (C : Type u) [𝒞 : category.{v} C] (X : C) :=
-(A : C)
-(f : A ⟶ X)
-(hf : @mono C 𝒞 _ _ f)
-
-def sub.obj_of_iso {C : Type u} [𝒞 : category.{v} C] {X Y : C} (f : X ≅ Y) : sub C Y := { A := X, f := f.hom, hf := begin apply is_iso.mono_of_iso end}
-
-/-- sub is a cateogry. -/
-instance sub.is_cat {C : Type u} [𝒞 : category.{v} C] {X : C} : category (@sub C 𝒞 X) :=
-{  hom := λ A B, {h : A.A ⟶ B.A // h ≫ B.f = A.f}
-,  id  := λ A, ⟨𝟙 A.A, by simp⟩
-, comp :=
-  λ A B C a b, subtype.mk ((subtype.val a) ≫ b.val) (begin
-    cases b, cases a, dsimp at *, simp [b_property, a_property] at *,
-  end)
-, assoc' := begin rintros ⟨_,_,_⟩ ⟨_,_,_⟩ ⟨_,_,_⟩ ⟨_,_,_⟩ ⟨_,_⟩ ⟨_,_⟩ ⟨_,_⟩, simp  end
-, id_comp' := begin rintros ⟨A,a,_⟩ ⟨B,b,_⟩ ⟨f,_⟩, apply subtype.ext.2, dsimp,  simp end
-, comp_id' := begin rintros ⟨A,a,_⟩ ⟨B,b,_⟩ ⟨f,_⟩, apply subtype.ext.2, dsimp, simp end
-}
-
-@[simp] lemma sub_id {C : Type u} [𝒞 : category.{v} C] {X : C} {A : sub C X}: subtype.val (𝟙 A) = 𝟙 A.A := by refl
-@[simp] lemma sub_id2 {C : Type u} [𝒞 : category.{v} C] {X : C} {A : sub C X}: ↑(𝟙 A) = 𝟙 A.A := by refl
-@[simp] lemma sub_comp {C : Type u} [𝒞 : category.{v} C] {X : C} {A B D : sub C X} {f : A ⟶ B} {g : B ⟶ D}: subtype.val (f ≫ g) = f.val ≫ g.val := by refl
-
 open category_theory.limits
+open category
 open opposite
 
-def sub.map {C : Type u} [𝒞 : category.{v} C] [@has_pullbacks C 𝒞] {X Y : C} (YX : Y ⟶ X) : (sub C X) → (sub C Y)
-| A := sub.mk (pullback A.f YX) (pullback.snd) (pullback.preserve_mono A.hf)
+/-- The subobject category -/
+def sub {C : Type u} [𝒞 : category.{v} C] (X : C) := {f : over X // mono f.hom}
 
-def sub.map_id {C : Type u} [𝒞 : category.{v} C] [@has_pullbacks C 𝒞] {X : C} {s : sub C X}
-  : sub.map (𝟙 X) s ≅ s :=
+variables {C : Type u} [𝒞 : category.{v} C] {X Y : C}
+include 𝒞
+
+def sub.obj_of_iso (f : X ≅ Y) : sub Y :=
+⟨ over.mk f.hom,
+  begin simp, apply is_iso.mono_of_iso end⟩
+
+def sub.mk (f : X ⟶ Y) [mono f]: sub Y := ⟨over.mk f, by simp; apply_instance⟩
+def sub.dom (s : sub X) : C := s.1.left
+def sub.hom (s : sub X) : s.dom ⟶ X := s.1.hom
+instance sub.mono (s : sub X) : mono s.hom := s.2
+
+/-- sub is a cateogry. -/
+instance sub.is_cat : category (@sub C 𝒞 X) :=
+{  hom := λ A B, {h : A.dom ⟶ B.dom // h ≫ B.hom = A.hom},
+   id  := λ A, ⟨𝟙 A.dom, by simp⟩,
+   comp :=
+     λ A B C a b, subtype.mk ((subtype.val a) ≫ b.val)
+       (begin cases b, cases a, dsimp at *, simp [b_property, a_property] at *, end)
+}
+
+variables {A B D: sub X}
+@[simp] lemma sub_id : subtype.val (𝟙 A) = 𝟙 A.dom := by refl
+@[simp] lemma sub_id2 : ↑(𝟙 A) = 𝟙 A.dom := by refl
+@[simp] lemma sub_comp {f : A ⟶ B} {g : B ⟶ D}: subtype.val (f ≫ g) = f.val ≫ g.val := by refl
+
+def sub.mk_iso {A B : sub X} (f : A.dom ≅ B.dom) (e : f.hom ≫ B.hom = A.hom) : A ≅ B :=
 begin
-  sorry
+  apply iso.mk _ _ _ _,
+    split, apply e,
+    split, symmetry, apply (iso.eq_inv_comp f).2 e,
+    apply subtype.ext.2, simp,
+    apply subtype.ext.2, simp,
 end
 
-def sub.map_comp {C : Type u} [𝒞 : category.{v} C] [@has_pullbacks C 𝒞] {X Y Z : C} (f : X ⟶ Y) (g : Y ⟶ Z) {s : sub C Z}
-  : sub.map (f ≫ g) s ≅ (sub.map f (sub.map g s)) :=
-begin
-  sorry
-end
+def sub.map [@has_pullbacks C 𝒞] (YX : Y ⟶ X) : (sub X) → (sub Y)
+| A := @sub.mk _ _ (pullback A.hom YX) _ (pullback.snd) (pullback.preserve_mono A.mono)
+
+@[simp] lemma sub.map.def [@has_pullbacks C 𝒞] (A : sub X) : (sub.map (𝟙 X) A).hom = pullback.snd := rfl
+
+-- def sub.map_id {C : Type u} [𝒞 : category.{v} C] [@has_pullbacks C 𝒞] {X : C} {s : sub X}
+--   : sub.map (𝟙 X) s ≅ s :=
+-- begin
+--   refine sub.mk_iso _ _,
+--   apply limits.pullback.with_id_l s.hom,
+--   have sq, apply @limits.pullback.condition _ _ _ _ _ (sub.hom s) (𝟙 X),
+--   rw [comp_id] at sq,
+--   simp,
+--   rw ← sq,
+--   refl
+-- end
+
+-- def sub.map_comp {C : Type u} [𝒞 : category.{v} C] [@has_pullbacks C 𝒞] {X Y Z : C} (f : X ⟶ Y) (g : Y ⟶ Z) {s : sub Z}
+--   : sub.map (f ≫ g) s ≅ (sub.map f (sub.map g s)) :=
+-- begin
+--   refine sub.mk_iso (limits.pullback.comp_r) _,
+-- end
 
 -- /-- sub is a functor -/
 -- def sub.functor (C : Type u) [small_category C] [has_pullbacks C]: functor Cᵒᵖ (Type u) :=
