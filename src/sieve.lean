@@ -29,7 +29,6 @@ instance : has_subset (@sieve C 𝒞 X) := ⟨λ S R, S.arrows ⊆ R.arrows⟩
 @[ext] def extensionality : Π {R S : @sieve C 𝒞 X}, R.arrows = S.arrows → R = S
 |⟨Ra,_⟩ ⟨Sa, _⟩ rfl := rfl
 
-
 instance : partial_order (@sieve C 𝒞 X) :=
 { partial_order .
   le := λ S R, S.arrows ⊆ R.arrows,
@@ -40,14 +39,10 @@ instance : partial_order (@sieve C 𝒞 X) :=
 
 lemma subset_def {R S : @sieve C 𝒞 X} : S.arrows ⊆ R.arrows → S ≤ R := λ h, h
 
-def max : @sieve C 𝒞 X :=
-{ arrows := set.univ, subs := λ a aa Z g, ⟨⟩ }
-/-- The empty sieve. -/
-def min : @sieve C 𝒞 X :=
-{ arrows := ∅, subs := λ a aa Z g, false.rec_on _ aa }
-
 instance : preorder (@sieve C 𝒞 X) := by apply_instance
+
 open lattice
+
 protected def Sup (𝒮 : set (@sieve C 𝒞 X)) : (@sieve C 𝒞 X) :=
 { arrows := ⋃ (S : {S : @sieve C 𝒞 X // S ∈ 𝒮}), sieve.arrows S.1
 , subs :=
@@ -59,7 +54,7 @@ protected def Sup (𝒮 : set (@sieve C 𝒞 X)) : (@sieve C 𝒞 X) :=
     assumption
   end
 }
--- instance : has_Sup (@sieve C 𝒞 X) := ⟨sieve.Sup⟩
+
 protected def Inf (𝒮 : set (@sieve C 𝒞 X)) : (@sieve C 𝒞 X) :=
 { arrows := ⋂ (S : {S : @sieve C 𝒞 X // S ∈ 𝒮}), sieve.arrows S.1,
   subs :=
@@ -70,7 +65,6 @@ protected def Inf (𝒮 : set (@sieve C 𝒞 X)) : (@sieve C 𝒞 X) :=
     apply sieve.subs, assumption,
   end
 }
--- instance : has_Inf (@sieve C 𝒞 X) := ⟨sieve.Inf⟩
 
 def union (S R : @sieve C 𝒞 X) : @sieve C 𝒞 X :=
 { arrows := S.arrows ∪ R.arrows,
@@ -81,7 +75,6 @@ def union (S R : @sieve C 𝒞 X) : @sieve C 𝒞 X :=
       right, apply sieve.subs, assumption
   end
 }
--- instance : has_union (@sieve C 𝒞 X) := ⟨sieve.union⟩
 
 def inter (S R : @sieve C 𝒞 X) : @sieve C 𝒞 X :=
 { arrows := S.arrows ∩ R.arrows,
@@ -93,11 +86,9 @@ def inter (S R : @sieve C 𝒞 X) : @sieve C 𝒞 X :=
   end
 }
 
--- instance : has_inter (@sieve C 𝒞 X) := ⟨sieve.union⟩
-
 instance : complete_lattice (@sieve C 𝒞 X) :=
-{ top := max,
-  bot := min,
+{ top := { arrows := set.univ, subs := λ a aa Z g, ⟨⟩ },
+  bot := { arrows := ∅, subs := λ a aa Z g, false.rec_on _ aa },
   sup := union,
   inf := inter,
   Sup := sieve.Sup,
@@ -162,10 +153,12 @@ def yank {X Y : C} (S : @sieve C 𝒞 X) (h : Y ⟶ X) :  @sieve C 𝒞 Y :=
 @[simp] lemma yank_def (h : Y ⟶ X) {Z : C} {f : Z ⟶ Y}
 : ((over.mk f) ∈ (yank S h).arrows) = ((over.mk $ f ≫ h) ∈ S.arrows) := rfl
 
+@[simp] lemma yank_def2 (h : Y ⟶ X)  {f : over Y}
+: (f ∈ (yank S h).arrows) = ((over.mk $ f.hom ≫ h) ∈ S.arrows) := rfl
+
+
 def yank_le_map {X Y} {S R : @sieve C 𝒞 X} (Hss : S ≤ R) (f : Y ⟶ X) : yank S f ≤ yank R f
 := begin rintros ⟨Z,g⟩ H, apply Hss, apply H end
-
-
 
 lemma yank_top {f : Y ⟶ X} : yank ⊤ f = ⊤ :=
 begin apply top_unique, rintros g Hg, trivial end
@@ -195,12 +188,10 @@ begin
   apply h,
 end
 
-
 def comps
   (R : Π (f : over X), @sieve C 𝒞 f.left)
   (S : @sieve C 𝒞 X) : @sieve C 𝒞 X :=
   ⨆ (f ∈ S.arrows), comp (R f) f.hom
-
 
 def comp_le_comps
   (R : Π (f : over X), @sieve C 𝒞 f.1)
