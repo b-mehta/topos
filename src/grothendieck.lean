@@ -54,7 +54,7 @@ namespace grothendieck
 variables {C : Type u} [𝒞 : category.{v} C]  {X Y : C} {S R : sieve X} {J : sieve_set C} [grothendieck J]
 include 𝒞
 
-class grothendieck.basis [@category_theory.limits.has_pullbacks C 𝒞] (K : arrow_set C) :=
+class basis [@category_theory.limits.has_pullbacks C 𝒞] (K : arrow_set C) :=
 (i  : ∀ {X Y : C} (e : X ≅ Y), {over.mk e.hom} ∈ K(Y))
 (ii : ∀ {X Y : C} {ℱ : set (over X)} (h₁ : ℱ ∈ K(X)) (g : Y ⟶ X), set.image (over.pullback g) ℱ ∈ K(Y))
 (iii : ∀ {X} {ℱ : set (over X)},
@@ -63,11 +63,11 @@ class grothendieck.basis [@category_theory.limits.has_pullbacks C 𝒞] (K : arr
        ∀ (h₃ : ∀ {f : over X} (hf : f ∈ ℱ), 𝒢 hf ∈ K(f.left)),
          (⋃ (f : over X) (hf : f ∈ ℱ) (g : over f.left) (hg : g ∈ 𝒢 hf), {over.mk (g.hom ≫ f.hom)}) ∈ K(X))
 
-instance grothendieck.of_basis [@category_theory.limits.has_pullbacks C 𝒞] {K : arrow_set C} [grothendieck.basis K] : grothendieck (sieve_set.generate K) :=
-{ max := λ X, ⟨{over.mk (𝟙 X)}, grothendieck.basis.i K (iso.refl X), λ f h, ⟨⟩⟩,
+instance of_basis [@category_theory.limits.has_pullbacks C 𝒞] {K : arrow_set C} [basis K] : grothendieck (sieve_set.generate K) :=
+{ max := λ X, ⟨{over.mk (𝟙 X)}, basis.i K (iso.refl X), λ f h, ⟨⟩⟩,
   stab := begin
     rintros X Y S ⟨ℱ,h₁,h₂⟩ f,
-    refine ⟨_,grothendieck.basis.ii h₁ f,_⟩,
+    refine ⟨_,basis.ii h₁ f,_⟩,
     rintros g ⟨h,h₃,rfl⟩,
     show over.mk (_ ≫ f) ∈ S,
     simp,
@@ -83,7 +83,7 @@ instance grothendieck.of_basis [@category_theory.limits.has_pullbacks C 𝒞] {K
       exact h₃,
     rw [sieve_set.generate],
     show ∃ (T : set (over X)) (H : T ∈ K X), T ⊆ R.arrows,
-    refine ⟨_,grothendieck.basis.iii h₁ _ _,_⟩,
+    refine ⟨_,basis.iii h₁ _ _,_⟩,
     -- [TODO] tidy up, find a more readable way to invoke choice.
     { intros f hf, apply (classical.some (h₄ f (h₂ hf)))},
     { intros f hf, rcases classical.some_spec (h₄ f (h₂ hf)) with ⟨h10,h11⟩, apply h10 },
@@ -183,7 +183,7 @@ instance dense.grothendieck : grothendieck (dense C) :=
     end
 }
 
-/-- The atomic sieveset is a grothendieck topology when it is inhabited and
+/-- The atomic sieveset is a grothendieck topology when it
     satisfies the 'square' property. Which says that every span `Y ⟶ X ⟵ Z` forms a commuting
     diagram. -/
 instance atomic.grothendieck
@@ -191,11 +191,10 @@ instance atomic.grothendieck
     ∀ {X Y Z : C} (yx : Y ⟶ X) (zx : Z ⟶ X),
     ∃ (W : C)     (wy : W ⟶ Y) (wz : W ⟶ Z),
       wy ≫ yx = wz ≫ zx)
-  (inh : ∀ (X : C), inhabited (over X))
   : grothendieck (atomic C) :=
 { max := λ X, begin
     refine ⟨_,_⟩,
-    apply inhabited.default,
+    apply over.mk (𝟙 _),
     trivial
   end
 , stab := begin
@@ -213,7 +212,6 @@ instance atomic.grothendieck
   end
 }
 
--- [todo] a basis for a topology
 -- [TODO] sheaves on a topology
 -- [TODO] the topological site
 
