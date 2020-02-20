@@ -1,4 +1,5 @@
 import category_theory.limits.shapes
+import .comma
 
 open category_theory category_theory.category category_theory.limits
 
@@ -34,7 +35,7 @@ begin
   apply limit.hom_ext,
   intro j, cases j,
   apply h1, apply h2,
-  rw ← limits.limit.w (cospan f g) walking_cospan.hom.inl, 
+  rw ← limits.limit.w (cospan f g) walking_cospan.hom.inl,
   rw ← category.assoc, rw h1, rw category.assoc
 end
 
@@ -50,19 +51,19 @@ end
 lemma pullback.with_id_l' {X Y : C} (f : X ⟶ Y) :
   is_limit (pullback_cone.mk f (𝟙 X) (show f ≫ (𝟙 Y) = (𝟙 X) ≫ f, by simp)) :=
 { lift := λ c, (c.π).app walking_cospan.right,
-  fac' := λ c j, 
+  fac' := λ c j,
   begin
     cases j, -- BM: note triple cases
-    have := pullback_cone.condition c, 
+    have := pullback_cone.condition c,
     erw ← pullback_cone.condition c, simp,
     erw comp_id,
-    show pullback_cone.snd c ≫ (f ≫ 𝟙 Y) = _, 
-    have := c.π.naturality walking_cospan.hom.inr, 
+    show pullback_cone.snd c ≫ (f ≫ 𝟙 Y) = _,
+    have := c.π.naturality walking_cospan.hom.inr,
     erw id_comp at this, rw this, simp
   end,
-  uniq' := 
+  uniq' :=
   begin
-    intros c r J, 
+    intros c r J,
     have J1 : r ≫ f = (c.π).app walking_cospan.left := J walking_cospan.left,
     have J2 : r ≫ (𝟙 X) = (c.π).app walking_cospan.right := J walking_cospan.right,
     erw ← J2, symmetry, apply comp_id
@@ -111,3 +112,9 @@ begin
     rw c, rw ← category.assoc,  rw e, simp,
   show a ≫ pullback.snd = b ≫ pullback.snd, assumption,
 end
+
+def over.pullback [@has_pullbacks C 𝒞] {X Y : C} (f : X ⟶ Y) (g : over Y) : over X :=
+over.mk (@pullback.fst _ _ _ _ _ f g.hom _)
+
+@[simp] lemma over_pullback_def [@has_pullbacks C 𝒞] {X Y : C} (f : X ⟶ Y) (g : over Y) :
+  (over.pullback f g).hom = pullback.fst := rfl
