@@ -8,43 +8,43 @@ import .comma
 
 universes u v
 namespace category_theory
-variables {C : Type u}
-variables [𝒞 : category.{v} C]
-include 𝒞
 
 /-- A sieve on X is a set of morphisms to X that is closed under left composition. -/
-structure sieve (X : C) :=
+structure sieve {C : Type u} [𝒞 : category.{v} C] (X : C) :=
 (arrows : set (over X))
 (subs : ∀ (f : over X) (_ : f ∈ arrows) (Z : C) (g : Z ⟶ f.left), (over.mk (g ≫ f.hom)) ∈ arrows)
 
 namespace sieve
 
-variables {X Y : C} {S R : @sieve C 𝒞 X}
+variables {C : Type u}
+variables [𝒞 : category.{v} C]
+include 𝒞
+variables {X Y Z : C} {S R : sieve X}
 
--- [TODO] figure out why typeclass inference is failing to find 𝒞.
-instance : has_mem (Y ⟶ X) (@sieve C 𝒞 X) := ⟨λ f S, over.mk f ∈ S.arrows⟩
+instance mem_hom  : has_mem (Y ⟶ X) (sieve X) := ⟨λ f S, over.mk f ∈ S.arrows⟩
+instance mem_over : has_mem (over X)  (sieve X) := ⟨λ f S, f ∈ S.arrows⟩
 
-instance : has_subset (@sieve C 𝒞 X) := ⟨λ S R, S.arrows ⊆ R.arrows⟩
+instance : has_subset (sieve X) := ⟨λ S R, S.arrows ⊆ R.arrows⟩
 
-@[ext] def extensionality : Π {R S : @sieve C 𝒞 X}, R.arrows = S.arrows → R = S
+@[ext] def extensionality : Π {R S : sieve X}, R.arrows = S.arrows → R = S
 |⟨Ra,_⟩ ⟨Sa, _⟩ rfl := rfl
 
-instance : partial_order (@sieve C 𝒞 X) :=
+instance : partial_order (sieve X) :=
 { partial_order .
-  le := λ S R, S.arrows ⊆ R.arrows,
+  le := λ S R, S ⊆ R,
   le_refl := λ S, set.subset.refl _,
   le_trans := λ S R T, set.subset.trans,
   le_antisymm := begin intros S R p q, apply sieve.extensionality, apply set.subset.antisymm; assumption end
 }
 
-lemma subset_def {R S : @sieve C 𝒞 X} : S.arrows ⊆ R.arrows → S ≤ R := λ h, h
+lemma subset_def : S.arrows ⊆ R.arrows → S ≤ R := λ h, h
 
-instance : preorder (@sieve C 𝒞 X) := by apply_instance
+instance : preorder (sieve X) := by apply_instance
 
 open lattice
 
-protected def Sup (𝒮 : set (@sieve C 𝒞 X)) : (@sieve C 𝒞 X) :=
-{ arrows := ⋃ (S : {S : @sieve C 𝒞 X // S ∈ 𝒮}), sieve.arrows S.1
+protected def Sup (𝒮 : set (sieve X)) : (sieve X) :=
+{ arrows := ⋃ (S : {S : sieve X // S ∈ 𝒮}), sieve.arrows S.1
 , subs :=
   begin
     rintros f ⟨R,⟨⟨S,S𝒮⟩,e⟩,h₁⟩ Z g,
@@ -55,8 +55,8 @@ protected def Sup (𝒮 : set (@sieve C 𝒞 X)) : (@sieve C 𝒞 X) :=
   end
 }
 
-protected def Inf (𝒮 : set (@sieve C 𝒞 X)) : (@sieve C 𝒞 X) :=
-{ arrows := ⋂ (S : {S : @sieve C 𝒞 X // S ∈ 𝒮}), sieve.arrows S.1,
+protected def Inf (𝒮 : set (sieve X)) : (sieve X) :=
+{ arrows := ⋂ (S : {S // S ∈ 𝒮}), sieve.arrows S.1,
   subs :=
   begin
     rintros f h₁ Z g R h₂,
@@ -66,7 +66,7 @@ protected def Inf (𝒮 : set (@sieve C 𝒞 X)) : (@sieve C 𝒞 X) :=
   end
 }
 
-def union (S R : @sieve C 𝒞 X) : @sieve C 𝒞 X :=
+def union (S R : sieve X) : sieve X :=
 { arrows := S.arrows ∪ R.arrows,
   subs :=
   begin
@@ -76,7 +76,7 @@ def union (S R : @sieve C 𝒞 X) : @sieve C 𝒞 X :=
   end
 }
 
-def inter (S R : @sieve C 𝒞 X) : @sieve C 𝒞 X :=
+def inter (S R : sieve X) : sieve X :=
 { arrows := S.arrows ∩ R.arrows,
   subs := begin
     rintros f ⟨fS,fR⟩ Z g,
@@ -86,7 +86,7 @@ def inter (S R : @sieve C 𝒞 X) : @sieve C 𝒞 X :=
   end
 }
 
-instance : complete_lattice (@sieve C 𝒞 X) :=
+instance : complete_lattice (sieve X) :=
 { top := { arrows := set.univ, subs := λ a aa Z g, ⟨⟩ },
   bot := { arrows := ∅, subs := λ a aa Z g, false.rec_on _ aa },
   sup := union,
@@ -108,26 +108,26 @@ instance : complete_lattice (@sieve C 𝒞 X) :=
   ..sieve.partial_order
 }
 
-inductive generate_sets {X : C} (𝒢 : set (over X)) : over X → Prop
+inductive generate_sets (𝒢 : set (over X)) : over X → Prop
 |basic : Π {f : over X}, f ∈ 𝒢 → generate_sets f
 |subs  : Π {f : over X} {Y} (g : Y ⟶ f.1), generate_sets f → generate_sets (over.mk $ g ≫ f.hom)
 
-def generate (𝒢 : set (over X)) : @sieve C 𝒞 X :=
+def generate (𝒢 : set (over X)) : sieve X :=
 { arrows := generate_sets 𝒢,
   subs := λ f h Z g, generate_sets.subs _ h
 }
 
 open order lattice
 
-lemma sets_iff_generate {𝒢 : set (over X)} {S : @sieve C 𝒞 X} : generate 𝒢 ≤ S ↔ 𝒢 ⊆ S.arrows
+lemma sets_iff_generate {𝒢 : set (over X)}: generate 𝒢 ≤ S ↔ 𝒢 ⊆ S.arrows
 := iff.intro
     (λ H _ H2, H $ generate_sets.basic H2 )
     (λ ss g f, begin induction f, apply ss f_a, apply sieve.subs, apply f_ih end)
 
 /-- Show that there is a galois insertion (generate, .arrows).
     -/
-def gi_generate  :
-  @galois_insertion (set (over X)) (@sieve C 𝒞 X) (by apply_instance) _ generate sieve.arrows :=
+def gi_generate :
+  @galois_insertion (set (over X)) (sieve X) (by apply_instance) _ generate sieve.arrows :=
   { gc := λ s f, sets_iff_generate,
     choice := λ 𝒢 f, generate 𝒢,
     choice_eq := λ 𝒢 h, rfl,
@@ -138,33 +138,33 @@ def gi_generate  :
 /-- Given a morhpism `h : Y ⟶ X`, send a sieve S on X to a sieve on Y
     as the inverse image of S with `_ ≫ h`.
     That is, `yank S h := (≫ h) '⁻¹ S`. -/
-def yank {X Y : C} (S : @sieve C 𝒞 X) (h : Y ⟶ X) :  @sieve C 𝒞 Y :=
-{ arrows := {sl | (over.mk $ sl.hom ≫ h) ∈ S.arrows },
+def yank (S : sieve X) (h : Y ⟶ X) :  sieve Y :=
+{ arrows := {sl | (over.mk $ sl.hom ≫ h) ∈ S },
   subs :=
   begin
-    intros, suffices : over.mk ((g ≫ f.hom) ≫ h) ∈ S.arrows, by apply this,
+    intros, suffices : over.mk ((g ≫ f.hom) ≫ h) ∈ S, by apply this,
     let j := over.mk (f.hom ≫ h),
-    have jS : j ∈ S.arrows, from _x,
-    suffices : over.mk (g ≫ j.hom) ∈ S.arrows, simp, apply this,
+    have jS : j ∈ S, from _x,
+    suffices : over.mk (g ≫ j.hom) ∈ S, simp, apply this,
     apply sieve.subs S j jS,
   end
 }
 
-@[simp] lemma yank_def (h : Y ⟶ X) {Z : C} {f : Z ⟶ Y}
-: ((over.mk f) ∈ (yank S h).arrows) = ((over.mk $ f ≫ h) ∈ S.arrows) := rfl
+@[simp] lemma yank_def (h : Y ⟶ X) {f : Z ⟶ Y}
+: ((over.mk f) ∈ (yank S h)) = ((over.mk $ f ≫ h) ∈ S) := rfl
 
 @[simp] lemma yank_def2 (h : Y ⟶ X)  {f : over Y}
-: (f ∈ (yank S h).arrows) = ((over.mk $ f.hom ≫ h) ∈ S.arrows) := rfl
+: (f ∈ (yank S h)) = ((over.mk $ f.hom ≫ h) ∈ S) := rfl
 
 
-def yank_le_map {X Y} {S R : @sieve C 𝒞 X} (Hss : S ≤ R) (f : Y ⟶ X) : yank S f ≤ yank R f
+def yank_le_map {S R : sieve X} (Hss : S ≤ R) (f : Y ⟶ X) : yank S f ≤ yank R f
 := begin rintros ⟨Z,g⟩ H, apply Hss, apply H end
 
 lemma yank_top {f : Y ⟶ X} : yank ⊤ f = ⊤ :=
 begin apply top_unique, rintros g Hg, trivial end
 
-def comp (R : @sieve C 𝒞 Y) (f : Y ⟶ X) : @sieve C 𝒞 X :=
-{ arrows := λ gf, ∃ (g : gf.1 ⟶ Y) (_ : over.mk g ∈ R.arrows), gf.hom = g ≫ f
+def comp (R : sieve Y) (f : Y ⟶ X) : sieve X :=
+{ arrows := λ gf, ∃ (g : gf.1 ⟶ Y) (_ : over.mk g ∈ R), gf.hom = g ≫ f
 , subs :=
   begin
     rintros ⟨Z,g⟩ ⟨j,ir,e⟩ W h, refine ⟨h ≫ j,_,_⟩,
@@ -173,35 +173,35 @@ def comp (R : @sieve C 𝒞 Y) (f : Y ⟶ X) : @sieve C 𝒞 X :=
   end
 }
 
-def le_yank_comp {R : @sieve C 𝒞 Y} {f : Y ⟶ X} :
+def le_yank_comp {R : sieve Y} {f : Y ⟶ X} :
   R ≤ yank (comp R f) f :=
 begin rintros g b, refine ⟨_,_,rfl⟩, simp, assumption end
 
-def has_id_max : over.mk (𝟙 X) ∈ S.arrows → S = ⊤ :=
+def has_id_max : over.mk (𝟙 X) ∈ S → S = ⊤ :=
 begin
   intro h,
   apply top_unique,
   rintros f ⟨⟩,
-  suffices : over.mk (f.hom ≫ (𝟙 _)) ∈ S.arrows,
+  suffices : over.mk (f.hom ≫ (𝟙 _)) ∈ S,
     simp at this, exact this,
   refine @sieve.subs _ _ _ S (over.mk (𝟙 _)) _ _ _,
   apply h,
 end
 
 def comps
-  (R : Π (f : over X), @sieve C 𝒞 f.left)
-  (S : @sieve C 𝒞 X) : @sieve C 𝒞 X :=
-  ⨆ (f ∈ S.arrows), comp (R f) f.hom
+  (R : Π (f : over X), sieve f.left)
+  (S : sieve X) : sieve X :=
+  ⨆ (f ∈ S), comp (R f) f.hom
 
 def comp_le_comps
-  (R : Π (f : over X), @sieve C 𝒞 f.1)
-  (S : @sieve C 𝒞 X)
-  (f ∈ S.arrows) :
+  (R : Π (f : over X), sieve f.1)
+  (S : sieve X)
+  (f ∈ S) :
   comp (R f) f.hom ≤ comps R S
   :=
   begin
-    refine calc comp (R f) f.hom = _ : _ ... ≤  ⨆ (H : f ∈ S.arrows), comp (R f) f.hom : _
-      ... ≤  ⨆ (f ∈ S.arrows), comp (R f) f.hom : _,
+    refine calc comp (R f) f.hom = _ : _ ... ≤  ⨆ (H : f ∈ S), comp (R f) f.hom : _
+      ... ≤  ⨆ (f ∈ S), comp (R f) f.hom : _,
       rotate 2,
       refine lattice.le_supr _ H,
       refine lattice.le_supr _ f,
@@ -209,15 +209,15 @@ def comp_le_comps
    end
 
 def comps_ss_S
-  (R : Π (f : over X), @sieve C 𝒞 f.left)
-  (S : @sieve C 𝒞 X) :
+  (R : Π (f : over X), sieve f.left)
+  (S : sieve X) :
   comps R S ≤ S :=
 begin
   apply lattice.supr_le _,
   rintros f,
   apply lattice.supr_le _,
   rintros H g ⟨a,b,e⟩,
-  suffices : over.mk (g.hom) ∈ S.arrows, simp at this, apply this,
+  suffices : over.mk (g.hom) ∈ S, simp at this, apply this,
   rw e,
   apply sieve.subs,
   apply H,
