@@ -62,7 +62,7 @@ def has_equalizers_of_pullbacks_and_binary_products
       is_limit :=
       { lift :=
         begin
-          intro c, apply pullback.lift ((c.π).app _) ((c.π).app _),
+          intro c, apply pullback.lift (c.π.app _) (c.π.app _),
           apply limit.hom_ext,
           rintro (_ | _), all_goals { simp [assoc, limit.lift_π] }
         end,
@@ -91,7 +91,7 @@ def has_equalizers_of_pullbacks_and_binary_products
           rw l, dunfold pullback_cone.mk, dsimp, rw ← limit.w _ _,
           swap, exact walking_cospan.left,
           swap, exact walking_cospan.hom.inl,
-          rw ← assoc, rw J1, refl,
+          rw ← assoc, rw J1, refl
         end
       }
       }}}
@@ -148,8 +148,7 @@ lemma pasting (C : Type u) [𝒞 : category.{v} C] [has_pullbacks.{v} C] {U V W 
     { have new_cone_comm: pullback_cone.fst c ≫ l = (pullback_cone.snd c ≫ m) ≫ n,
         rw assoc, rw pullback_cone.condition,
       have new_cone2_comm: (right.lift (pullback_cone.mk _ _ new_cone_comm)) ≫ k = (pullback_cone.snd c : c.X ⟶ X) ≫ m := right.fac' (pullback_cone.mk _ _ new_cone_comm) walking_cospan.right,
-      exact left.lift (pullback_cone.mk _ _ new_cone2_comm)
-    },
+      exact left.lift (pullback_cone.mk _ _ new_cone2_comm) },
     { set π₁ : c.X ⟶ W := pullback_cone.fst c,
       set π₂ : c.X ⟶ X := pullback_cone.snd c,
       have new_cone_comm: π₁ ≫ l = (π₂ ≫ m) ≫ n,
@@ -172,7 +171,7 @@ lemma pasting (C : Type u) [𝒞 : category.{v} C] [has_pullbacks.{v} C] {U V W 
       set π₂ : c.X ⟶ X := pullback_cone.snd c,
       have new_cone_comm: π₁ ≫ l = (π₂ ≫ m) ≫ n,
         rw assoc, rw pullback_cone.condition,
-            set new_cone := pullback_cone.mk _ _ new_cone_comm,
+      set new_cone := pullback_cone.mk _ _ new_cone_comm,
       have new_cone2_comm: (right.lift new_cone) ≫ k = π₂ ≫ m := right.fac' new_cone walking_cospan.right,
       set new_cone2 := pullback_cone.mk _ _ new_cone2_comm,
       intros r J,
@@ -200,42 +199,43 @@ namespace category_theory
 
 -- Define what it means for χ to classify the mono f.
 -- Should this be a class? I don't think so but maybe
-def classifies {C : Type u} [𝒞 : category.{v} C] [@has_pullbacks C 𝒞]
-  {Ω₀ Ω U X : C} {f : U ⟶ X} (true : Ω₀ ⟶ Ω) (h : mono f) (χ : X ⟶ Ω)
+def classifies {C : Type u} [𝒞 : category.{v} C]
+  {Ω Ω₀ U X : C} (true : Ω₀ ⟶ Ω) {f : U ⟶ X} (h : mono f) (χ : X ⟶ Ω)
   := Σ' (k : U ⟶ Ω₀) (comm : k ≫ true = f ≫ χ),
         is_limit (pullback_cone.mk _ _ comm)
 
 -- A subobject classifier is a mono which classifies every mono uniquely
-class has_subobject_classifier (C : Type u) [𝒞 : category.{v} C] [@has_pullbacks C 𝒞] :=
+class has_subobject_classifier (C : Type u) [𝒞 : category.{v} C] :=
 (Ω Ω₀ : C)
 (truth : Ω₀ ⟶ Ω)
 (truth_mono' : mono truth)
-(classifies' : Π {U X} {f : U ⟶ X} (h : mono f),
-               Σ χ, classifies truth h χ)
+(classifies' : Π {U X} {f : U ⟶ X} (h : mono f), Σ χ, classifies truth h χ)
 (uniquely' : Π {U X} {f : U ⟶ X} (h : mono f) (χ₁ χ₂ : X ⟶ Ω),
-         classifies truth h χ₁
-       → classifies truth h χ₂
-       → χ₁ = χ₂)
+            classifies truth h χ₁ → classifies truth h χ₂ → χ₁ = χ₂)
 
-variables {C : Type u} [𝒞 : category.{v} C] [@has_pullbacks C 𝒞] [has_subobject_classifier C]
+variables {C : Type u} [𝒞 : category.{v} C]
+
+lemma mono_id (A : C) : @mono _ 𝒞 _ _ (𝟙 A) := ⟨λ _ _ _ w, by simp at w; exact w⟩
+
+variables [has_subobject_classifier C]
 
 -- convenience defs
 @[reducible]
 def subobj.Ω : C :=
-@has_subobject_classifier.Ω _ 𝒞 _ _
+@has_subobject_classifier.Ω _ 𝒞 _
 @[reducible]
 def subobj.Ω₀ : C :=
-@has_subobject_classifier.Ω₀ _ 𝒞 _ _
+@has_subobject_classifier.Ω₀ _ 𝒞 _
 @[reducible]
 def subobj.truth : subobj.Ω₀ ⟶ subobj.Ω :=
-@has_subobject_classifier.truth _ 𝒞 _ _
+@has_subobject_classifier.truth _ 𝒞 _
 @[reducible]
 instance subobj.truth_mono : mono subobj.truth :=
-@has_subobject_classifier.truth_mono' _ 𝒞 _ _
+@has_subobject_classifier.truth_mono' _ 𝒞 _
 @[reducible]
 def subobj.classifies {U X} {f : U ⟶ X} (h : mono f) :
   Σ χ, classifies subobj.truth h χ :=
-@has_subobject_classifier.classifies' C 𝒞 _ _ _ _ _ h
+@has_subobject_classifier.classifies' C 𝒞 _ _ _ _ h
 restate_axiom has_subobject_classifier.uniquely'
 
 -- subobject classifier => there is a terminal object.
@@ -250,27 +250,17 @@ instance terminal_of_subobj (C : Type u) [𝒞 : category.{v} C] [@has_pullbacks
 { has_limits_of_shape :=
   { has_limit := λ F,
     { cone :=
-      { X := subobj.Ω₀
-      , π := {app := λ p, pempty.elim p} }
-    , is_limit :=
-      { lift :=
-        begin
-          intro s,
-          have mid: mono (𝟙 s.X),
-            split, intros, simp at w, assumption,
-          exact (subobj.classifies mid).2.1
-        end
-      , fac' := λ s j, j.elim
-      , uniq' :=
+      { X := subobj.Ω₀,
+        π := {app := λ p, pempty.elim p}},
+      is_limit :=
+      { lift := λ s, (subobj.classifies (mono_id s.X)).2.1,
+        fac' := λ _ j, j.elim,
+        uniq' :=
         begin
           intros s m J, dsimp at m, clear J,
-          have mid: mono (𝟙 s.X),
-            split, intros, simp at w, assumption,
-          obtain ⟨χ₁, r⟩ := subobj.classifies mid,
-          set k := r.1,
-          show m = k,
+          obtain ⟨χ₁, r⟩ := subobj.classifies (mono_id s.X),
           rw ← cancel_mono subobj.truth,
-          apply has_subobject_classifier.uniquely mid, swap, rwa [r.2.1, id_comp],
+          apply has_subobject_classifier.uniquely (mono_id s.X), swap, rwa [r.2.1, id_comp],
           refine ⟨m, _, _⟩,
           rw id_comp, refine ⟨λ c, c.π.app walking_cospan.right, λ c, _, _⟩,
           rintro (_ | _ | _),
@@ -286,6 +276,7 @@ instance terminal_of_subobj (C : Type u) [𝒞 : category.{v} C] [@has_pullbacks
 }
 
 instance: has_pullbacks.{u} (Type u) := ⟨limits.has_limits_of_shape_of_has_limits⟩
+#print axioms nat.find
 
 -- this is a bit weird... need to look at the maths proof that we can classify in Set
 instance: has_subobject_classifier Type :=
@@ -309,6 +300,5 @@ instance: has_subobject_classifier Type :=
 ⟩
 , uniquely' := sorry
 }
-
 
 end category_theory
