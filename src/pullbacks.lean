@@ -58,7 +58,7 @@ lemma iso_apex_of_iso_cone {F : J ⥤ C} {c₁ c₂ : cone F} (h : c₁ ≅ c₂
 }
 
 -- The pasting lemma for pullbacks. Something like this will invariably be useful
-lemma pasting (C : Type u) [𝒞 : category.{v} C] {U V W X Y Z : C}
+lemma pasting {C : Type u} [𝒞 : category.{v} C] {U V W X Y Z : C}
   (f : U ⟶ V) (g : V ⟶ W) (h : U ⟶ X) (k : V ⟶ Y) (l : W ⟶ Z) (m : X ⟶ Y) (n : Y ⟶ Z)
   (left_comm : f ≫ k = h ≫ m) (right_comm : g ≫ l = k ≫ n)
   (right : is_limit (pullback_cone.mk g k right_comm)) :
@@ -210,7 +210,6 @@ lemma pullback.flip {Y Z W : C} {h : Y ⟶ W} {k : Z ⟶ W} {c : cone (cospan h 
   end
 }
 
-
 lemma thing [@has_pullbacks C 𝒞] (f : X ⟶ Z) (g : Y ⟶ Z) :
   cospan_cone.flip (limit.cone (cospan g f)) ≅ limit.cone (cospan f g) :=
 { hom := limit.cone_morphism _, inv := ((flip_twice _).inv ≫ flip_hom (limit.cone_morphism _)),
@@ -238,11 +237,15 @@ lemma pullback.with_id_l' {X Y : C} (f : X ⟶ Y) :
   is_limit (pullback_cone.mk (𝟙 X) f (show (𝟙 X) ≫ f = f ≫ (𝟙 Y), by simp)) :=
 is_limit.of_iso_limit (pullback.flip (pullback.with_id_r' f)) (flip_mk _)
 
+lemma identify_limit_apex {F : J ⥤ C} [has_limit F] {a : cone F} (t : is_limit a) :
+  ((limit.cone F).X ≅ a.X) :=
+iso_apex_of_iso_cone (is_limit.unique_up_to_iso (limit.is_limit _) t)
+
 /- Note that we need `has_pullbacks` even though this particular pullback always exists, because here we are showing that the
 constructive limit derived using has_pullbacks has to be iso to this simple definition.  -/
 lemma pullback.with_id_r [@has_pullbacks C 𝒞] {X Y : C} (f : X ⟶ Y) :
   pullback (𝟙 Y) f ≅ X :=
-iso_apex_of_iso_cone (is_limit.unique_up_to_iso (limit.is_limit _) (pullback.with_id_r' f))
+identify_limit_apex (pullback.with_id_r' f)
 
 lemma pullback.with_id_l [@has_pullbacks C 𝒞] {X Y : C} (f : X ⟶ Y) :
   pullback f (𝟙 Y) ≅ X :=
@@ -255,16 +258,24 @@ begin
   show _ ≫ _ = _, rw limit.cone_π, rw ← limit.w (cospan f g) walking_cospan.hom.inl,
   refl
 end
-
+-- todo: use pasting here
 lemma pullback.comp_l {W X Y Z : C} {xz : X ⟶ Z} {yz : Y ⟶ Z} {wx : W ⟶ X} [@has_pullbacks C 𝒞]:
 pullback (wx ≫ xz) yz ≅ pullback wx (@pullback.fst _ _ _ _ _ xz yz _) :=
 begin
-  apply iso.mk _ _ _ _ ,
+  apply iso.mk _ _ _ _,
   { refine pullback.lift pullback.fst (pullback.lift (pullback.fst ≫ wx) pullback.snd _) _, simp, rw pullback.condition,  simp},
-  { refine pullback.lift pullback.fst (pullback.snd ≫ pullback.snd) _, rw ← category.assoc, rw pullback.condition,  simp, rw pullback.condition },
+  { refine pullback.lift pullback.fst (pullback.snd ≫ pullback.snd) _, rw ← category.assoc, rw pullback.condition, simp, rw pullback.condition },
   {apply pullback.hom_ext, simp, simp },
   {apply pullback.hom_ext, simp, simp, apply pullback.hom_ext, simp, apply pullback.condition, simp},
 end
+
+lemma test [@has_pullbacks C 𝒞] {X Y Z : C} {xz : X ⟶ Z} {yz : Y ⟶ Z} :
+  is_limit (pullback_cone.mk pullback.fst pullback.snd (show pullback.fst ≫ yz = pullback.snd ≫ xz, from pullback.condition)) :=
+(limit.is_limit _).of_iso_limit make_pullback.symm
+
+lemma pullback.comp_r {W X Y Z : C} {xz : X ⟶ Z} {yz : Y ⟶ Z} {wx : W ⟶ X} [@has_pullbacks C 𝒞]:
+  pullback yz (wx ≫ xz) ≅ pullback (@pullback.snd _ _ _ _ _ yz xz _) wx :=
+identify_limit_apex ((pasting _ _ _ _ _ _ _ _ _ test).inv test) ≪≫ iso_apex_of_iso_cone make_pullback
 
 -- [todo] comp_r; I was hoping there would be a cool way of lifting the isomorphism `(cospan f g).cones ≅ (cospan g f).cones` but can't see it.
 
