@@ -9,6 +9,7 @@ variables {J : Type v} [small_category J]
 include 𝒞
 
 variables {L X Y Z : C} {f : X ⟶ Z} {g : Y ⟶ Z} {lx : L ⟶ X} {ly : L ⟶ Y} {e : lx ≫ f = ly ≫ g}
+
 @[simp] lemma pullback_cone.simp_left : ((pullback_cone.mk lx ly e).π).app walking_cospan.left = lx := rfl
 @[simp] lemma pullback_cone.simp_right : ((pullback_cone.mk lx ly e).π).app walking_cospan.right = ly := rfl
 
@@ -19,18 +20,38 @@ begin
   intro j, erw [id_comp _ (limit.π F j)], refl,
 end
 
+lemma pi_app {W : C} {h : X ⟶ Z} {k : Y ⟶ Z} {c₁ c₂ : cone (cospan h k)} {f : W ⟶ c₁.X} {g : W ⟶ c₂.X}
+  (h1 : f ≫ pullback_cone.fst c₁ = g ≫ pullback_cone.fst c₂)
+  (h2 : f ≫ pullback_cone.snd c₁ = g ≫ pullback_cone.snd c₂) :
+  ∀ (j : walking_cospan), f ≫ c₁.π.app j = g ≫ c₂.π.app j :=
+begin
+  intro j, cases j, exact h1, exact h2,
+  rw ← cone.w c₂ walking_cospan.hom.inl,
+  rw ← cone.w c₁ walking_cospan.hom.inl,
+  rw ← assoc, rw ← assoc, rw h1
+end
+
+lemma pi_app_left {h : X ⟶ Z} {k : Y ⟶ Z} (c₁ c₂ : cone (cospan h k)) (f : c₂.X ⟶ c₁.X)
+  (h1 : f ≫ pullback_cone.fst c₁ = pullback_cone.fst c₂)
+  (h2 : f ≫ pullback_cone.snd c₁ = pullback_cone.snd c₂) :
+  ∀ (j : walking_cospan), f ≫ c₁.π.app j = c₂.π.app j :=
+begin
+  convert @pi_app C _ _ _ _ _ _ _ c₁ c₂ f (𝟙 _) _ _,
+  simp, simpa, simpa
+end
+
+lemma pullback_cone.hom_ext {t : pullback_cone f g} (h : is_limit t) {W : C} {f₁ f₂ : W ⟶ t.X}
+  (h1 : f₁ ≫ pullback_cone.fst t = f₂ ≫ pullback_cone.fst t)
+  (h2 : f₁ ≫ pullback_cone.snd t = f₂ ≫ pullback_cone.snd t) :
+  f₁ = f₂ :=
+is_limit.hom_ext h (pi_app h1 h2)
+
 lemma pullback.hom_ext {X Y Z A : C} {f : X ⟶ Z} {g : Y ⟶ Z} [has_limit (cospan f g)]
   (a b : A ⟶ pullback f g)
   (h1 : a ≫ pullback.fst = b ≫ pullback.fst)
   (h2 : a ≫ pullback.snd = b ≫ pullback.snd)
     : a = b :=
-begin
-  apply limit.hom_ext,
-  intro j, cases j,
-  apply h1, apply h2,
-  rw ← limit.w (cospan f g) walking_cospan.hom.inl,
-  rw ← assoc, rw h1, rw assoc
-end
+pullback_cone.hom_ext (limit.is_limit _) h1 h2
 
 @[simp] lemma pullback.lift_self_id {X Y Z : C} {f : X ⟶ Z} {g : Y ⟶ Z} [has_limit (cospan f g)] :
   pullback.lift pullback.fst pullback.snd pullback.condition = 𝟙 (pullback f g) :=
@@ -75,31 +96,21 @@ lemma pasting {C : Type u} [𝒞 : category.{v} C] {U V W X Y Z : C}
       have new_cone_comm: (pullback_cone.fst c ≫ g) ≫ l = pullback_cone.snd c ≫ m ≫ n,
         rw assoc, rw ← pullback_cone.condition_assoc, rw right_comm,
       set new_cone := pullback_cone.mk (pullback_cone.fst c ≫ g) (pullback_cone.snd c) new_cone_comm,
-      have coned := entire.fac' new_cone,
-      rintro (_ | _ | _),
-      { show entire.lift new_cone ≫ f = pullback_cone.fst c,
-        apply is_limit.hom_ext right,
-        rintro (_ | _ | _),
+      have coned := entire.fac new_cone,
+      apply pi_app_left (pullback_cone.mk f h left_comm),
+      { apply pullback_cone.hom_ext right,
         { rw assoc, exact coned walking_cospan.left },
-        { show (entire.lift new_cone ≫ f) ≫ k = _ ≫ k,
-          rw assoc, conv_lhs {congr, skip, rw left_comm}, rw ← assoc,
-          have: entire.lift new_cone ≫ h = (pullback_cone.snd _) := coned walking_cospan.right,
-          rw pullback_cone.condition c, rw this, refl },
-        { show (entire.lift new_cone ≫ f) ≫ g ≫ l = _ ≫ g ≫ l, conv_lhs {rw ← assoc, congr, rw assoc},
-        have: entire.lift new_cone ≫ f ≫ g = (new_cone.π).app walking_cospan.left := coned walking_cospan.left,
-        rw this, rw ← assoc, refl } },
-      { show entire.lift new_cone ≫ h = pullback_cone.snd new_cone, exact coned walking_cospan.right },
-      { show entire.lift new_cone ≫ f ≫ k = (c.π).app walking_cospan.one,
-        rw ← cone.w c walking_cospan.hom.inr, show entire.lift new_cone ≫ f ≫ k = pullback_cone.snd new_cone ≫ m, conv_lhs {congr, skip, rw left_comm},
-        rw ← assoc, congr, exact coned walking_cospan.right } },
+        { rw assoc, conv_lhs {congr, skip, erw left_comm}, rw ← assoc,
+          erw [pullback_cone.condition c, coned walking_cospan.right], refl } },
+      { exact coned walking_cospan.right }},
     { intros c r j,
       have new_cone_comm: (pullback_cone.fst c ≫ g) ≫ l = pullback_cone.snd c ≫ m ≫ n,
         rw assoc, rw ← pullback_cone.condition_assoc, rw right_comm,
       set new_cone := pullback_cone.mk (pullback_cone.fst c ≫ g) (pullback_cone.snd c) new_cone_comm,
-      apply entire.uniq' new_cone r,
-      rintros (_ | _ | _), { show r ≫ f ≫ g = _ ≫ g, rw ← assoc, congr, exact j walking_cospan.left },
+      apply entire.uniq new_cone r, -- BM: here
+      apply pi_app_left (pullback_cone.mk (f ≫ g) h _) new_cone _,
+      { show r ≫ f ≫ g = _ ≫ g, rw ← assoc, congr, exact j walking_cospan.left },
       { show r ≫ h = (new_cone.π).app walking_cospan.right, exact j walking_cospan.right },
-      { show r ≫ (f ≫ g) ≫ l = (_ ≫ g) ≫ l, rw ← assoc, congr' 1, rw ← assoc, congr, exact j walking_cospan.left }
     }
   end,
   inv :=
@@ -108,26 +119,20 @@ lemma pasting {C : Type u} [𝒞 : category.{v} C] {U V W X Y Z : C}
     refine ⟨λ c, _, λ c, _, λ c, _⟩,
     { have new_cone_comm: pullback_cone.fst c ≫ l = (pullback_cone.snd c ≫ m) ≫ n,
         rw assoc, rw pullback_cone.condition,
-      have new_cone2_comm: (right.lift (pullback_cone.mk _ _ new_cone_comm)) ≫ k = (pullback_cone.snd c : c.X ⟶ X) ≫ m := right.fac' (pullback_cone.mk _ _ new_cone_comm) walking_cospan.right,
+      have new_cone2_comm: (right.lift (pullback_cone.mk _ _ new_cone_comm)) ≫ k = (pullback_cone.snd c : c.X ⟶ X) ≫ m :=
+           right.fac (pullback_cone.mk _ _ new_cone_comm) walking_cospan.right,
       exact left.lift (pullback_cone.mk _ _ new_cone2_comm) },
     { set π₁ : c.X ⟶ W := pullback_cone.fst c,
       set π₂ : c.X ⟶ X := pullback_cone.snd c,
       have new_cone_comm: π₁ ≫ l = (π₂ ≫ m) ≫ n,
         rw assoc, rw pullback_cone.condition,
-      have new_cone2_comm: (right.lift (pullback_cone.mk _ _ new_cone_comm)) ≫ k = π₂ ≫ m := right.fac' (pullback_cone.mk _ _ new_cone_comm) walking_cospan.right,
+      have new_cone2_comm: (right.lift (pullback_cone.mk _ _ new_cone_comm)) ≫ k = π₂ ≫ m :=
+            right.fac (pullback_cone.mk _ _ new_cone_comm) walking_cospan.right,
       set new_cone := pullback_cone.mk _ _ new_cone_comm,
       set new_cone2 := pullback_cone.mk _ _ new_cone2_comm,
-      have left_fac := left.fac' new_cone2,
-      have right_fac := right.fac' new_cone,
-      have ll: left.lift new_cone2 ≫ f = right.lift new_cone := left_fac walking_cospan.left,
-      have lr: left.lift new_cone2 ≫ h = π₂ := left_fac walking_cospan.right,
-      have rl: right.lift new_cone ≫ g = π₁ := right_fac walking_cospan.left,
-      have rr: right.lift new_cone ≫ k = π₂ ≫ m := right_fac walking_cospan.right,
-      rintro (_ | _ | _),
-      show left.lift new_cone2 ≫ f ≫ g = π₁, rw ← assoc, rw ll, rw rl,
-      show left.lift new_cone2 ≫ h = π₂, exact lr,
-      rw ← cone.w c walking_cospan.hom.inl,
-      show left.lift new_cone2 ≫ (f ≫ g) ≫ l = π₁ ≫ l, rw ← assoc, congr, rw ← assoc, rw ll, rw rl },
+      apply pi_app_left (pullback_cone.mk (f ≫ g) h _) c,
+      erw [← assoc, left.fac' new_cone2 walking_cospan.left, right.fac' new_cone walking_cospan.left], refl,
+      exact left.fac' new_cone2 walking_cospan.right },
     { set π₁ : c.X ⟶ W := pullback_cone.fst c,
       set π₂ : c.X ⟶ X := pullback_cone.snd c,
       have new_cone_comm: π₁ ≫ l = (π₂ ≫ m) ≫ n,
@@ -137,20 +142,13 @@ lemma pasting {C : Type u} [𝒞 : category.{v} C] {U V W X Y Z : C}
       set new_cone2 := pullback_cone.mk _ _ new_cone2_comm,
       intros r J,
       show r = left.lift new_cone2,
-      apply left.uniq' new_cone2 r,
-      have Jl: r ≫ f ≫ g = π₁ := J walking_cospan.left,
       have Jr: r ≫ h = π₂ := J walking_cospan.right,
-      have J1: r ≫ (f ≫ g) ≫ l = (c.π).app walking_cospan.one := J walking_cospan.one,
-      rintro (_ | _ | _),
-      show r ≫ f = right.lift new_cone,
-      apply right.uniq' new_cone,
-      rintro (_ | _ | _), rw assoc, exact Jl,
-      show (r ≫ f) ≫ k = π₂ ≫ m, rw ← Jr, rw assoc, conv_rhs {rw assoc}, congr, exact left_comm,
-      show (r ≫ f) ≫ g ≫ l = (new_cone.π).app walking_cospan.one, rw ← cone.w new_cone walking_cospan.hom.inl,
-      show (r ≫ f) ≫ g ≫ l = π₁ ≫ l, rw ← assoc, congr, rw assoc, exact Jl,
-      show r ≫ h = π₂, exact Jr,
-      show r ≫ f ≫ k = (new_cone2.π).app walking_cospan.one, rw ← cone.w new_cone2 walking_cospan.hom.inr,
-      show r ≫ f ≫ k = π₂ ≫ m, conv_lhs {congr, skip, rw left_comm}, rw ← assoc, rw Jr }
+      apply left.uniq new_cone2, -- BM: here
+      apply pi_app_left (pullback_cone.mk f h left_comm) new_cone2 _ _ Jr,
+      { apply right.uniq new_cone, -- BM: here
+        apply pi_app_left (pullback_cone.mk g k right_comm) new_cone,
+        { rw assoc, exact J walking_cospan.left},
+        { rw assoc, show r ≫ f ≫ k = π₂ ≫ m, rw ← Jr, conv_rhs {rw assoc}, congr, exact left_comm} } }
   end
 , hom_inv_id' := subsingleton.elim _ _
 , inv_hom_id' := subsingleton.elim _ _
@@ -161,7 +159,7 @@ lemma pullback.with_id_r' {X Y : C} (f : X ⟶ Y) :
 { lift := λ c, (c.π).app walking_cospan.right,
   fac' := λ c j,
   begin
-    cases j, -- BM: note triple cases
+    cases j, -- BM: triple case
     { erw ← pullback_cone.condition c, simp },
     { erw comp_id },
     show _ ≫ f ≫ 𝟙 Y = _,
@@ -238,7 +236,7 @@ lemma pullback.with_id_l' {X Y : C} (f : X ⟶ Y) :
 is_limit.of_iso_limit (pullback.flip (pullback.with_id_r' f)) (flip_mk _)
 
 lemma identify_limit_apex {F : J ⥤ C} [has_limit F] {a : cone F} (t : is_limit a) :
-  ((limit.cone F).X ≅ a.X) :=
+  (limit.cone F).X ≅ a.X :=
 iso_apex_of_iso_cone (is_limit.unique_up_to_iso (limit.is_limit _) t)
 
 /- Note that we need `has_pullbacks` even though this particular pullback always exists, because here we are showing that the
