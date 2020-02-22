@@ -201,35 +201,30 @@ lemma pullback.flip {Y Z W : C} {h : Y ⟶ W} {k : Z ⟶ W} {c : cone (cospan h 
   uniq' := λ s m J,
   begin
     apply z.uniq (cospan_cone.flip s),
-    intro j, cases j, -- BM: triple case
+    apply pi_app_left c (cospan_cone.flip s),
     erw J walking_cospan.right, refl,
     erw J walking_cospan.left, refl,
-    erw [← cone.w c walking_cospan.hom.inl, ← assoc, J walking_cospan.right], refl
   end
 }
+lemma pullback.flip'' {Y Z W : C} {h : Y ⟶ W} {k : Z ⟶ W} {c : cone (cospan h k)} :
+  is_limit c ≅ is_limit (cospan_cone.flip c) :=
+{ hom := pullback.flip, inv := pullback.flip ≫ (λ l, is_limit.of_iso_limit l (flip_twice _))}
 
-lemma thing [@has_pullbacks C 𝒞] (f : X ⟶ Z) (g : Y ⟶ Z) :
+lemma flip_limit_cone [@has_pullbacks C 𝒞] (f : X ⟶ Z) (g : Y ⟶ Z) :
   cospan_cone.flip (limit.cone (cospan g f)) ≅ limit.cone (cospan f g) :=
-{ hom := limit.cone_morphism _, inv := ((flip_twice _).inv ≫ flip_hom (limit.cone_morphism _)),
+{ hom := limit.cone_morphism _,
+  inv := ((flip_twice _).inv ≫ flip_hom (limit.cone_morphism _)),
   hom_inv_id' :=
   begin
     ext, simp, dunfold flip_hom flip_twice cones.ext, erw [id_comp, limit.lift_π],
-    cases j, -- BM: triple case
+    revert j, refine pi_app_left (cospan_cone.flip (limit.cone _)) (limit.cone _) _ _ _,
     { erw limit.lift_π, refl },
-    { erw limit.lift_π, refl },
-    rw ← limit.w (cospan g f) walking_cospan.hom.inl,
-    rw ← cone.w (cospan_cone.flip _) walking_cospan.hom.inl,
-    rw ← assoc, congr, erw limit.lift_π, refl
+    { erw limit.lift_π, refl }
   end,
   inv_hom_id' := is_limit.uniq_cone_morphism (limit.is_limit _) }
 
 lemma pullback.flip' [@has_pullbacks C 𝒞] (f : X ⟶ Z) (g : Y ⟶ Z) : pullback f g ≅ pullback g f :=
-begin
-  dunfold pullback limit, have := pullback.flip (limit.is_limit (cospan g f)),
-  have := @iso_apex_of_iso_cone _ _ _ _ _ (limit.cone (cospan f g)) (cospan_cone.flip (limit.cone (cospan g f))) _,
-  apply iso.trans this, refl,
-  dunfold limit.cone, apply (thing _ _).symm
-end
+iso_apex_of_iso_cone (flip_limit_cone f g).symm
 
 lemma pullback.with_id_l' {X Y : C} (f : X ⟶ Y) :
   is_limit (pullback_cone.mk (𝟙 X) f (show (𝟙 X) ≫ f = f ≫ (𝟙 Y), by simp)) :=
@@ -253,8 +248,7 @@ lemma make_pullback [has_limit (cospan f g)] :
   pullback_cone.mk pullback.fst pullback.snd pullback.condition ≅ limit.cone (cospan f g) :=
 begin
   apply cones.ext _ (λ j, _), refl, erw id_comp, cases j, refl, refl,
-  show _ ≫ _ = _, rw limit.cone_π, rw ← limit.w (cospan f g) walking_cospan.hom.inl,
-  refl
+  show _ ≫ _ = _, rw limit.cone_π, rw ← limit.w (cospan f g) walking_cospan.hom.inl, refl
 end
 -- todo: use pasting here
 lemma pullback.comp_l {W X Y Z : C} {xz : X ⟶ Z} {yz : Y ⟶ Z} {wx : W ⟶ X} [@has_pullbacks C 𝒞]:
@@ -275,6 +269,10 @@ lemma pullback.comp_r {W X Y Z : C} {xz : X ⟶ Z} {yz : Y ⟶ Z} {wx : W ⟶ X}
   pullback yz (wx ≫ xz) ≅ pullback (@pullback.snd _ _ _ _ _ yz xz _) wx :=
 identify_limit_apex ((pasting _ _ _ _ _ _ _ _ _ test).inv test) ≪≫ iso_apex_of_iso_cone make_pullback
 
+@[reducible]
+def pullback_iso {U V W X : C} {f : U ⟶ X} {g : V ⟶ X} {h : W ⟶ X} (z : V ≅ W) (hyp : z.hom ≫ h = g) (c : pullback_cone f g) :
+  pullback_cone f h :=
+pullback_cone.mk c.fst (c.snd ≫ z.hom) (by rw [pullback_cone.condition c, assoc, hyp])
 -- [todo] comp_r; I was hoping there would be a cool way of lifting the isomorphism `(cospan f g).cones ≅ (cospan g f).cones` but can't see it.
 
 /-- Pullback of a monic is monic. -/

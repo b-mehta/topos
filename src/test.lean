@@ -1,5 +1,6 @@
 import category_theory.limits.shapes
 import category_theory.limits.types
+import pullbacks
 
 universes v v₂ u
 
@@ -68,9 +69,7 @@ def has_equalizers_of_pullbacks_and_binary_products
         end,
         fac' :=
         begin
-          intro c, rintro (_ | _), simp, refl,
-          simp, dsimp [pullback_cone.mk], rw ← c.π.naturality',
-          simp, apply id_comp
+          intro c, rintro (_ | _), simp, simp
         end,
         uniq' :=
         begin
@@ -94,105 +93,7 @@ def has_equalizers_of_pullbacks_and_binary_products
           rw ← assoc, rw J1, refl
         end
       }
-      }}}
-
--- The pasting lemma for pullbacks. Something like this will invariably be useful
-lemma pasting (C : Type u) [𝒞 : category.{v} C] [has_pullbacks.{v} C] {U V W X Y Z : C}
-  (f : U ⟶ V) (g : V ⟶ W) (h : U ⟶ X) (k : V ⟶ Y) (l : W ⟶ Z) (m : X ⟶ Y) (n : Y ⟶ Z)
-  (left_comm : f ≫ k = h ≫ m) (right_comm : g ≫ l = k ≫ n)
-  (right : is_limit (pullback_cone.mk g k right_comm)) :
-  is_limit (pullback_cone.mk (f ≫ g) h (begin rw assoc, rw right_comm, rw ← assoc, rw left_comm, rw assoc end)) ≅
-  is_limit (pullback_cone.mk f h left_comm) :=
-{ hom :=
-  begin
-    intro entire,
-    refine ⟨λ c, _, _, _⟩,
-    { have new_cone_comm: (pullback_cone.fst c ≫ g) ≫ l = pullback_cone.snd c ≫ m ≫ n,
-        rw assoc, rw ← pullback_cone.condition_assoc, rw right_comm,
-      exact entire.lift (pullback_cone.mk (pullback_cone.fst c ≫ g) (pullback_cone.snd c) new_cone_comm) },
-    { intro c,
-      have new_cone_comm: (pullback_cone.fst c ≫ g) ≫ l = pullback_cone.snd c ≫ m ≫ n,
-        rw assoc, rw ← pullback_cone.condition_assoc, rw right_comm,
-      set new_cone := pullback_cone.mk (pullback_cone.fst c ≫ g) (pullback_cone.snd c) new_cone_comm,
-      have coned := entire.fac' new_cone,
-      rintro (_ | _ | _),
-      { show entire.lift new_cone ≫ f = pullback_cone.fst c,
-        apply is_limit.hom_ext right,
-        rintro (_ | _ | _),
-        { rw assoc, exact coned walking_cospan.left },
-        { show (entire.lift new_cone ≫ f) ≫ k = _ ≫ k,
-          rw assoc, conv_lhs {congr, skip, rw left_comm}, rw ← assoc,
-          have: entire.lift new_cone ≫ h = (pullback_cone.snd _) := coned walking_cospan.right,
-          rw pullback_cone.condition c, rw this, refl },
-        { show (entire.lift new_cone ≫ f) ≫ g ≫ l = _ ≫ g ≫ l, conv_lhs {rw ← assoc, congr, rw assoc},
-        have: entire.lift new_cone ≫ f ≫ g = (new_cone.π).app walking_cospan.left := coned walking_cospan.left,
-        rw this, rw ← assoc, refl } },
-      { show entire.lift new_cone ≫ h = pullback_cone.snd new_cone, exact coned walking_cospan.right },
-      { show entire.lift new_cone ≫ f ≫ k = (c.π).app walking_cospan.one,
-        rw ← cone.w c walking_cospan.hom.inr, show entire.lift new_cone ≫ f ≫ k = pullback_cone.snd new_cone ≫ m, conv_lhs {congr, skip, rw left_comm},
-        rw ← assoc, congr, exact coned walking_cospan.right } },
-    { intros c r j,
-      have new_cone_comm: (pullback_cone.fst c ≫ g) ≫ l = pullback_cone.snd c ≫ m ≫ n,
-        rw assoc, rw ← pullback_cone.condition_assoc, rw right_comm,
-      set new_cone := pullback_cone.mk (pullback_cone.fst c ≫ g) (pullback_cone.snd c) new_cone_comm,
-      apply entire.uniq' new_cone r,
-      rintros (_ | _ | _), { show r ≫ f ≫ g = _ ≫ g, rw ← assoc, congr, exact j walking_cospan.left },
-      { show r ≫ h = (new_cone.π).app walking_cospan.right, exact j walking_cospan.right },
-      { show r ≫ (f ≫ g) ≫ l = (_ ≫ g) ≫ l, rw ← assoc, congr' 1, rw ← assoc, congr, exact j walking_cospan.left }
-    }
-  end
-, inv :=
-  begin
-    intro left,
-    refine ⟨λ c, _, λ c, _, λ c, _⟩,
-    { have new_cone_comm: pullback_cone.fst c ≫ l = (pullback_cone.snd c ≫ m) ≫ n,
-        rw assoc, rw pullback_cone.condition,
-      have new_cone2_comm: (right.lift (pullback_cone.mk _ _ new_cone_comm)) ≫ k = (pullback_cone.snd c : c.X ⟶ X) ≫ m := right.fac' (pullback_cone.mk _ _ new_cone_comm) walking_cospan.right,
-      exact left.lift (pullback_cone.mk _ _ new_cone2_comm) },
-    { set π₁ : c.X ⟶ W := pullback_cone.fst c,
-      set π₂ : c.X ⟶ X := pullback_cone.snd c,
-      have new_cone_comm: π₁ ≫ l = (π₂ ≫ m) ≫ n,
-        rw assoc, rw pullback_cone.condition,
-      have new_cone2_comm: (right.lift (pullback_cone.mk _ _ new_cone_comm)) ≫ k = π₂ ≫ m := right.fac' (pullback_cone.mk _ _ new_cone_comm) walking_cospan.right,
-      set new_cone := pullback_cone.mk _ _ new_cone_comm,
-      set new_cone2 := pullback_cone.mk _ _ new_cone2_comm,
-      have left_fac := left.fac' new_cone2,
-      have right_fac := right.fac' new_cone,
-      have ll: left.lift new_cone2 ≫ f = right.lift new_cone := left_fac walking_cospan.left,
-      have lr: left.lift new_cone2 ≫ h = π₂ := left_fac walking_cospan.right,
-      have rl: right.lift new_cone ≫ g = π₁ := right_fac walking_cospan.left,
-      have rr: right.lift new_cone ≫ k = π₂ ≫ m := right_fac walking_cospan.right,
-      rintro (_ | _ | _),
-      show left.lift new_cone2 ≫ f ≫ g = π₁, rw ← assoc, rw ll, rw rl,
-      show left.lift new_cone2 ≫ h = π₂, exact lr,
-      rw ← cone.w c walking_cospan.hom.inl,
-      show left.lift new_cone2 ≫ (f ≫ g) ≫ l = π₁ ≫ l, rw ← assoc, congr, rw ← assoc, rw ll, rw rl },
-    { set π₁ : c.X ⟶ W := pullback_cone.fst c,
-      set π₂ : c.X ⟶ X := pullback_cone.snd c,
-      have new_cone_comm: π₁ ≫ l = (π₂ ≫ m) ≫ n,
-        rw assoc, rw pullback_cone.condition,
-      set new_cone := pullback_cone.mk _ _ new_cone_comm,
-      have new_cone2_comm: (right.lift new_cone) ≫ k = π₂ ≫ m := right.fac' new_cone walking_cospan.right,
-      set new_cone2 := pullback_cone.mk _ _ new_cone2_comm,
-      intros r J,
-      show r = left.lift new_cone2,
-      apply left.uniq' new_cone2 r,
-      have Jl: r ≫ f ≫ g = π₁ := J walking_cospan.left,
-      have Jr: r ≫ h = π₂ := J walking_cospan.right,
-      have J1: r ≫ (f ≫ g) ≫ l = (c.π).app walking_cospan.one := J walking_cospan.one,
-      rintro (_ | _ | _),
-      show r ≫ f = right.lift new_cone,
-      apply right.uniq' new_cone,
-      rintro (_ | _ | _), rw assoc, exact Jl,
-      show (r ≫ f) ≫ k = π₂ ≫ m, rw ← Jr, rw assoc, conv_rhs {rw assoc}, congr, exact left_comm,
-      show (r ≫ f) ≫ g ≫ l = (new_cone.π).app walking_cospan.one, rw ← cone.w new_cone walking_cospan.hom.inl,
-      show (r ≫ f) ≫ g ≫ l = π₁ ≫ l, rw ← assoc, congr, rw assoc, exact Jl,
-      show r ≫ h = π₂, exact Jr,
-      show r ≫ f ≫ k = (new_cone2.π).app walking_cospan.one, rw ← cone.w new_cone2 walking_cospan.hom.inr,
-      show r ≫ f ≫ k = π₂ ≫ m, conv_lhs {congr, skip, rw left_comm}, rw ← assoc, rw Jr }
-  end
-, hom_inv_id' := subsingleton.elim _ _
-, inv_hom_id' := subsingleton.elim _ _
+      }}
 }
 
 namespace category_theory
@@ -278,27 +179,46 @@ instance terminal_of_subobj (C : Type u) [𝒞 : category.{v} C] [@has_pullbacks
 instance: has_pullbacks.{u} (Type u) := ⟨limits.has_limits_of_shape_of_has_limits⟩
 #print axioms nat.find
 
--- this is a bit weird... need to look at the maths proof that we can classify in Set
-instance: has_subobject_classifier Type :=
+-- TODO (BM): finish
+-- TODO: can we make this computable?
+noncomputable instance : has_subobject_classifier Type :=
 { Ω := Prop
 , Ω₀ := unit
 , truth := λ _, true
 , truth_mono' := ⟨λ A f g _, begin ext i, apply subsingleton.elim end⟩
-, classifies' := λ A B f hMon, ⟨(λ b, ∃ (a : A), f a = b), -- is this the right prop to use?
+, classifies' := λ A B f mon, ⟨λ b, ∃ (a : A), f a = b, -- is this the right prop to use? I (BM) think so
   begin
-    refine ⟨λ _, unit.star, _, _⟩,
+    refine ⟨λ _, (), _, _⟩,
     funext, simp, use x,
-    refine ⟨λ c i, _, sorry, sorry⟩,
+    refine ⟨λ c i, _, _, _⟩,
     show A,
-    set π₁ := pullback_cone.fst c,
-    set π₂ := pullback_cone.snd c,
-    have: π₁ ≫ _ = π₂ ≫ _ := pullback_cone.condition c,
-    have: (π₂ ≫ (λ (b : B), ∃ (a : A), f a = b)) i,
-    rw ← this, dsimp, trivial,
-    dsimp at this, sorry, -- can do it with classical...
+    have: pullback_cone.fst c ≫ _ = pullback_cone.snd c ≫ _ := pullback_cone.condition c,
+    have: (pullback_cone.snd c ≫ (λ (b : B), ∃ (a : A), f a = b)) i,
+      rw ← this, dsimp, trivial,
+    dsimp at this,
+    exact classical.some this_1,
+    intros c, apply pi_app_left,
+    ext, apply subsingleton.elim,
+    ext, dunfold pullback_cone.snd pullback_cone.mk, simp,
+    have: (pullback_cone.snd c ≫ (λ (b : B), ∃ (a : A), f a = b)) x,
+      rw ← pullback_cone.condition c, trivial,
+    apply classical.some_spec this,
+    intros c m J,
+    resetI,
+    rw ← cancel_mono f,
+    ext, simp,
+    have: (pullback_cone.snd c ≫ (λ (b : B), ∃ (a : A), f a = b)) x,
+      rw ← pullback_cone.condition c, trivial,
+    erw classical.some_spec this,
+    simp at J, have Jl := J walking_cospan.right,
+    simp at Jl, have := congr_fun Jl x, simp at this,
+    exact this,
   end
 ⟩
-, uniquely' := sorry
+, uniquely' :=
+  begin
+    intros, sorry
+  end
 }
 
 end category_theory
