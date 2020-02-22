@@ -96,8 +96,6 @@ def has_equalizers_of_pullbacks_and_binary_products
       }}
 }
 
-namespace category_theory
-
 -- Define what it means for χ to classify the mono f.
 -- Should this be a class? I don't think so but maybe
 def classifies {C : Type u} [𝒞 : category.{v} C]
@@ -175,50 +173,3 @@ instance terminal_of_subobj (C : Type u) [𝒞 : category.{v} C] [@has_pullbacks
           apply_instance
         end}}}
 }
-
-instance: has_pullbacks.{u} (Type u) := ⟨limits.has_limits_of_shape_of_has_limits⟩
-#print axioms nat.find
-
--- TODO (BM): finish
--- TODO: can we make this computable?
-noncomputable instance : has_subobject_classifier Type :=
-{ Ω := Prop
-, Ω₀ := unit
-, truth := λ _, true
-, truth_mono' := ⟨λ A f g _, begin ext i, apply subsingleton.elim end⟩
-, classifies' := λ A B f mon, ⟨λ b, ∃ (a : A), f a = b, -- is this the right prop to use? I (BM) think so
-  begin
-    refine ⟨λ _, (), _, _⟩,
-    funext, simp, use x,
-    refine ⟨λ c i, _, _, _⟩,
-    show A,
-    have: pullback_cone.fst c ≫ _ = pullback_cone.snd c ≫ _ := pullback_cone.condition c,
-    have: (pullback_cone.snd c ≫ (λ (b : B), ∃ (a : A), f a = b)) i,
-      rw ← this, dsimp, trivial,
-    dsimp at this,
-    exact classical.some this_1,
-    intros c, apply pi_app_left,
-    ext, apply subsingleton.elim,
-    ext, dunfold pullback_cone.snd pullback_cone.mk, simp,
-    have: (pullback_cone.snd c ≫ (λ (b : B), ∃ (a : A), f a = b)) x,
-      rw ← pullback_cone.condition c, trivial,
-    apply classical.some_spec this,
-    intros c m J,
-    resetI,
-    rw ← cancel_mono f,
-    ext, simp,
-    have: (pullback_cone.snd c ≫ (λ (b : B), ∃ (a : A), f a = b)) x,
-      rw ← pullback_cone.condition c, trivial,
-    erw classical.some_spec this,
-    simp at J, have Jl := J walking_cospan.right,
-    simp at Jl, have := congr_fun Jl x, simp at this,
-    exact this,
-  end
-⟩
-, uniquely' :=
-  begin
-    intros, sorry
-  end
-}
-
-end category_theory
