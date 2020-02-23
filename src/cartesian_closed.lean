@@ -3,7 +3,6 @@ import category_theory.adjunction
 
 universes u v
 
-
 namespace category_theory
 
 open limits category
@@ -30,13 +29,15 @@ def prodinl {X : C} : C ⥤ C :=
 }
 end
 
+-- [todo] doesn't this need to be natural in X too?
 def is_cartesian_closed (C : Type u) [𝒞 : category.{v} C] [bp : @has_binary_products C 𝒞] :=
 ∀ X : C, @is_left_adjoint C 𝒞 C 𝒞 (@prodinl C 𝒞 bp X)
 
-
-class is_cc (C : Type u) [𝒞 : category.{v} C] [bp : @has_binary_products C 𝒞] :=
-(exp : Cᵒᵖ × C ⥤ C)
-(ev : Π {X Y} : Y ⨯ exp X Y ⟶ X)
-(coev : Π {X Y} : X ⟶ exp (Y ⨯ X) Y)
+-- [todo] maybe an explicit definition?
+-- class is_cc (C : Type u) [𝒞 : category.{v} C] [bp : @has_binary_products C 𝒞] :=
+-- (exp : Cᵒᵖ × C ⥤ C)
+-- (ev : Π {X Y} : Y ⨯ exp X Y ⟶ X)
+-- (coev : Π {X Y} : X ⟶ exp (Y ⨯ X) Y)
+-- ...
 
 end category_theory
