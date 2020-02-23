@@ -17,7 +17,7 @@ def equiv_homset_left_of_nat_iso {C : Type u₁} [𝒞 : category.{v₁} C] {D :
   (F.obj X ⟶ Y) ≃ (G.obj X ⟶ Y) :=
 ⟨λ f, (iso.app _).inv ≫ f, λ g, (iso.app _).hom ≫ g, λ f, begin dsimp, rw ← assoc, simp end, λ g, begin dsimp, rw ← assoc, simp end⟩
 
-lemma adjunction_of_nat_iso_left {C : Type u₁} [𝒞 : category.{v₁} C] {D : Type u₂} [𝒟 : category.{v₂} D]
+def adjunction_of_nat_iso_left {C : Type u₁} [𝒞 : category.{v₁} C] {D : Type u₂} [𝒟 : category.{v₂} D]
   {F G : C ⥤ D} {H : D ⥤ C} (adj : F ⊣ H) (iso : F ≅ G) :
   G ⊣ H :=
 adjunction.mk_of_hom_equiv

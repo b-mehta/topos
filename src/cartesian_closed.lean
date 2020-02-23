@@ -30,13 +30,15 @@ def prodinl (X : C) : C ⥤ C :=
   map_comp' := λ U V W f g, begin apply prod.hom_ext, simp, rw [comp_id _ (𝟙 X)], simp end
 }
 
-lemma prodinl_comp (X Y : C) : prodinl Y ⋙ prodinl X ≅ prodinl (X⨯Y) :=
-{ hom := { app := λ T, begin apply (prod.associator _ _ _).inv end,
-           naturality' := begin intros, simp only [functor.comp_map], dunfold prodinl, dsimp, ext, tactic.case_bash, simp, conv_rhs {erw comp_id}, work_on_goal 0 { dsimp at *, ext1, simp at * }, work_on_goal 1 { dsimp at *, simp at * }, tactic.case_bash, work_on_goal 0 { dsimp at *, simp at *, dsimp at *, simp at * }, dsimp, simp, dsimp, simp end}, -- I have zero idea why this works but it does
-  inv := { app := λ T, begin apply (prod.associator _ _ _).hom end,
-           naturality' := begin intros, dunfold prodinl, simp, ext, tactic.case_bash, work_on_goal 0 { dsimp at *, simp at *, dsimp at *, simp at * }, dsimp at *, simp at *, ext1, simp at *, dsimp at *, tactic.case_bash, work_on_goal 0 { dsimp at *, simp at *, dsimp at *, simp at * }, dsimp at *, simp at * end},
-  hom_inv_id' := begin dsimp at *, ext1, dsimp at *, ext1, dsimp at *, ext1, simp at *, tactic.case_bash, simp, erw limit.lift_π, simp, erw limit.lift_π, simp at *, dsimp at *, ext1, simp at *, tactic.case_bash, simp, tidy? end,
-  inv_hom_id' := begin tidy?, tactic.case_bash, tidy?, tactic.case_bash, simp, dsimp, simp  end
+-- BM: This entire proof is a mystery to me.
+-- It would be nice to cleanup because it takes an age to run.
+def prodinl_comp (X Y : C) : prodinl Y ⋙ prodinl X ≅ prodinl (X⨯Y) :=
+{ hom := { app := λ T, (prod.associator _ _ _).inv,
+           naturality' := begin intros, simp only [functor.comp_map], dunfold prodinl, dsimp, ext, tactic.case_bash, simp, conv_rhs {erw comp_id}, dsimp, ext1, simp, work_on_goal 1 { dsimp, simp }, tactic.case_bash, dsimp, simp, dsimp, simp, dsimp, simp, dsimp, simp end}, -- I have zero idea why this works but it does
+  inv := { app := λ T, (prod.associator _ _ _).hom,
+           naturality' := begin intros, dunfold prodinl, simp, ext, tactic.case_bash, dsimp, simp, dsimp, simp, dsimp, simp, ext1, simp, dsimp, tactic.case_bash, dsimp, simp, dsimp, simp, dsimp, simp end},
+  hom_inv_id' := begin dsimp, ext1, dsimp, ext1, dsimp, ext1, simp, tactic.case_bash, simp, erw limit.lift_π, simp, erw limit.lift_π, simp, dsimp, ext1, simp, tactic.case_bash, simp, dsimp, simp end,
+  inv_hom_id' := begin dsimp, ext1, ext1, dsimp, ext1, simp, tactic.case_bash, dsimp, ext1, simp, work_on_goal 1 { dsimp, simp }, tactic.case_bash, simp, dsimp, simp  end
 }
 end
 
@@ -51,7 +53,8 @@ def binary_product_exponentiable {C : Type u} [𝒞 : category.{v} C] [bp : @has
     adj := adjunction_of_nat_iso_left (adjunction.comp _ _ hY.exponentiable.adj hX.exponentiable.adj) (prodinl_comp _ _) } }
 
 -- [todo] doesn't this need to be natural in X too?
-class is_cartesian_closed (C : Type u) [𝒞 : category.{v} C] [bp : @has_binary_products C 𝒞] :=
+-- BM: I don't think it does
+class is_cartesian_closed (C : Type u) [𝒞 : category.{v} C] [@has_binary_products C 𝒞] [@has_terminal C 𝒞] :=
 (cart_closed : Π (X : C), exponentiable X)
 
 -- [todo] maybe an explicit definition?
@@ -61,4 +64,10 @@ class is_cartesian_closed (C : Type u) [𝒞 : category.{v} C] [bp : @has_binary
 -- (coev : Π {X Y} : X ⟶ exp (Y ⨯ X) Y)
 -- ...
 
+-- [todo] Let's prove (-)^1 ≅ 𝟙
+
+-- This is (-)^A
+def exp (C : Type u) [𝒞 : category.{v} C] [has_binary_products.{v} C] [has_terminal.{v} C] [is_cartesian_closed C] (A : C) : C ⥤ C :=
+  (is_cartesian_closed.cart_closed A).exponentiable.right
+-- BM: I thiiink we can prove this is natural in A, using properties of adjunctions
 end category_theory
