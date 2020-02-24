@@ -34,12 +34,11 @@ def prodinl (X : C) : C ⥤ C :=
 -- It would be nice to cleanup because it takes an age to run.
 def prodinl_comp (X Y : C) : prodinl Y ⋙ prodinl X ≅ prodinl (X⨯Y) :=
 { hom := { app := λ T, (prod.associator _ _ _).inv,
-           naturality' := begin intros, simp only [functor.comp_map], dunfold prodinl, dsimp, ext, tactic.case_bash, simp, conv_rhs {erw comp_id}, dsimp, ext1, simp, work_on_goal 1 { dsimp, simp }, tactic.case_bash, dsimp, simp, dsimp, simp, dsimp, simp, dsimp, simp end}, -- I have zero idea why this works but it does
+           naturality' := begin intros, dunfold prodinl, ext, tactic.case_bash, dsimp, simp, dsimp, simp, ext, tactic.case_bash, dsimp, simp, dsimp, simp, dsimp, simp, dsimp, simp, dsimp, simp end}, -- I have zero idea why this works but it does
   inv := { app := λ T, (prod.associator _ _ _).hom,
-           naturality' := begin intros, dunfold prodinl, simp, ext, tactic.case_bash, dsimp, simp, dsimp, simp, dsimp, simp, ext1, simp, dsimp, tactic.case_bash, dsimp, simp, dsimp, simp, dsimp, simp end},
-  hom_inv_id' := begin dsimp, ext1, dsimp, ext1, dsimp, ext1, simp, tactic.case_bash, simp, erw limit.lift_π, simp, erw limit.lift_π, simp, dsimp, ext1, simp, tactic.case_bash, simp, dsimp, simp end,
-  inv_hom_id' := begin dsimp, ext1, ext1, dsimp, ext1, simp, tactic.case_bash, dsimp, ext1, simp, work_on_goal 1 { dsimp, simp }, tactic.case_bash, simp, dsimp, simp  end
-}
+           naturality' := begin intros, dunfold prodinl, ext, tactic.case_bash, dsimp, simp, dsimp, simp, dsimp, simp, ext, simp, dsimp, tactic.case_bash, dsimp, simp, dsimp, simp, dsimp, simp end},
+  hom_inv_id' := begin simp, ext, tactic.case_bash, simp, erw limit.lift_π, simp, simp, erw limit.lift_π, ext, tactic.case_bash, simp, simp end,
+  inv_hom_id' := begin dsimp, ext, simp, tactic.case_bash, simp, ext, tactic.case_bash, simp, dsimp, simp, simp end}
 end
 
 class exponentiable {C : Type u} [𝒞 : category.{v} C] [bp : @has_binary_products C 𝒞] (X : C) :=
