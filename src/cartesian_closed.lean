@@ -33,6 +33,7 @@ def prodinl (X : C) : C ⥤ C :=
 @[simp] lemma prodinl_map_def {f : Y ⟶ Z} : (prodinl X).map f = limits.prod.map (𝟙 X) f := rfl
 @[simp] lemma map_fst {f : U ⟶ V} {g : W ⟶ X} : limits.prod.map f g ≫ limits.prod.fst = limits.prod.fst ≫ f := by simp
 @[simp] lemma map_snd {f : U ⟶ V} {g : W ⟶ X} : limits.prod.map f g ≫ limits.prod.snd = limits.prod.snd ≫ g := by simp
+@[simp] lemma prod.map_id : limits.prod.map (𝟙 X) (𝟙 Y) = 𝟙 (X⨯Y) := begin apply prod.hom_ext, simp, simp end
 @[simp] lemma lift_fst {f : W ⟶ X} {g : W ⟶ Y} : limits.prod.lift f g ≫ limits.prod.fst = f := by simp
 @[simp] lemma lift_snd {f : W ⟶ X} {g : W ⟶ Y} : limits.prod.lift f g ≫ limits.prod.snd = g := by simp
 open category
@@ -89,6 +90,13 @@ infixl `⇐`:100 := exp
 def post (A : C) [exponentiable A] {X Y : C} (f : X ⟶ Y) : X⇐A ⟶ Y⇐A :=
 (exp.functor A).map f
 
+lemma post.map_comp {f : X ⟶ Y} {g : Y ⟶ Z} : post A (f ≫ g) = post A f ≫ post A g :=
+begin
+  show functor.map _ _ = _ ≫ _,
+  rw (exp.functor A).map_comp',
+  refl,
+end
+
 def ev : A ⨯ B⇐A ⟶ B :=
 (ev.nat_trans A).app B
 
@@ -101,7 +109,7 @@ def coev : B ⟶ (A⨯B)⇐A :=
 @[simp] lemma coev_ev : coev ≫ post _ ev = 𝟙 (B⇐A) :=
 (@adjunction.right_triangle_components C _ C _ (prodinl A) (exp.functor A) exp.adjunction B)
 
-lemma coev_nat {f : X ⟶ Y} : f ≫ coev = coev ≫ post _ (limits.prod.map (𝟙 A) f) :=
+lemma coev_nat (f : X ⟶ Y) : f ≫ coev = coev ≫ post _ (limits.prod.map (𝟙 A) f) :=
 (coev.nat_trans A).naturality f
 
 lemma ev_nat {f : X ⟶ Y} : limits.prod.map (𝟙 A) (post _ f) ≫ ev = ev ≫ f :=
@@ -133,7 +141,27 @@ variable [has_terminal.{v} C]
 def point_at_hom (f : A ⟶ Y) : ⊤_C ⟶ (Y ⇐ A) :=
 exp_transpose.to_fun (limits.prod.fst ≫ f)
 
-def pre (X : C) [exponentiable B] {f : B ⟶ A} : X⇐A ⟶ X⇐B :=
-coev ≫ post B (limits.prod.map f (𝟙 _) ≫ ev)
+section pre
+
+variables [exponentiable B]
+-- X⇐A ⟶ (B⨯X⇐A)⇐B ⟶ (A⨯X⇐A)⇐B ⟶ X⇐B
+def pre (X : C) (f : B ⟶ A) : X⇐A ⟶ X⇐B :=
+coev ≫ post _ (limits.prod.map f (𝟙 _) ≫ ev)
+
+lemma pre_id : pre X (𝟙 A) = 𝟙 (X⇐A) :=
+begin
+  show _ ≫ _ = 𝟙 _,
+  simp,
+end
+
+-- lemma pre_map {D : C} [exponentiable D] {f : A ⟶ B} {g : B ⟶ D} : pre X (f ≫ g) = pre X g ≫ pre X f :=
+-- begin
+--   sorry
+--   -- X⇐D ⟶ (A⨯X⇐D)⇐A ⟶ (B⨯X⇐D)⇐A ⟶ (D⨯X⇐D)⇐A ⟶ X⇐A
+--   -- X⇐D ⟶ (B⨯X⇐D)⇐B ⟶ (D⨯X⇐D)⇐B ⟶ X⇐B ⟶ (A⨯X⇐B)⇐A ⟶ (B⨯X⇐B)⇐A ⟶ X⇐A
+--   -- ... yikes
+-- end
+
+end pre
 
 end category_theory
