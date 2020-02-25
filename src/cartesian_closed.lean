@@ -110,17 +110,21 @@ lemma ev_nat {A X Y : C} {f : X ⟶ Y} [exponentiable A] : limits.prod.map (𝟙
 def exp_transpose {A X Y : C} [exponentiable A] : (A ⨯ Y ⟶ X) ≃ (Y ⟶ X ⇐ A) :=
 exp.adjunction.hom_equiv _ _
 
-lemma exp_transpose_natural_left {A X Y Z : C} [exponentiable A] (f : X ⟶ Y) (g : limits.prod A Y ⟶ Z) :
+lemma exp_transpose_natural_left {A X X' Y : C} [exponentiable A] (f : X ⟶ X') (g : A ⨯ X' ⟶ Y) :
   exp_transpose.to_fun ((prodinl A).map f ≫ g) = f ≫ exp_transpose.to_fun g :=
 adjunction.hom_equiv_naturality_left _ _ _
 
-lemma exp_transpose_natural_right {A Y Z X : C} [exponentiable A] (f : limits.prod A X ⟶ Y) (g : Y ⟶ Z) :
+lemma exp_transpose_natural_right {A X Y Y' : C} [exponentiable A] (f : A ⨯ X ⟶ Y) (g : Y ⟶ Y') :
   exp_transpose.to_fun (f ≫ g) = exp_transpose.to_fun f ≫ exp_lift _ g :=
-adjunction.hom_equiv_naturality_right exp.adjunction _ _
+adjunction.hom_equiv_naturality_right _ _ _
 
--- TODO: write inv_fun versions of the above (this will massively simplify over.equiv)
+lemma exp_transpose_natural_right_symm {A X Y Y' : C} [exponentiable A] (f : X ⟶ Y ⇐ A) (g : Y ⟶ Y') :
+  exp_transpose.inv_fun (f ≫ exp_lift A g) = exp_transpose.inv_fun f ≫ g :=
+adjunction.hom_equiv_naturality_right_symm _ _ _
 
-#check adjunction.hom_equiv_naturality_right exp.adjunction _ _
+lemma exp_transpose_natural_left_symm {A X X' Y : C} [exponentiable A] (f : X ⟶ X') (g : X' ⟶ Y ⇐ A) :
+  exp_transpose.inv_fun (f ≫ g) = (prodinl A).map f ≫ exp_transpose.inv_fun g :=
+adjunction.hom_equiv_naturality_left_symm _ _ _
 
 -- [todo] exp 1 X ≅ X
 variable [has_terminal.{v} C]

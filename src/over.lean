@@ -51,29 +51,32 @@ local attribute [tidy] tactic.case_bash
 def star : C ⥤ over B :=
 { obj := λ A, @over.mk _ _ _ (B ⨯ A) limits.prod.fst,
   map := λ X Y f, begin apply over.hom_mk _ _, apply limits.prod.map (𝟙 _) f, simp end}
-end
 
 def forget_adj_star : over.forget ⊣ star B :=
 adjunction.mk_of_hom_equiv
-{ hom_equiv := λ g A, { to_fun := λ f, begin apply over.hom_mk _ _, apply prod.lift g.hom f, simp end,
-                        inv_fun := λ k, k.left ≫ limits.prod.snd,
-                        left_inv := λ f, begin dsimp, simp end,
-                        right_inv := λ k, begin apply over.over_morphism.ext, dsimp, apply prod.hom_ext, simp, rw ← over.w k, refl, simp end},
-  hom_equiv_naturality_left_symm' := λ X X' Y f g, begin dsimp, simp end,
-  hom_equiv_naturality_right' := λ X Y Y' f g, begin simp, apply over.over_morphism.ext, simp, dsimp, apply prod.hom_ext, simp, dsimp, simp, simp end}
+{ hom_equiv := λ g A,
+  { to_fun := λ f, over.hom_mk (prod.lift g.hom f),
+    inv_fun := λ k, k.left ≫ limits.prod.snd,
+    left_inv := by tidy,
+    right_inv := by tidy } }
+end
 
 variables [has_terminal.{v} C] [has_pullbacks.{v} C]
 
 def Pi_obj [exponentiable B] (f : over B) : C := pullback (exp_lift B f.hom) (point_at_hom (𝟙 B))
 
 private def pi_obj.equiv [exponentiable B] (X : C) (Y : over B) : ((star B).obj X ⟶ Y) ≃ (X ⟶ Pi_obj B Y) :=
-{ to_fun := λ f, begin apply pullback.lift (exp_transpose.to_fun f.left) (terminal.from _) _, rw ← exp_transpose_natural_right, erw ← exp_transpose_natural_left, congr' 1, simp end,
-  inv_fun := λ g, begin apply over.hom_mk _ _, apply (exp_transpose.inv_fun (g ≫ pullback.fst)),
-                        dsimp, apply function.injective_of_left_inverse exp_transpose.left_inv, rw exp_transpose_natural_right, rw exp_transpose.right_inv, rw assoc, rw pullback.condition,
-                        have : g ≫ pullback.snd = terminal.from X, apply subsingleton.elim,
-                        rw ← assoc, rw this, erw ← exp_transpose_natural_left, apply function.injective_of_left_inverse exp_transpose.right_inv, rw exp_transpose.left_inv,
-                        rw exp_transpose.left_inv, simp
-                         end,
+{ to_fun := λ f, pullback.lift (exp_transpose.to_fun f.left) (terminal.from _)
+                    (begin rw ← exp_transpose_natural_right, erw ← exp_transpose_natural_left, tidy end),
+  inv_fun := λ g, begin
+                    apply over.hom_mk _ _, apply (exp_transpose.inv_fun (g ≫ pullback.fst)),
+                    dsimp, apply function.injective_of_left_inverse exp_transpose.left_inv,
+                    rw exp_transpose_natural_right, rw exp_transpose.right_inv, rw assoc,
+                    rw pullback.condition, have : g ≫ pullback.snd = terminal.from X,
+                    apply subsingleton.elim, rw ← assoc, rw this, erw ← exp_transpose_natural_left,
+                    apply function.injective_of_left_inverse exp_transpose.right_inv,
+                    rw exp_transpose.left_inv, rw exp_transpose.left_inv, simp
+                  end,
   left_inv := λ f, begin apply over.over_morphism.ext, simp, rw exp_transpose.left_inv end,
   right_inv := λ g, begin simp, apply pullback.hom_ext, simp, rw exp_transpose.right_inv, apply subsingleton.elim end
   }
