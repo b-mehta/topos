@@ -1,0 +1,6 @@
+{
+    "image": "edayers/lean",
+    "extensions": [
+        "jroesch.lean"
+    ]
+}
