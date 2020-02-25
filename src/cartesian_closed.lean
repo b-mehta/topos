@@ -64,7 +64,7 @@ def binary_product_exponentiable {C : Type u} [𝒞 : category.{v} C] [bp : @has
 class is_cartesian_closed (C : Type u) [𝒞 : category.{v} C] [@has_binary_products C 𝒞] [@has_terminal C 𝒞] :=
 (cart_closed : Π (X : C), exponentiable X)
 
-variables {C : Type u} [𝒞 : category.{v} C] [has_binary_products.{v} C] {X Y Z A B : C} [exponentiable A]
+variables {C : Type u} [𝒞 : category.{v} C] [has_binary_products.{v} C] {X X' Y Y' Z A B : C} [exponentiable A]
 include 𝒞
 
 /-- This is (-)^A -/
@@ -104,25 +104,29 @@ def coev : B ⟶ (A⨯B)⇐A :=
 lemma coev_nat {f : X ⟶ Y} : f ≫ coev = coev ≫ post _ (limits.prod.map (𝟙 A) f) :=
 (coev.nat_trans A).naturality f
 
-lemma ev_nat {f : X ⟶ Y}  : limits.prod.map (𝟙 A) (post _ f) ≫ ev = ev ≫ f :=
+lemma ev_nat {f : X ⟶ Y} : limits.prod.map (𝟙 A) (post _ f) ≫ ev = ev ≫ f :=
 (ev.nat_trans A).naturality f
 
 def exp_transpose : (A ⨯ Y ⟶ X) ≃ (Y ⟶ X ⇐ A) :=
 exp.adjunction.hom_equiv _ _
 
-lemma exp_transpose_natural_left (f : X ⟶ Y) (g : limits.prod A Y ⟶ Z) :
+lemma exp_transpose_natural_left  (f : X ⟶ X') (g : A ⨯ X' ⟶ Y) :
   exp_transpose.to_fun ((prodinl A).map f ≫ g) = f ≫ exp_transpose.to_fun g :=
 adjunction.hom_equiv_naturality_left _ _ _
 
-lemma exp_transpose_natural_right (f : limits.prod A X ⟶ Y) (g : Y ⟶ Z) :
+lemma exp_transpose_natural_right (f : A ⨯ X ⟶ Y) (g : Y ⟶ Y') :
   exp_transpose.to_fun (f ≫ g) = exp_transpose.to_fun f ≫ post _ g :=
-adjunction.hom_equiv_naturality_right exp.adjunction _ _
+adjunction.hom_equiv_naturality_right _ _ _
 
--- TODO: write inv_fun versions of the above (this will massively simplify over.equiv)
+lemma exp_transpose_natural_right_symm  (f : X ⟶ Y ⇐ A) (g : Y ⟶ Y') :
+  exp_transpose.inv_fun (f ≫ post A g) = exp_transpose.inv_fun f ≫ g :=
+adjunction.hom_equiv_naturality_right_symm _ _ _
 
-#check adjunction.hom_equiv_naturality_right exp.adjunction _ _
+lemma exp_transpose_natural_left_symm  (f : X ⟶ X') (g : X' ⟶ Y ⇐ A) :
+  exp_transpose.inv_fun (f ≫ g) = (prodinl A).map f ≫ exp_transpose.inv_fun g :=
+adjunction.hom_equiv_naturality_left_symm _ _ _
 
--- [todo] exp 1 X ≅ X
+-- [todo] exp X 1 ≅ X
 variable [has_terminal.{v} C]
 
 @[reducible]
