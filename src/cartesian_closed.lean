@@ -9,7 +9,7 @@ namespace category_theory
 
 open limits category
 section
-variables {C : Type u} [𝒞 : category.{v} C] [@has_binary_products.{v} C 𝒞] {A X Y : C}
+variables {C : Type u} [𝒞 : category.{v} C] [@has_binary_products.{v} C 𝒞] {A U V W X Y Z : C}
 include 𝒞
 
 @[simp] lemma prod_left_def : limit.π (pair X Y) walking_pair.left = limits.prod.fst := rfl
@@ -30,15 +30,25 @@ def prodinl (X : C) : C ⥤ C :=
   map_comp' := λ U V W f g, begin apply prod.hom_ext, simp, rw [comp_id _ (𝟙 X)], simp end
 }
 
--- BM: This entire proof is a mystery to me.
--- It would be nice to cleanup because it takes an age to run.
-def prodinl_comp (X Y : C) : prodinl Y ⋙ prodinl X ≅ prodinl (X⨯Y) :=
-{ hom := { app := λ T, (prod.associator _ _ _).inv,
-           naturality' := begin intros, dunfold prodinl, ext, tactic.case_bash, dsimp, simp, dsimp, simp, ext, tactic.case_bash, dsimp, simp, dsimp, simp, dsimp, simp, dsimp, simp, dsimp, simp end}, -- I have zero idea why this works but it does
-  inv := { app := λ T, (prod.associator _ _ _).hom,
-           naturality' := begin intros, dunfold prodinl, ext, tactic.case_bash, dsimp, simp, dsimp, simp, dsimp, simp, ext, simp, dsimp, tactic.case_bash, dsimp, simp, dsimp, simp, dsimp, simp end},
-  hom_inv_id' := begin simp, ext, tactic.case_bash, simp, erw limit.lift_π, simp, simp, erw limit.lift_π, ext, tactic.case_bash, simp, simp end,
-  inv_hom_id' := begin dsimp, ext, simp, tactic.case_bash, simp, ext, tactic.case_bash, simp, dsimp, simp, simp end}
+@[simp] lemma prodinl_map_def {f : Y ⟶ Z} : (prodinl X).map f = limits.prod.map (𝟙 X) f := rfl
+@[simp] lemma map_fst {f : U ⟶ V} {g : W ⟶ X} : limits.prod.map f g ≫ limits.prod.fst = limits.prod.fst ≫ f := by simp
+@[simp] lemma map_snd {f : U ⟶ V} {g : W ⟶ X} : limits.prod.map f g ≫ limits.prod.snd = limits.prod.snd ≫ g := by simp
+@[simp] lemma lift_fst {f : W ⟶ X} {g : W ⟶ Y} : limits.prod.lift f g ≫ limits.prod.fst = f := by simp
+@[simp] lemma lift_snd {f : W ⟶ X} {g : W ⟶ Y} : limits.prod.lift f g ≫ limits.prod.snd = g := by simp
+open category
+
+def prodinl_comp (X Y : C) : prodinl (X ⨯ Y) ≅ prodinl Y ⋙ prodinl X :=
+nat_iso.of_components (limits.prod.associator _ _) (
+  begin
+    intros U V f,
+    apply prod.hom_ext,
+      simp, dsimp, simp,
+    apply prod.hom_ext,
+      simp, dsimp, simp,
+    simp,
+  end
+)
+
 end
 
 class exponentiable {C : Type u} [𝒞 : category.{v} C] [bp : @has_binary_products C 𝒞] (X : C) :=
@@ -49,24 +59,51 @@ def binary_product_exponentiable {C : Type u} [𝒞 : category.{v} C] [bp : @has
   exponentiable (limits.prod X Y) :=
 { exponentiable :=
   { right := hX.exponentiable.right ⋙ hY.exponentiable.right,
-    adj := adjunction_of_nat_iso_left (adjunction.comp _ _ hY.exponentiable.adj hX.exponentiable.adj) (prodinl_comp _ _) } }
+    adj := adjunction_of_nat_iso_left (adjunction.comp _ _ hY.exponentiable.adj hX.exponentiable.adj) (prodinl_comp _ _).symm } }
 
--- [todo] doesn't this need to be natural in X too?
--- BM: I don't think it does
 class is_cartesian_closed (C : Type u) [𝒞 : category.{v} C] [@has_binary_products C 𝒞] [@has_terminal C 𝒞] :=
 (cart_closed : Π (X : C), exponentiable X)
 
--- [todo] maybe an explicit definition?
--- class is_cc (C : Type u) [𝒞 : category.{v} C] [bp : @has_binary_products C 𝒞] :=
--- (exp : Cᵒᵖ × C ⥤ C)
--- (ev : Π {X Y} : Y ⨯ exp X Y ⟶ X)
--- (coev : Π {X Y} : X ⟶ exp (Y ⨯ X) Y)
--- ...
+variables {C : Type u} [𝒞 : category.{v} C] [has_binary_products.{v} C] [has_terminal.{v} C] [is_cartesian_closed C]
+include 𝒞
 
--- [todo] Let's prove (-)^1 ≅ 𝟙
+/-- This is (-)^A -/
+def exp.functor (A : C) : C ⥤ C :=
+(is_cartesian_closed.cart_closed A).exponentiable.right
 
--- This is (-)^A
-def exp (C : Type u) [𝒞 : category.{v} C] [has_binary_products.{v} C] [has_terminal.{v} C] [is_cartesian_closed C] (A : C) : C ⥤ C :=
-  (is_cartesian_closed.cart_closed A).exponentiable.right
+def exp.adjunction {A : C} : (prodinl A) ⊣ (exp.functor A) :=
+(@is_cartesian_closed.cart_closed C 𝒞 _ _ _ A).exponentiable.adj
+
+def ev.nat_trans (A : C) : (exp.functor A) ⋙ prodinl A ⟶ 𝟭 C :=
+exp.adjunction.counit
+
+def coev.nat_trans (A : C) : 𝟭 C ⟶ prodinl A ⋙ (exp.functor A) :=
+exp.adjunction.unit
+
+/-- `B ^ A` or `A ⇒ B` -/
+def exp (A : C) (B : C) : C := (exp.functor A).obj B
+
+def exp_lift {A X Y: C} (f : X ⟶ Y) : exp A X ⟶ exp A Y :=
+(exp.functor A).map f
+
+def ev (A B : C) : A ⨯ exp A B ⟶ B :=
+(ev.nat_trans A).app B
+
+def coev (A B : C) : B ⟶ exp A (A ⨯ B) :=
+(coev.nat_trans A).app B
+
+@[simp] lemma ev_coev (A B : C) : limits.prod.map (𝟙 A) (coev A B) ≫ ev A (A ⨯ B) = 𝟙 (A ⨯ B) :=
+(@adjunction.left_triangle_components C _ C _ (prodinl A) (exp.functor A) exp.adjunction B)
+
+@[simp] lemma coev_ev (A B : C) : (coev A (exp A B)) ≫ (exp.functor A).map (ev A B) = 𝟙 (exp A B) :=
+(@adjunction.right_triangle_components C _ C _ (prodinl A) (exp.functor A) exp.adjunction B)
+
+lemma coev_nat {A X Y : C} {f : X ⟶ Y} : f ≫ coev A Y = coev A X ≫ (exp.functor A).map (limits.prod.map (𝟙 A) f) :=
+(coev.nat_trans A).naturality f
+
+lemma ev_nat {A X Y : C} {f : X ⟶ Y} :  limits.prod.map (𝟙 A) ((exp.functor A).map f) ≫ ev A Y = ev A X ≫ f :=
+(ev.nat_trans A).naturality f
+
+-- [todo] exp 1 X ≅ X
 -- BM: I thiiink we can prove this is natural in A, using properties of adjunctions
 end category_theory
