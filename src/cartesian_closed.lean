@@ -80,28 +80,30 @@ exp.adjunction.counit
 def coev.nat_trans (A : C) : 𝟭 C ⟶ prodinl A ⋙ (exp.functor A) :=
 exp.adjunction.unit
 
-/-- `B ^ A` or `A ⇒ B` -/
-def exp (A : C) (B : C) : C := (exp.functor A).obj B
+/-- `B ^ A` or `B ⇐ A` -/
+def exp (B : C) (A : C): C := (exp.functor A).obj B
 
-def exp_lift {A X Y: C} (f : X ⟶ Y) : exp A X ⟶ exp A Y :=
+infixl `⇐`:100 := exp
+
+def exp_lift {A X Y: C} (f : X ⟶ Y) : X⇐A ⟶ Y⇐A :=
 (exp.functor A).map f
 
-def ev (A B : C) : A ⨯ exp A B ⟶ B :=
+def ev {A B : C} : A ⨯ B⇐A ⟶ B :=
 (ev.nat_trans A).app B
 
-def coev (A B : C) : B ⟶ exp A (A ⨯ B) :=
+def coev {A B : C} : B ⟶ (A⨯B)⇐A :=
 (coev.nat_trans A).app B
 
-@[simp] lemma ev_coev (A B : C) : limits.prod.map (𝟙 A) (coev A B) ≫ ev A (A ⨯ B) = 𝟙 (A ⨯ B) :=
+@[simp] lemma ev_coev (A B : C) : limits.prod.map (𝟙 A) coev ≫ ev = 𝟙 (A⨯B) :=
 (@adjunction.left_triangle_components C _ C _ (prodinl A) (exp.functor A) exp.adjunction B)
 
-@[simp] lemma coev_ev (A B : C) : (coev A (exp A B)) ≫ (exp.functor A).map (ev A B) = 𝟙 (exp A B) :=
+@[simp] lemma coev_ev (A B : C) : coev ≫ exp_lift ev = 𝟙 (B⇐A) :=
 (@adjunction.right_triangle_components C _ C _ (prodinl A) (exp.functor A) exp.adjunction B)
 
-lemma coev_nat {A X Y : C} {f : X ⟶ Y} : f ≫ coev A Y = coev A X ≫ (exp.functor A).map (limits.prod.map (𝟙 A) f) :=
+lemma coev_nat {A X Y : C} {f : X ⟶ Y} : f ≫ coev = coev ≫ exp_lift (limits.prod.map (𝟙 A) f) :=
 (coev.nat_trans A).naturality f
 
-lemma ev_nat {A X Y : C} {f : X ⟶ Y} :  limits.prod.map (𝟙 A) ((exp.functor A).map f) ≫ ev A Y = ev A X ≫ f :=
+lemma ev_nat {A X Y : C} {f : X ⟶ Y} : limits.prod.map (𝟙 A) (exp_lift f) ≫ ev = ev ≫ f :=
 (ev.nat_trans A).naturality f
 
 -- [todo] exp 1 X ≅ X
