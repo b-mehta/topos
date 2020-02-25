@@ -74,10 +74,10 @@ def exp.functor (A : C) : C ⥤ C :=
 def exp.adjunction {A : C} : (prodinl A) ⊣ (exp.functor A) :=
 (@is_cartesian_closed.cart_closed C 𝒞 _ _ _ A).exponentiable.adj
 
-def ev.nat_trans (A : C) : (exp.functor A) ⋙ prodinl A ⟶ 𝟭 C :=
+def exp.ev.nat_trans (A : C) : (exp.functor A) ⋙ prodinl A ⟶ 𝟭 C :=
 exp.adjunction.counit
 
-def coev.nat_trans (A : C) : 𝟭 C ⟶ prodinl A ⋙ (exp.functor A) :=
+def exp.coev.nat_trans (A : C) : 𝟭 C ⟶ prodinl A ⋙ (exp.functor A) :=
 exp.adjunction.unit
 
 /-- `B ^ A` or `B ⇐ A` -/
@@ -85,7 +85,9 @@ def exp (B : C) (A : C): C := (exp.functor A).obj B
 
 infixl `⇐`:100 := exp
 
-def exp_lift {A X Y: C} (f : X ⟶ Y) : X⇐A ⟶ Y⇐A :=
+namespace exp
+
+def post {A X Y: C} (f : X ⟶ Y) : X⇐A ⟶ Y⇐A :=
 (exp.functor A).map f
 
 def ev {A B : C} : A ⨯ B⇐A ⟶ B :=
@@ -94,17 +96,22 @@ def ev {A B : C} : A ⨯ B⇐A ⟶ B :=
 def coev {A B : C} : B ⟶ (A⨯B)⇐A :=
 (coev.nat_trans A).app B
 
+def pre {A B X : C} (f : A ⟶ B) : X⇐B ⟶ X⇐A :=
+coev ≫ post (limits.prod.map f (𝟙 (X⇐B)) ≫ ev)
+
 @[simp] lemma ev_coev (A B : C) : limits.prod.map (𝟙 A) coev ≫ ev = 𝟙 (A⨯B) :=
 (@adjunction.left_triangle_components C _ C _ (prodinl A) (exp.functor A) exp.adjunction B)
 
-@[simp] lemma coev_ev (A B : C) : coev ≫ exp_lift ev = 𝟙 (B⇐A) :=
+@[simp] lemma coev_ev (A B : C) : coev ≫ post ev = 𝟙 (B⇐A) :=
 (@adjunction.right_triangle_components C _ C _ (prodinl A) (exp.functor A) exp.adjunction B)
 
-lemma coev_nat {A X Y : C} {f : X ⟶ Y} : f ≫ coev = coev ≫ exp_lift (limits.prod.map (𝟙 A) f) :=
+lemma coev_nat {A X Y : C} {f : X ⟶ Y} : f ≫ coev = coev ≫ post (limits.prod.map (𝟙 A) f) :=
 (coev.nat_trans A).naturality f
 
-lemma ev_nat {A X Y : C} {f : X ⟶ Y} : limits.prod.map (𝟙 A) (exp_lift f) ≫ ev = ev ≫ f :=
+lemma ev_nat {A X Y : C} {f : X ⟶ Y} : limits.prod.map (𝟙 A) (post f) ≫ ev = ev ≫ f :=
 (ev.nat_trans A).naturality f
+
+end exp
 
 -- [todo] exp 1 X ≅ X
 -- BM: I thiiink we can prove this is natural in A, using properties of adjunctions

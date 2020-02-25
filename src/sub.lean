@@ -1,6 +1,6 @@
 /- Author: E.W.Ayers
     Definition of the subobject category. -/
-
+import category_theory.full_subcategory
 import .pullbacks .comma
 
 universes u v w
@@ -11,11 +11,11 @@ open category_theory.limits
 open category
 open opposite
 
-/-- The subobject category -/
-def sub {C : Type u} [𝒞 : category.{v} C] (X : C) := {f : over X // mono f.hom}
-
 variables {C : Type u} [𝒞 : category.{v} C] {X Y : C}
 include 𝒞
+
+/-- The subobject category -/
+def sub (X : C) := {f : over X // mono f.hom}
 
 def sub.obj_of_iso (f : X ≅ Y) : sub Y :=
 ⟨ over.mk f.hom,
@@ -26,27 +26,19 @@ def sub.dom (s : sub X) : C := s.1.left
 def sub.hom (s : sub X) : s.dom ⟶ X := s.1.hom
 instance sub.mono (s : sub X) : mono s.hom := s.2
 
-/-- sub is a cateogry. -/
-instance sub.is_cat : category (@sub C 𝒞 X) :=
-{  hom := λ A B, {h : A.dom ⟶ B.dom // h ≫ B.hom = A.hom},
-   id  := λ A, ⟨𝟙 A.dom, by simp⟩,
-   comp :=
-     λ A B C a b, subtype.mk ((subtype.val a) ≫ b.val)
-       (begin cases b, cases a, dsimp at *, simp [b_property, a_property] at *, end)
-}
+instance sub.is_cat : category (@sub C 𝒞 X) := show category {f : over X // _}, by apply_instance
+def sub_hom {A B : sub X} (f : A ⟶ B) : A.dom ⟶ B.dom := comma_morphism.left f
 
 variables {A B D: sub X}
-@[simp] lemma sub_id : subtype.val (𝟙 A) = 𝟙 A.dom := by refl
-@[simp] lemma sub_id2 : ↑(𝟙 A) = 𝟙 A.dom := by refl
-@[simp] lemma sub_comp {f : A ⟶ B} {g : B ⟶ D}: subtype.val (f ≫ g) = f.val ≫ g.val := by refl
+@[simp] lemma sub_id :  sub_hom (𝟙 A) = 𝟙 (A.dom) := by refl
+@[simp] lemma sub_comp {f : A ⟶ B} {g : B ⟶ D}: sub_hom (f ≫ g) = (sub_hom f) ≫ (sub_hom g) := by refl
 
 def sub.mk_iso {A B : sub X} (f : A.dom ≅ B.dom) (e : f.hom ≫ B.hom = A.hom) : A ≅ B :=
 begin
-  apply iso.mk _ _ _ _,
-    split, apply e,
-    split, symmetry, apply (iso.eq_inv_comp f).2 e,
-    apply subtype.ext.2, simp,
-    apply subtype.ext.2, simp,
+  refine iso.mk (over.hom_mk f.hom e) (over.hom_mk f.inv (eq.symm _)) _ _, 
+    apply (iso.eq_inv_comp f).2 e,
+    {ext, show _ ≫ _ = 𝟙 _, simp  },
+    {ext, show _ ≫ _ = 𝟙 _, simp  }
 end
 
 def sub.map [@has_pullbacks C 𝒞] (YX : Y ⟶ X) : (sub X) → (sub Y)

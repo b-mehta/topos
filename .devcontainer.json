@@ -1,5 +1,6 @@
 {
     "image": "edayers/lean",
+    "postCreateCommand" : "leanpkg configure && update-mathlib", 
     "extensions": [
         "jroesch.lean"
     ]
