@@ -29,7 +29,7 @@ universes u v
 variables  {C : Type u} [𝒞 : category.{v} C] {X : C}
 include 𝒞
 
-@[ext] lemma over.ext : Π {o₁ o₂ : over X} (px : o₁.left = o₂.left ) (p : o₁.hom == o₂.hom), o₁ = o₂ :=
+@[ext] lemma over.ext : Π {o₁ o₂ : over X} (px : o₁.left = o₂.left) (p : o₁.hom == o₂.hom), o₁ = o₂ :=
 begin
   intros _ _ _ _,
   apply comma.ext,

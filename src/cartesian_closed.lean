@@ -64,55 +64,69 @@ def binary_product_exponentiable {C : Type u} [𝒞 : category.{v} C] [bp : @has
 class is_cartesian_closed (C : Type u) [𝒞 : category.{v} C] [@has_binary_products C 𝒞] [@has_terminal C 𝒞] :=
 (cart_closed : Π (X : C), exponentiable X)
 
-variables {C : Type u} [𝒞 : category.{v} C] [has_binary_products.{v} C] [has_terminal.{v} C] [is_cartesian_closed C]
+variables {C : Type u} [𝒞 : category.{v} C] [has_binary_products.{v} C]
 include 𝒞
 
 /-- This is (-)^A -/
-def exp.functor (A : C) : C ⥤ C :=
-(is_cartesian_closed.cart_closed A).exponentiable.right
+def exp.functor (A : C) [hA : exponentiable A] : C ⥤ C :=
+hA.exponentiable.right
+-- BM: I thiiink we can prove this is natural in A, using properties of adjunctions
 
-def exp.adjunction {A : C} : (prodinl A) ⊣ (exp.functor A) :=
-(@is_cartesian_closed.cart_closed C 𝒞 _ _ _ A).exponentiable.adj
+def exp.adjunction {A : C} [hA : exponentiable A] : (prodinl A) ⊣ (exp.functor A) :=
+hA.exponentiable.adj
 
-def exp.ev.nat_trans (A : C) : (exp.functor A) ⋙ prodinl A ⟶ 𝟭 C :=
+def ev.nat_trans (A : C) [exponentiable A] : (exp.functor A) ⋙ prodinl A ⟶ 𝟭 C :=
 exp.adjunction.counit
 
-def exp.coev.nat_trans (A : C) : 𝟭 C ⟶ prodinl A ⋙ (exp.functor A) :=
+def coev.nat_trans (A : C) [exponentiable A] : 𝟭 C ⟶ prodinl A ⋙ (exp.functor A) :=
 exp.adjunction.unit
 
 /-- `B ^ A` or `B ⇐ A` -/
-def exp (B : C) (A : C): C := (exp.functor A).obj B
+def exp (B : C) (A : C) [exponentiable A] : C := (exp.functor A).obj B
 
 infixl `⇐`:100 := exp
 
-namespace exp
-
-def post {A X Y: C} (f : X ⟶ Y) : X⇐A ⟶ Y⇐A :=
+def exp_lift (A : C) {X Y : C} [exponentiable A] (f : X ⟶ Y) : X⇐A ⟶ Y⇐A :=
 (exp.functor A).map f
 
-def ev {A B : C} : A ⨯ B⇐A ⟶ B :=
+def ev {A B : C} [exponentiable A] : A ⨯ B⇐A ⟶ B :=
 (ev.nat_trans A).app B
 
-def coev {A B : C} : B ⟶ (A⨯B)⇐A :=
+def coev {A B : C} [exponentiable A] : B ⟶ (A⨯B)⇐A :=
 (coev.nat_trans A).app B
 
-def pre {A B X : C} (f : A ⟶ B) : X⇐B ⟶ X⇐A :=
-coev ≫ post (limits.prod.map f (𝟙 (X⇐B)) ≫ ev)
-
-@[simp] lemma ev_coev (A B : C) : limits.prod.map (𝟙 A) coev ≫ ev = 𝟙 (A⨯B) :=
+@[simp] lemma ev_coev (A B : C) [exponentiable A] : limits.prod.map (𝟙 A) coev ≫ ev = 𝟙 (A⨯B) :=
 (@adjunction.left_triangle_components C _ C _ (prodinl A) (exp.functor A) exp.adjunction B)
 
-@[simp] lemma coev_ev (A B : C) : coev ≫ post ev = 𝟙 (B⇐A) :=
+@[simp] lemma coev_ev (A B : C) [exponentiable A] : coev ≫ exp_lift _ ev = 𝟙 (B⇐A) :=
 (@adjunction.right_triangle_components C _ C _ (prodinl A) (exp.functor A) exp.adjunction B)
 
-lemma coev_nat {A X Y : C} {f : X ⟶ Y} : f ≫ coev = coev ≫ post (limits.prod.map (𝟙 A) f) :=
+lemma coev_nat {A X Y : C} {f : X ⟶ Y} [exponentiable A] : f ≫ coev = coev ≫ exp_lift _ (limits.prod.map (𝟙 A) f) :=
 (coev.nat_trans A).naturality f
 
-lemma ev_nat {A X Y : C} {f : X ⟶ Y} : limits.prod.map (𝟙 A) (post f) ≫ ev = ev ≫ f :=
+lemma ev_nat {A X Y : C} {f : X ⟶ Y} [exponentiable A] : limits.prod.map (𝟙 A) (exp_lift _ f) ≫ ev = ev ≫ f :=
 (ev.nat_trans A).naturality f
 
-end exp
+def exp_transpose {A X Y : C} [exponentiable A] : (A ⨯ Y ⟶ X) ≃ (Y ⟶ X ⇐ A) :=
+exp.adjunction.hom_equiv _ _
+
+lemma exp_transpose_natural_left {A X Y Z : C} [exponentiable A] (f : X ⟶ Y) (g : limits.prod A Y ⟶ Z) :
+  exp_transpose.to_fun ((prodinl A).map f ≫ g) = f ≫ exp_transpose.to_fun g :=
+adjunction.hom_equiv_naturality_left _ _ _
+
+lemma exp_transpose_natural_right {A Y Z X : C} [exponentiable A] (f : limits.prod A X ⟶ Y) (g : Y ⟶ Z) :
+  exp_transpose.to_fun (f ≫ g) = exp_transpose.to_fun f ≫ exp_lift _ g :=
+adjunction.hom_equiv_naturality_right exp.adjunction _ _
+
+-- TODO: write inv_fun versions of the above (this will massively simplify over.equiv)
+
+#check adjunction.hom_equiv_naturality_right exp.adjunction _ _
 
 -- [todo] exp 1 X ≅ X
--- BM: I thiiink we can prove this is natural in A, using properties of adjunctions
+variable [has_terminal.{v} C]
+
+@[reducible]
+def point_at_hom {X Y : C} [exponentiable X] (f : X ⟶ Y) : ⊤_C ⟶ (Y ⇐ X) :=
+exp_transpose.to_fun (limits.prod.fst ≫ f)
+
 end category_theory
