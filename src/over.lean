@@ -41,10 +41,11 @@ universes v u
 variables {C : Type u} [𝒞 : category.{v} C]
 include 𝒞
 
+section adjunction
+
 variable (B : C)
 variable [has_binary_products.{v} C]
 
-section -- this section is just to add this attribute
 local attribute [tidy] tactic.case_bash
 
 @[reducible]
@@ -59,7 +60,6 @@ adjunction.mk_of_hom_equiv
     inv_fun := λ k, k.left ≫ limits.prod.snd,
     left_inv := by tidy,
     right_inv := by tidy } }
-end
 
 variables [has_terminal.{v} C] [has_pullbacks.{v} C]
 
@@ -78,7 +78,7 @@ private def pi_obj.equiv [exponentiable B] (X : C) (Y : over B) : ((star B).obj 
                     rw exp_transpose.left_inv, rw exp_transpose.left_inv, simp
                   end,
   left_inv := λ f, begin apply over.over_morphism.ext, simp, rw exp_transpose.left_inv end,
-  right_inv := λ g, begin simp, apply pullback.hom_ext, simp, rw exp_transpose.right_inv, apply subsingleton.elim end
+  right_inv := λ g, begin apply pullback.hom_ext, simp, rw exp_transpose.right_inv, apply subsingleton.elim end
   }
 
 private lemma pi_obj.natural_equiv [exponentiable B] (X' X : C) (Y : over B) (f : X' ⟶ X) (g : (star B).obj X ⟶ Y) :
@@ -94,5 +94,33 @@ def star_is_left_adj_of_exponentiable [exponentiable B] : is_left_adjoint (star 
 
 def exponentiable_of_star_is_left_adj (h : is_left_adjoint (star B)) : exponentiable B :=
 ⟨⟨star B ⋙ h.right, adjunction.comp _ _ h.adj (forget_adj_star B)⟩⟩
+
+end adjunction
+
+def slice_product_of_pullbacks (B : C) (f g : over B) [q : has_limit (cospan (f.hom) (g.hom))] : has_limit (pair f g) :=
+{ cone := begin
+            apply binary_fan.mk,
+            apply @over.hom_mk _ _ _ (@over.mk _ _ B (pullback f.hom g.hom) (pullback.fst ≫ f.hom)) f pullback.fst,
+            apply over.hom_mk _ _, apply pullback.snd,
+            exact pullback.condition.symm
+          end,
+  is_limit :=
+  { lift :=
+      begin
+        intro s, apply over.hom_mk _ _,
+          apply pullback.lift _ _ _,
+              exact (s.π.app walking_pair.left).left,
+            exact (s.π.app walking_pair.right).left,
+          erw over.w (s.π.app walking_pair.left),
+          erw over.w (s.π.app walking_pair.right),
+          refl,
+        dsimp, erw ← assoc, simp,
+      end,
+    fac' := begin intros s j, ext, cases j, simp, simp end,
+    uniq' := begin intros s m j,
+    ext, revert j_1, apply pi_app,
+    simp, erw ← j walking_pair.left, erw limit.lift_π, simp, refl,
+    simp, erw ← j walking_pair.right, simp, erw limit.lift_π, simp, refl end }
+}
 
 end category_theory
