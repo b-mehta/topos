@@ -2,6 +2,7 @@
 
 import category_theory.comma
 import category_theory.limits.shapes.finite_limits
+import category_theory.yoneda
 import order.complete_lattice
 import data.set.lattice
 import .comma
@@ -127,7 +128,7 @@ def gi_generate :
     le_l_u    := λ S _, generate_sets.basic
   }
 
--- [TODO] what is the established name for this? Notation is h* S
+-- [TODO] what is the established name for this? Notation is h* S.
 /-- Given a morhpism `h : Y ⟶ X`, send a sieve S on X to a sieve on Y
     as the inverse image of S with `_ ≫ h`.
     That is, `yank S h := (≫ h) '⁻¹ S`. -/
@@ -208,6 +209,18 @@ begin
   apply sieve.subs,
   apply H,
 end
+
+def as_functor (S : sieve X) : Cᵒᵖ ⥤ Type v :=
+{ obj := λ Y, {g : Y.unop ⟶ X // over.mk g ∈ S},
+  map := λ Y Z f g, subtype.mk (f.unop ≫ g.1) (begin
+    cases g with g gS,  apply sieve.subs S (over.mk g) gS _ f.unop,
+  end)
+}
+
+def functor_inclusion (S : sieve X) : S.as_functor ⟶ yoneda.obj X :=
+nat_trans.mk (λ Y f, f.1) (λ Y Z g, rfl)
+
+-- [todo] show it's monic.
 
 end sieve
 end category_theory
