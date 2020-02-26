@@ -131,8 +131,33 @@ lemma exp_transpose_natural_left_symm  (f : X ⟶ X') (g : X' ⟶ Y ⇐ A) :
   exp_transpose.inv_fun (f ≫ g) = (prodinl A).map f ≫ exp_transpose.inv_fun g :=
 adjunction.hom_equiv_naturality_left_symm _ _ _
 
--- [todo] exp X 1 ≅ X
 variable [has_terminal.{v} C]
+
+instance terminal_exponentiable : exponentiable ⊤_C :=
+  {
+    exponentiable := {
+      right := 𝟭 C,
+      adj := adjunction.mk_of_hom_equiv {
+        hom_equiv := begin
+          intros,
+          dsimp [prodinl],
+          have unitor := prod.left_unitor X,
+          exact {
+            to_fun := begin intros, exact unitor.inv ≫ a, end,
+            inv_fun := begin intros, exact unitor.hom ≫ a, end,
+            left_inv := by tidy,
+            right_inv := by tidy,
+          },
+        end,
+      },
+    },
+  }
+
+lemma exp_terminal_iso: X⇐⊤_C ≅ X :=
+   begin
+   dsimp [exp, exp.functor, prodinl, is_left_adjoint.right],
+   refl,
+   end
 
 @[reducible]
 def point_at_hom (f : A ⟶ Y) : ⊤_C ⟶ (Y ⇐ A) :=
