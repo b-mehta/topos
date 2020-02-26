@@ -140,7 +140,11 @@ instance terminal_exponentiable : exponentiable ⊤_C :=
   { hom_equiv := λ X _, have unitor : _, from prod.left_unitor X,
       ⟨λ a, unitor.inv ≫ a, λ a, unitor.hom ≫ a, by tidy, by tidy⟩ } } }
 
-lemma exp_terminal_iso : X⇐⊤_C ≅ X := iso.refl _
+def exp_terminal_iso : X⇐⊤_C ≅ X := iso.refl _
+
+lemma exp_terminal_functor_iso : exp.functor ⊤_C ≅ 𝟭 C :=
+  nat_iso.of_components (λ X, exp_terminal_iso)
+  (λ _ _ f, yoneda.obj_map_id f.op)
 
 @[reducible]
 def point_at_hom (f : A ⟶ Y) : ⊤_C ⟶ (Y ⇐ A) :=
