@@ -123,6 +123,62 @@ def over_product_of_pullbacks (B : C) (F : discrete walking_pair ⥤ over B)
     uniq' := begin intros s m j,
     ext, revert j_1, apply pi_app,
     simp, erw ← j walking_pair.left, erw limit.lift_π, simp, refl,
+variables [has_binary_products.{v} C] [has_pullbacks.{v} C] {B : C}
+
+instance over_has_prods_of_pullback (B : C) : has_binary_products.{v} (over B) :=
+{has_limits_of_shape := {has_limit := λ F, over_product_of_pullbacks B F}}
+
+lemma over_prod_is_pullback {B : C} (F : discrete walking_pair ⥤ over B) :
+  limits.limit F = @over.mk _ _ B (pullback (F.obj walking_pair.left).hom (F.obj walking_pair.right).hom) (pullback.fst ≫ (F.obj walking_pair.left).hom) := rfl
+
+lemma over_prod_left {B : C} (F : discrete walking_pair ⥤ over B) :
+  (limits.limit F).left = (pullback (F.obj walking_pair.left).hom (F.obj walking_pair.right).hom) := rfl
+
+lemma over_prod_pair_left {B : C} (f g : over B) :
+  (prod f g).left = pullback f.hom g.hom := rfl
+
+lemma over_prod_pair {B : C} (f g : over B) :
+  prod f g = @over.mk _ _ B (pullback f.hom g.hom) (pullback.fst ≫ f.hom) := rfl
+
+-- lemma thing (A : C) (g : over B) :
+--    (pullback.fst ≫ ((star B).obj A).hom) == (limits.prod.fst ≫ g.hom) := sorry
+
+-- lemma prod_star (A : C) (g : over B) :
+--   (star B).obj A ⨯ g ≅ over.mk ((limits.prod.fst : g.left ⨯ A ⟶ _) ≫ g.hom) :=
+-- begin
+--   rw over_prod_pair, dunfold star, dsimp,
+-- end
+
+def exponentiable_in_slice (A B : C) [exponentiable A] : exponentiable ((star B).obj A) :=
+begin
+  split, split,
+    apply adjunction.adjunction_of_equiv_right _ _,
+      intro f,
+      apply over.mk,
+        apply @pullback.snd C _ (exp _ A) B (exp B A) (post A f.hom) (exp_transpose.to_fun limits.prod.snd) _,
+    intros g f,
+    refine ⟨_, _, _, _⟩,
+    { intro h, sorry },
+    { intro k,
+      have : (k.left ≫ pullback.fst) ≫ post A f.hom = g.hom ≫ (exp_transpose.to_fun limits.prod.snd),
+        rw ← over.w k, rw assoc, rw pullback.condition, rw assoc, refl,
+      have : exp_transpose.inv_fun (k.left ≫ pullback.fst) ≫ f.hom = limits.prod.map (𝟙 _) g.hom ≫ limits.prod.snd,
+        apply function.injective_of_left_inverse exp_transpose.left_inv,
+        rw exp_transpose_natural_right, rw exp_transpose.right_inv, rw this,
+        erw exp_transpose_natural_left,
+      dunfold prodinl,
+      show (star B).obj A ⨯ g ⟶ f,
+      dsimp, erw over_prod_pair, rw over.mk_hom, apply over.hom_mk _ _,
+      set h : A ⨯ (g.left) ⟶ f.left := exp_transpose.inv_fun (k.left ≫ pullback.fst),
+      rw over.mk_left,
+
+      sorry
+    },
+    { sorry },
+    { sorry },
+  { sorry }
+end
+
     simp, erw ← j walking_pair.right, simp, erw limit.lift_π, simp, refl end }
 }
 
