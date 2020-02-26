@@ -23,12 +23,15 @@ begin
   simp, assumption,
 end
 
+local attribute [tidy] tactic.case_bash
+
+def prod_functor : C ⥤ C ⥤ C :=
+{ obj := λ X, { obj := λ Y, X ⨯ Y, map := λ Y Z, limits.prod.map (𝟙 X) },
+  map := λ Y Z f, { app := λ T, limits.prod.map f (𝟙 T) }}
+
 def prodinl (X : C) : C ⥤ C :=
 { obj := λ Y, limits.prod X Y,
-  map := λ Y Z f, limits.prod.map (𝟙 X) f,
-  map_id' := begin intros, apply prod.hom_ext, simp, exact category.comp_id _ _, simp, exact category.comp_id _ _ end,
-  map_comp' := λ U V W f g, begin apply prod.hom_ext, simp, rw [comp_id _ (𝟙 X)], simp end
-}
+  map := λ Y Z f, limits.prod.map (𝟙 X) f }
 
 @[simp] lemma prodinl_map_def {f : Y ⟶ Z} : (prodinl X).map f = limits.prod.map (𝟙 X) f := rfl
 @[simp] lemma map_fst {f : U ⟶ V} {g : W ⟶ X} : limits.prod.map f g ≫ limits.prod.fst = limits.prod.fst ≫ f := by simp
@@ -39,16 +42,7 @@ def prodinl (X : C) : C ⥤ C :=
 open category
 
 def prodinl_comp (X Y : C) : prodinl (X ⨯ Y) ≅ prodinl Y ⋙ prodinl X :=
-nat_iso.of_components (limits.prod.associator _ _) (
-  begin
-    intros U V f,
-    apply prod.hom_ext,
-      simp, dsimp, simp,
-    apply prod.hom_ext,
-      simp, dsimp, simp,
-    simp,
-  end
-)
+nat_iso.of_components (limits.prod.associator _ _) (by tidy)
 
 end
 
@@ -144,23 +138,40 @@ exp_transpose.to_fun (limits.prod.fst ≫ f)
 section pre
 
 variables [exponentiable B]
--- X⇐A ⟶ (B⨯X⇐A)⇐B ⟶ (A⨯X⇐A)⇐B ⟶ X⇐B
+
+-- this notation (and the hats) are just here so i could figure out how to
+-- do pre_map - I think the ⟨f,g⟩ might be nice but the rest can go (TODO)
+local notation `⟨`f`, `g`⟩` := limits.prod.map f g
+local notation A` ⟹ `:100 B := exp B A
+
+@[reducible]
+def hat : (A ⨯ Y ⟶ X) → (Y ⟶ A ⟹ X) := exp_transpose.to_fun
+@[reducible]
+def unhat : (Y ⟶ A ⟹ X) → (A ⨯ Y ⟶ X) := exp_transpose.inv_fun
+
 def pre (X : C) (f : B ⟶ A) : X⇐A ⟶ X⇐B :=
-coev ≫ post _ (limits.prod.map f (𝟙 _) ≫ ev)
+hat (⟨f, 𝟙 (A ⟹ X)⟩ ≫ unhat (𝟙 (A ⟹ X)))
 
 lemma pre_id : pre X (𝟙 A) = 𝟙 (X⇐A) :=
 begin
-  show _ ≫ _ = 𝟙 _,
-  simp,
+  dunfold pre hat, erw exp_transpose_natural_left, rw exp_transpose.right_inv, simp
 end
 
--- lemma pre_map {D : C} [exponentiable D] {f : A ⟶ B} {g : B ⟶ D} : pre X (f ≫ g) = pre X g ≫ pre X f :=
--- begin
---   sorry
---   -- X⇐D ⟶ (A⨯X⇐D)⇐A ⟶ (B⨯X⇐D)⇐A ⟶ (D⨯X⇐D)⇐A ⟶ X⇐A
---   -- X⇐D ⟶ (B⨯X⇐D)⇐B ⟶ (D⨯X⇐D)⇐B ⟶ X⇐B ⟶ (A⨯X⇐B)⇐A ⟶ (B⨯X⇐B)⇐A ⟶ X⇐A
---   -- ... yikes
--- end
+lemma pre_map {D : C} [exponentiable D] {f : A ⟶ B} {g : B ⟶ D} : pre X (f ≫ g) = pre X g ≫ pre X f :=
+begin
+  dunfold pre, apply function.injective_of_left_inverse exp_transpose.right_inv,
+  rw exp_transpose.left_inv, rw ← exp_transpose_natural_left, rw exp_transpose.left_inv,
+  show ⟨f ≫ g, 𝟙 (D ⟹ X)⟩ ≫ unhat (𝟙 (D ⟹ X)) =
+    ⟨𝟙 A, (hat (⟨g, 𝟙 (D ⟹ X)⟩ ≫ unhat (𝟙 (D ⟹ X))))⟩ ≫
+      ⟨f, 𝟙 (B ⟹ X)⟩ ≫ unhat (𝟙 (B ⟹ X)),
+  suffices: ⟨f ≫ g, 𝟙 (D ⟹ X)⟩ ≫ unhat (𝟙 (D ⟹ X)) =
+    (⟨f, 𝟙 (D ⟹ X)⟩ ≫ ⟨𝟙 B, (hat (⟨g, 𝟙 (D ⟹ X)⟩ ≫ unhat (𝟙 (D ⟹ X))))⟩) ≫ unhat (𝟙 (B ⟹ X)),
+  rw this, rw ← assoc, congr' 1, apply prod.hom_ext, simp, dsimp, simp, simp, dsimp, simp,
+  have: ⟨f ≫ g, 𝟙 (D ⟹ X)⟩ = ⟨f, 𝟙 _⟩ ≫ ⟨g, 𝟙 _⟩, apply prod.hom_ext, simp, simp,
+  rw this, rw assoc, rw assoc, congr' 1, erw ← exp_transpose_natural_left_symm,
+  apply function.injective_of_left_inverse exp_transpose.left_inv, rw exp_transpose_natural_right,
+  rw exp_transpose.right_inv, simp, exact (exp_transpose_natural_right _ _).symm
+end
 
 end pre
 
