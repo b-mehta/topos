@@ -134,30 +134,13 @@ adjunction.hom_equiv_naturality_left_symm _ _ _
 variable [has_terminal.{v} C]
 
 instance terminal_exponentiable : exponentiable ⊤_C :=
-  {
-    exponentiable := {
-      right := 𝟭 C,
-      adj := adjunction.mk_of_hom_equiv {
-        hom_equiv := begin
-          intros,
-          dsimp [prodinl],
-          have unitor := prod.left_unitor X,
-          exact {
-            to_fun := begin intros, exact unitor.inv ≫ a, end,
-            inv_fun := begin intros, exact unitor.hom ≫ a, end,
-            left_inv := by tidy,
-            right_inv := by tidy,
-          },
-        end,
-      },
-    },
-  }
+{ exponentiable := {
+  right := 𝟭 C,
+  adj := adjunction.mk_of_hom_equiv
+  { hom_equiv := λ X _, have unitor : _, from prod.left_unitor X,
+      ⟨λ a, unitor.inv ≫ a, λ a, unitor.hom ≫ a, by tidy, by tidy⟩ } } }
 
-lemma exp_terminal_iso: X⇐⊤_C ≅ X :=
-   begin
-   dsimp [exp, exp.functor, prodinl, is_left_adjoint.right],
-   refl,
-   end
+lemma exp_terminal_iso : X⇐⊤_C ≅ X := iso.refl _
 
 @[reducible]
 def point_at_hom (f : A ⟶ Y) : ⊤_C ⟶ (Y ⇐ A) :=
