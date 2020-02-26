@@ -272,20 +272,25 @@ identify_limit_apex ((pasting _ _ _ _ _ _ _ _ _ test).inv test) ≪≫ iso_apex_
 -- Show
 -- D × A ⟶ B × A
 --   |       |
---   |       |
 --   v       v
 --   D   ⟶   B
 -- is a pullback (needed in over/exponentiable_in_slice)
 def pullback_prod (xy : X ⟶ Y) [has_binary_products.{v} C] :
   is_limit (pullback_cone.mk limits.prod.fst (limits.prod.map xy (𝟙 Z)) (by simp) : pullback_cone xy limits.prod.fst) :=
 { lift := λ s, prod.lift (pullback_cone.fst s) (pullback_cone.snd s ≫ limits.prod.snd),
-  fac' := λ s, begin apply pi_app_left (pullback_cone.mk limits.prod.fst (limits.prod.map xy (𝟙 Z)) _) s, dsimp,
-    dunfold pullback_cone.fst, simp, -- this should have been just simp
-    -- dunfold pullback_cone.mk,
-    apply limit.hom_ext, intro j, cases j, simp, dsimp, -- this should be easy.
-    sorry
-   end,
-  uniq' := sorry -- this too
+  fac' := λ s,
+    begin
+      apply pi_app_left (pullback_cone.mk limits.prod.fst (limits.prod.map xy (𝟙 Z)) _) s, dsimp,
+        dunfold pullback_cone.fst, simp, -- this should have been just simp
+      apply limit.hom_ext, intro j, cases j, simp, dsimp, -- this should be easy.
+        dunfold pullback_cone.snd, rw pullback_cone.simp_right, simp, exact pullback_cone.condition s,
+      simp, dunfold pullback_cone.snd, simp, dsimp, simp -- look here ed
+    end,
+  uniq' := λ s m J,
+    begin
+      ext, cases j, simp, apply J walking_cospan.left, simp, dunfold pullback_cone.snd, erw ← J walking_cospan.right,
+      simp, dsimp, simp
+    end
 }
 
 @[reducible]
