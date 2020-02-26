@@ -97,12 +97,15 @@ def exponentiable_of_star_is_left_adj (h : is_left_adjoint (star B)) : exponenti
 
 end adjunction
 
-def slice_product_of_pullbacks (B : C) (f g : over B) [q : has_limit (cospan (f.hom) (g.hom))] : has_limit (pair f g) :=
+def over_product_of_pullbacks (B : C) (F : discrete walking_pair ⥤ over B)
+[q : has_limit (cospan (F.obj walking_pair.left).hom (F.obj walking_pair.right).hom)]
+: has_limit F :=
 { cone := begin
-            apply binary_fan.mk,
-            apply @over.hom_mk _ _ _ (@over.mk _ _ B (pullback f.hom g.hom) (pullback.fst ≫ f.hom)) f pullback.fst,
-            apply over.hom_mk _ _, apply pullback.snd,
-            exact pullback.condition.symm
+            refine ⟨_, _⟩,
+            exact @over.mk _ _ B (pullback (F.obj walking_pair.left).hom (F.obj walking_pair.right).hom) (pullback.fst ≫ (F.obj walking_pair.left).hom),
+            apply nat_trans.of_homs, intro i, cases i,
+            apply over.hom_mk _ _, apply pullback.fst, dsimp, refl,
+            apply over.hom_mk _ _, apply pullback.snd, exact pullback.condition.symm
           end,
   is_limit :=
   { lift :=
@@ -116,11 +119,30 @@ def slice_product_of_pullbacks (B : C) (f g : over B) [q : has_limit (cospan (f.
           refl,
         dsimp, erw ← assoc, simp,
       end,
-    fac' := begin intros s j, ext, cases j, simp, simp end,
+    fac' := begin intros s j, ext, cases j, simp [nat_trans.of_homs], simp [nat_trans.of_homs] end,
     uniq' := begin intros s m j,
     ext, revert j_1, apply pi_app,
     simp, erw ← j walking_pair.left, erw limit.lift_π, simp, refl,
     simp, erw ← j walking_pair.right, simp, erw limit.lift_π, simp, refl end }
 }
+
+variables [has_binary_products.{v} C] [has_pullbacks.{v} C]
+
+def over_has_prods_of_pullback (B : C) : has_binary_products.{v} (over B) :=
+{has_limits_of_shape := {has_limit := λ F, over_product_of_pullbacks B F}}
+
+-- def exponentiable_in_slice (A B : C) [exponentiable A] : @exponentiable _ _ (over_has_prods_of_pullback B) ((star B).obj A) :=
+-- begin
+--   split, split, apply adjunction.adjunction_of_equiv_right, swap, intro f,
+--   apply over.mk,
+--   apply @pullback.snd C _ (exp _ A) B (exp B A) (post A f.hom) (exp_transpose.to_fun limits.prod.snd) _,
+--   swap,
+--   intros X Y,
+
+--   sorry -- I think we need to use here that the product in over is the pullback
+--   -- refine ⟨_, _, _, _⟩,
+
+--   -- intros X X' Y f g,
+-- end
 
 end category_theory
