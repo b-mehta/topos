@@ -59,6 +59,9 @@ def binary_product_exponentiable {C : Type u} [𝒞 : category.{v} C] [bp : @has
 class is_cartesian_closed (C : Type u) [𝒞 : category.{v} C] [@has_binary_products C 𝒞] [@has_terminal C 𝒞] :=
 (cart_closed : Π (X : C), exponentiable X)
 
+instance exponentiable_of_cc {C : Type u} [𝒞 : category.{v} C] [@has_binary_products C 𝒞] [@has_terminal C 𝒞] [is_cartesian_closed C] {A : C} :
+  exponentiable A := is_cartesian_closed.cart_closed A
+
 variables {C : Type u} [𝒞 : category.{v} C] [has_binary_products.{v} C] {X X' Y Y' Z A B : C} [exponentiable A]
 include 𝒞
 
@@ -172,6 +175,13 @@ begin
   apply function.injective_of_left_inverse exp_transpose.left_inv, rw exp_transpose_natural_right,
   rw exp_transpose.right_inv, simp, exact (exp_transpose_natural_right _ _).symm
 end
+
+def pre.functor [is_cartesian_closed C] (X : C) : Cᵒᵖ ⥤ C :=
+{ obj := λ A, X⇐(A.unop),
+  map := λ A B f, pre X f.unop,
+  map_id' := begin intros, apply pre_id, end,
+  map_comp' := begin intros, apply pre_map, end,
+}
 
 end pre
 
