@@ -123,9 +123,19 @@ def over_product_of_pullbacks (B : C) (F : discrete walking_pair ⥤ over B)
     uniq' := begin intros s m j,
     ext, revert j_1, apply pi_app,
     simp, erw ← j walking_pair.left, erw limit.lift_π, simp, refl,
-variables [has_binary_products.{v} C] [has_pullbacks.{v} C] {B : C}
+    simp, erw ← j walking_pair.right, simp, erw limit.lift_π, simp, refl end } }
 
-instance over_has_prods_of_pullback (B : C) : has_binary_products.{v} (over B) :=
+instance (B : C) : has_terminal.{v} (over B) :=
+{ has_limits_of_shape :=
+  { has_limit := λ F,
+    { cone := { X := over.mk (𝟙 _), π := { app := λ p, pempty.elim p } },
+      is_limit := { lift := λ s, over.hom_mk _,
+                    fac' := λ _ j, j.elim,
+                    uniq' := λ s m _,
+                    begin ext, rw over.hom_mk_left, have := m.w, dsimp at this, simp at this, assumption end } } } }
+
+instance over_has_prods_of_pullback [has_pullbacks.{v} C] (B : C) :
+  has_binary_products.{v} (over B) :=
 {has_limits_of_shape := {has_limit := λ F, over_product_of_pullbacks B F}}
 
 lemma over_prod_is_pullback {B : C} (F : discrete walking_pair ⥤ over B) :
@@ -149,56 +159,31 @@ lemma over_prod_pair {B : C} (f g : over B) :
 --   rw over_prod_pair, dunfold star, dsimp,
 -- end
 
-def exponentiable_in_slice (A B : C) [exponentiable A] : exponentiable ((star B).obj A) :=
-begin
-  split, split,
-    apply adjunction.adjunction_of_equiv_right _ _,
-      intro f,
-      apply over.mk,
-        apply @pullback.snd C _ (exp _ A) B (exp B A) (post A f.hom) (exp_transpose.to_fun limits.prod.snd) _,
-    intros g f,
-    refine ⟨_, _, _, _⟩,
-    { intro h, sorry },
-    { intro k,
-      have : (k.left ≫ pullback.fst) ≫ post A f.hom = g.hom ≫ (exp_transpose.to_fun limits.prod.snd),
-        rw ← over.w k, rw assoc, rw pullback.condition, rw assoc, refl,
-      have : exp_transpose.inv_fun (k.left ≫ pullback.fst) ≫ f.hom = limits.prod.map (𝟙 _) g.hom ≫ limits.prod.snd,
-        apply function.injective_of_left_inverse exp_transpose.left_inv,
-        rw exp_transpose_natural_right, rw exp_transpose.right_inv, rw this,
-        erw exp_transpose_natural_left,
-      dunfold prodinl,
-      show (star B).obj A ⨯ g ⟶ f,
-      dsimp, erw over_prod_pair, rw over.mk_hom, apply over.hom_mk _ _,
-      set h : A ⨯ (g.left) ⟶ f.left := exp_transpose.inv_fun (k.left ≫ pullback.fst),
-      rw over.mk_left,
+class is_locally_cartesian_closed (C : Type u) [𝒞 : category.{v} C] [has_pullbacks.{v} C] :=
+(overs_cc : Π (B : C), is_cartesian_closed (over B))
 
-      sorry
-    },
-    { sorry },
-    { sorry },
-  { sorry }
-end
+@[reducible]
+def iterated_slice_forward {B : C} (f : over B) : over f ⥤ over f.left :=
+{ obj := λ α, over.mk α.hom.left,
+  map := λ α β κ, over.hom_mk κ.left.left (begin rw auto_param_eq, rw ← over.w κ, refl end)}
 
-    simp, erw ← j walking_pair.right, simp, erw limit.lift_π, simp, refl end }
-}
+@[reducible]
+def iterated_slice_backward {B : C} (f : over B) : over f.left ⥤ over f :=
+{ obj := λ g, over.mk (@over.hom_mk _ _ _ (over.mk (g.hom ≫ f.hom)) f g.hom (by simp)),
+  map := λ g h α, @over.hom_mk _ _ f
+              (over.mk (@over.hom_mk C 𝒞 B (over.mk (g.hom ≫ f.hom)) f g.hom (by simp)))
+              (over.mk (@over.hom_mk C 𝒞 B (over.mk (h.hom ≫ f.hom)) f h.hom (by simp)))
+              (over.hom_mk α.left (over.w_assoc α f.hom)) (over.over_morphism.ext (over.w α)) }
 
-variables [has_binary_products.{v} C] [has_pullbacks.{v} C]
-
-def over_has_prods_of_pullback (B : C) : has_binary_products.{v} (over B) :=
-{has_limits_of_shape := {has_limit := λ F, over_product_of_pullbacks B F}}
-
--- def exponentiable_in_slice (A B : C) [exponentiable A] : @exponentiable _ _ (over_has_prods_of_pullback B) ((star B).obj A) :=
--- begin
---   split, split, apply adjunction.adjunction_of_equiv_right, swap, intro f,
---   apply over.mk,
---   apply @pullback.snd C _ (exp _ A) B (exp B A) (post A f.hom) (exp_transpose.to_fun limits.prod.snd) _,
---   swap,
---   intros X Y,
-
---   sorry -- I think we need to use here that the product in over is the pullback
---   -- refine ⟨_, _, _, _⟩,
-
---   -- intros X X' Y f g,
--- end
+def iterated_slice_iso {B : C} (f : over B) : over f ≌ over f.left :=
+equivalence.mk (iterated_slice_forward f) (iterated_slice_backward f)
+(nat_iso.of_components
+  (λ g, ⟨over.hom_mk (over.hom_mk (𝟙 g.left.left)) (by apply_auto_param),
+         over.hom_mk (over.hom_mk (𝟙 g.left.left)) (by apply_auto_param),
+         by ext; dsimp; simp, by ext; dsimp; simp⟩) (λ X Y g, begin ext, dsimp, simp end))
+(nat_iso.of_components
+  (λ g, ⟨over.hom_mk (𝟙 g.left) (by apply_auto_param),
+         over.hom_mk (𝟙 g.left) (by apply_auto_param),
+         by ext; dsimp; simp, by ext; dsimp; simp⟩) (λ X Y g, by ext; dsimp; simp))
 
 end category_theory

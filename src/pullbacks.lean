@@ -262,7 +262,7 @@ begin
 end
 
 lemma test [@has_pullbacks C 𝒞] {X Y Z : C} {xz : X ⟶ Z} {yz : Y ⟶ Z} :
-  is_limit (pullback_cone.mk pullback.fst pullback.snd (show pullback.fst ≫ yz = pullback.snd ≫ xz, from pullback.condition)) :=
+  is_limit (pullback_cone.mk pullback.fst pullback.snd pullback.condition : pullback_cone yz xz) :=
 (limit.is_limit _).of_iso_limit make_pullback.symm
 
 lemma pullback.comp_r {W X Y Z : C} {xz : X ⟶ Z} {yz : Y ⟶ Z} {wx : W ⟶ X} [@has_pullbacks C 𝒞]:
