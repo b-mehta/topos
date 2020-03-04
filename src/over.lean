@@ -138,7 +138,36 @@ instance (B : C) : has_terminal.{v} (over B) :=
                     uniq' := λ s m _,
                     begin ext, rw over.hom_mk_left, have := m.w, dsimp at this, simp at this, assumption end } } } }
 
--- instance {B : C} [has_pullbacks.{v} C] : has_pullbacks.{v} (over B) := sorry
+instance {B : C} [has_pullbacks.{v} C] : has_pullbacks.{v} (over B) :=
+begin
+    refine ⟨⟨λ F, _⟩⟩,
+    let X : over B := F.obj walking_cospan.one,
+    let Y : over B := F.obj walking_cospan.left,
+    let Z : over B := F.obj walking_cospan.right,
+    let f : Y ⟶ X := (F.map walking_cospan.hom.inl), 
+    let g : Z ⟶ X := (F.map walking_cospan.hom.inr),
+    -- let L := pullback f.left g.left,
+    let L : over B := over.mk (pullback.fst ≫ Y.hom : pullback f.left g.left ⟶ B),
+    let π₁ : L ⟶ Y := over.hom_mk pullback.fst,
+    let π₂ : L ⟶ Z, refine @over.hom_mk _ _ _ L Z (pullback.snd : L.left ⟶ Z.left) _,
+      simp, 
+      rw [← over.w f, ← assoc,  pullback.condition, assoc,  over.w g], 
+    refine {cone := cone.of_pullback_cone (pullback_cone.mk π₁ π₂ _), is_limit := {lift := _, fac' := _, uniq' := _}},
+      ext, simp, erw pullback.condition, 
+    intro s, 
+    -- let ss := pullback_cone.of_cone s, 
+    apply over.hom_mk _ _,
+    apply pullback.lift (s.π.app walking_cospan.left).left (s.π.app walking_cospan.right).left,
+    rw ← over.comp_left, rw ← over.comp_left, 
+    rw s.w, rw s.w, simp, sorry,
+    
+    intros s j, simp, ext1, dsimp, 
+    cases j, simp, simp, simp, sorry,
+    intros s m J, apply over.over_morphism.ext, simp, apply pullback.hom_ext, 
+    simp at J, dsimp at J, 
+    have := J walking_cospan.left, dsimp at this, simp, rw ← this, simp, 
+    have := J walking_cospan.right, dsimp at this, simp, rw ← this, simp
+end 
 
 instance over_has_prods_of_pullback [has_pullbacks.{v} C] (B : C) :
   has_binary_products.{v} (over B) :=
