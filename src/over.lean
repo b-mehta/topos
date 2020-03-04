@@ -1,9 +1,11 @@
 import category_theory.comma
 import category_theory.adjunction.basic
 import category_theory.limits.shapes
+import category_theory.epi_mono
 import cartesian_closed
 import pullbacks
 import comma
+import to_mathlib
 
 /-!
 # Properties of the over category.
@@ -11,18 +13,16 @@ import comma
 We can interpret the forgetful functor `forget : over B ⥤ C` as dependent sum,
 (written `Σ_B`)
 and when C has binary products, it has a right adjoint `B*` given by
-`A ↦ (π₂ : A × B → B)`, denoted `star` in Lean.
+`A ↦ (π₁ : B × A → B)`, denoted `star` in Lean.
 
-TODO: prove everything below this line.
 Furthermore, if the original category C has pullbacks and terminal object (i.e.
 all finite limits), `B*` has a right adjoint iff `B` is exponentiable in `C`.
 This right adjoint is written `Π_B` and is interpreted as dependent product.
 
-Under the same conditions, if `A` is exponentiable in `C`, then `B* A` is
-exponentiable in `C/B` for any `B`, and `B*` preserves exponentials.
-
 We say `C` is locally cartesian closed if it has all finite limits, and each
 `C/B` is cartesian closed.
+
+TODO: prove everything below this line.
 
 Given `f : A ⟶ B` in `C/B`, the iterated slice `(C/B)/f` is isomorphic to
 `C/A`, and so `f* : C/B ⥤ (C/B)/f` is 'the same thing' as pulling back
@@ -51,7 +51,7 @@ local attribute [tidy] tactic.case_bash
 @[reducible]
 def star : C ⥤ over B :=
 { obj := λ A, @over.mk _ _ _ (B ⨯ A) limits.prod.fst,
-  map := λ X Y f, begin apply over.hom_mk _ _, apply limits.prod.map (𝟙 _) f, simp end}
+  map := λ X Y f, over.hom_mk (limits.prod.map (𝟙 _) f) (by simp) }
 
 def forget_adj_star : over.forget ⊣ star B :=
 adjunction.mk_of_hom_equiv
@@ -65,18 +65,20 @@ variables [has_terminal.{v} C] [has_pullbacks.{v} C]
 
 def Pi_obj [exponentiable B] (f : over B) : C := pullback (post B f.hom) (point_at_hom (𝟙 B))
 
-private def pi_obj.equiv [exponentiable B] (X : C) (Y : over B) : ((star B).obj X ⟶ Y) ≃ (X ⟶ Pi_obj B Y) :=
+private def pi_obj.equiv [exponentiable B] (X : C) (Y : over B) :
+  ((star B).obj X ⟶ Y) ≃ (X ⟶ Pi_obj B Y) :=
 { to_fun := λ f, pullback.lift (exp_transpose.to_fun f.left) (terminal.from _)
-                    (begin rw ← exp_transpose_natural_right, erw ← exp_transpose_natural_left, tidy end),
-  inv_fun := λ g, begin
-                    apply over.hom_mk _ _, apply (exp_transpose.inv_fun (g ≫ pullback.fst)),
-                    dsimp, apply function.injective_of_left_inverse exp_transpose.left_inv,
-                    rw exp_transpose_natural_right, rw exp_transpose.right_inv, rw assoc,
-                    rw pullback.condition, have : g ≫ pullback.snd = terminal.from X,
-                    apply subsingleton.elim, rw ← assoc, rw this, erw ← exp_transpose_natural_left,
-                    apply function.injective_of_left_inverse exp_transpose.right_inv,
-                    rw exp_transpose.left_inv, rw exp_transpose.left_inv, simp
-                  end,
+    (begin rw ← exp_transpose_natural_right, erw ← exp_transpose_natural_left, tidy end),
+  inv_fun := λ g,
+    begin
+      apply over.hom_mk _ _, apply (exp_transpose.inv_fun (g ≫ pullback.fst)),
+      dsimp, apply function.injective_of_left_inverse exp_transpose.left_inv,
+      rw exp_transpose_natural_right, rw exp_transpose.right_inv, rw assoc,
+      rw pullback.condition, have : g ≫ pullback.snd = terminal.from X,
+      apply subsingleton.elim, rw ← assoc, rw this, erw ← exp_transpose_natural_left,
+      apply function.injective_of_left_inverse exp_transpose.right_inv,
+      rw exp_transpose.left_inv, rw exp_transpose.left_inv, simp
+    end,
   left_inv := λ f, begin apply over.over_morphism.ext, simp, rw exp_transpose.left_inv end,
   right_inv := λ g, begin apply pullback.hom_ext, simp, rw exp_transpose.right_inv, apply subsingleton.elim end
   }
@@ -96,6 +98,8 @@ def exponentiable_of_star_is_left_adj (h : is_left_adjoint (star B)) : exponenti
 ⟨⟨star B ⋙ h.right, adjunction.comp _ _ h.adj (forget_adj_star B)⟩⟩
 
 end adjunction
+
+section over_limits
 
 def over_product_of_pullbacks (B : C) (F : discrete walking_pair ⥤ over B)
 [q : has_limit (cospan (F.obj walking_pair.left).hom (F.obj walking_pair.right).hom)]
@@ -134,34 +138,57 @@ instance (B : C) : has_terminal.{v} (over B) :=
                     uniq' := λ s m _,
                     begin ext, rw over.hom_mk_left, have := m.w, dsimp at this, simp at this, assumption end } } } }
 
+-- instance {B : C} [has_pullbacks.{v} C] : has_pullbacks.{v} (over B) := sorry
+
 instance over_has_prods_of_pullback [has_pullbacks.{v} C] (B : C) :
   has_binary_products.{v} (over B) :=
 {has_limits_of_shape := {has_limit := λ F, over_product_of_pullbacks B F}}
 
--- lemma over_prod_is_pullback {B : C} (F : discrete walking_pair ⥤ over B) :
---   limits.limit F = @over.mk _ _ B (pullback (F.obj walking_pair.left).hom (F.obj walking_pair.right).hom) (pullback.fst ≫ (F.obj walking_pair.left).hom) := rfl 
+@[simp]
+lemma over_prod_is_pullback [has_pullbacks.{v} C] {B : C} (F : discrete walking_pair ⥤ over B) :
+  limits.limit F = @over.mk _ _ B (pullback (F.obj walking_pair.left).hom (F.obj walking_pair.right).hom) (pullback.fst ≫ (F.obj walking_pair.left).hom) := rfl
 
--- lemma over_prod_left {B : C} (F : discrete walking_pair ⥤ over B) :
---   (limits.limit F).left = (pullback (F.obj walking_pair.left).hom (F.obj walking_pair.right).hom) := rfl
+@[simp]
+lemma over_prod_left [has_pullbacks.{v} C] {B : C} (F : discrete walking_pair ⥤ over B) :
+  (limits.limit F).left = (pullback (F.obj walking_pair.left).hom (F.obj walking_pair.right).hom) := rfl
 
--- lemma over_prod_pair_left {B : C} (f g : over B) :
---   (prod f g).left = pullback f.hom g.hom := rfl
+@[simp]
+lemma over_prod_pair_left [has_pullbacks.{v} C] {B : C} (f g : over B) :
+  (prod f g).left = pullback f.hom g.hom := rfl
 
--- lemma over_prod_pair {B : C} (f g : over B) :
---   prod f g = @over.mk _ _ B (pullback f.hom g.hom) (pullback.fst ≫ f.hom) := rfl
+@[simp]
+lemma over_prod_pair_hom [has_pullbacks.{v} C] {B : C} (f g : over B) :
+  (prod f g).hom = pullback.fst ≫ f.hom := rfl
 
--- lemma thing (A : C) (g : over B) :
---    (pullback.fst ≫ ((star B).obj A).hom) == (limits.prod.fst ≫ g.hom) := sorry
+@[simp]
+lemma over_prod_pair [has_pullbacks.{v} C] {B : C} (f g : over B) :
+  prod f g = @over.mk _ _ B (pullback f.hom g.hom) (pullback.fst ≫ f.hom) := rfl
 
--- lemma prod_star (A : C) (g : over B) :
---   (star B).obj A ⨯ g ≅ over.mk ((limits.prod.fst : g.left ⨯ A ⟶ _) ≫ g.hom) :=
--- begin
---   rw over_prod_pair, dunfold star, dsimp,
--- end
+@[simp]
+lemma over_prod_fst [has_pullbacks.{v} C] {B : C} (f g : over B) :
+  limits.prod.fst = (over.hom_mk pullback.fst : prod f g ⟶ f) := rfl
 
-class is_locally_cartesian_closed (C : Type u) [𝒞 : category.{v} C] [has_pullbacks.{v} C] :=
+@[simp]
+lemma over_prod_snd [has_pullbacks.{v} C] {B : C} (f g : over B) :
+  limits.prod.snd = (over.hom_mk pullback.snd pullback.condition.symm : prod f g ⟶ g) := rfl
+
+@[simp]
+lemma over_prod_map [has_pullbacks.{v} C] {B : C} (f g h : over B) (k : g ⟶ h) :
+  (limits.prod.map (𝟙 f) k : f ⨯ g ⟶ f ⨯ h) = over.hom_mk (pullback.lift pullback.fst (pullback.snd ≫ k.left) (by dsimp; simp; apply pullback.condition)) (begin tidy end) :=
+begin
+  tidy, cases j, tidy
+end
+
+end over_limits
+
+variable (C)
+class is_locally_cartesian_closed [@has_pullbacks C 𝒞] :=
 (overs_cc : Π (B : C), is_cartesian_closed (over B))
 
+instance cartesian_closed_of_lcc [has_binary_products.{v} C] [has_pullbacks.{v} C] [is_locally_cartesian_closed.{v} C] {B : C} :
+  is_cartesian_closed (over B) := @is_locally_cartesian_closed.overs_cc _ 𝒞 _ _ B
+
+variable {C}
 @[reducible]
 def iterated_slice_forward {B : C} (f : over B) : over f ⥤ over f.left :=
 { obj := λ α, over.mk α.hom.left,
@@ -169,21 +196,146 @@ def iterated_slice_forward {B : C} (f : over B) : over f ⥤ over f.left :=
 
 @[reducible]
 def iterated_slice_backward {B : C} (f : over B) : over f.left ⥤ over f :=
-{ obj := λ g, over.mk (@over.hom_mk _ _ _ (over.mk (g.hom ≫ f.hom)) f g.hom (by simp)),
+{ obj := λ g, over.mk (over.hom_mk g.hom (by simp) : over.mk (g.hom ≫ f.hom) ⟶ _),
   map := λ g h α, @over.hom_mk _ _ f
-              (over.mk (@over.hom_mk C 𝒞 B (over.mk (g.hom ≫ f.hom)) f g.hom (by simp)))
-              (over.mk (@over.hom_mk C 𝒞 B (over.mk (h.hom ≫ f.hom)) f h.hom (by simp)))
+              (over.mk (@over.hom_mk C 𝒞 B (over.mk (g.hom ≫ f.hom)) f g.hom (by simp) : _ ⟶ f))
+              (over.mk (@over.hom_mk C 𝒞 B (over.mk (h.hom ≫ f.hom)) f h.hom (by simp) : _ ⟶ f))
               (over.hom_mk α.left (over.w_assoc α f.hom)) (over.over_morphism.ext (over.w α)) }
 
-def iterated_slice_iso {B : C} (f : over B) : over f ≌ over f.left :=
+def iterated_slice_equiv {B : C} (f : over B) : over f ≌ over f.left :=
 equivalence.mk (iterated_slice_forward f) (iterated_slice_backward f)
 (nat_iso.of_components
   (λ g, ⟨over.hom_mk (over.hom_mk (𝟙 g.left.left)) (by apply_auto_param),
          over.hom_mk (over.hom_mk (𝟙 g.left.left)) (by apply_auto_param),
-         by ext; dsimp; simp, by ext; dsimp; simp⟩) (λ X Y g, begin ext, dsimp, simp end))
+         by ext; dsimp; simp, by ext; dsimp; simp⟩) (λ X Y g, by ext; dsimp; simp))
 (nat_iso.of_components
   (λ g, ⟨over.hom_mk (𝟙 g.left) (by apply_auto_param),
          over.hom_mk (𝟙 g.left) (by apply_auto_param),
          by ext; dsimp; simp, by ext; dsimp; simp⟩) (λ X Y g, by ext; dsimp; simp))
+
+universe u₂
+
+lemma equiv_reflects_mono {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D)
+  (hef : mono (e.functor.map f)) : mono f :=
+faithful_reflects_mono e.functor hef
+
+lemma equiv_reflects_mono' {D : Type u₂} [category.{v} D] {X Y : D} (f : X ⟶ Y) (e : C ≌ D)
+  (hef : mono (e.inverse.map f)) : mono f :=
+faithful_reflects_mono e.inverse hef
+
+lemma equiv_reflects_epi {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D)
+  (hef : epi (e.functor.map f)) : epi f :=
+faithful_reflects_epi e.functor hef
+
+lemma equiv_reflects_epi' {D : Type u₂} [category.{v} D] {X Y : D} (f : X ⟶ Y) (e : C ≌ D)
+  (hef : epi (e.inverse.map f)) : epi f :=
+faithful_reflects_epi e.inverse hef
+
+lemma equiv_preserves_mono {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D) :
+  mono f → mono (e.functor.map f) :=
+begin
+  intro hf, apply equiv_reflects_mono ((e.functor).map f) e.symm,
+  erw equivalence.inv_fun_map,
+  apply mono_comp_of_mono,
+  apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso_inverse,
+  apply mono_comp_of_mono _ _ hf,
+  apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso,
+end
+
+lemma equiv_preserves_mono' {D : Type u₂} [category.{v} D] {X Y : D} (f : X ⟶ Y) (e : C ≌ D) :
+  mono f → mono (e.inverse.map f) :=
+begin
+  intro hf, apply equiv_reflects_mono' (e.inverse.map f) e.symm,
+  erw equivalence.fun_inv_map,
+  apply mono_comp_of_mono,
+  apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso,
+  apply mono_comp_of_mono _ _ hf,
+  apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso_inverse,
+end
+
+lemma equiv_preserves_epi {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D) :
+  epi f → epi (e.functor.map f) :=
+begin
+  intro hf, apply equiv_reflects_epi ((e.functor).map f) e.symm,
+  erw equivalence.inv_fun_map,
+  apply epi_comp_of_epi,
+  apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso_inverse,
+  apply epi_comp_of_epi _ _ hf,
+  apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso,
+end
+
+lemma equiv_preserves_epi' {D : Type u₂} [category.{v} D] {X Y : D} (f : X ⟶ Y) (e : C ≌ D) :
+  epi f → epi (e.inverse.map f) :=
+begin
+  intro hf, apply equiv_reflects_epi' (e.inverse.map f) e.symm,
+  erw equivalence.fun_inv_map,
+  apply epi_comp_of_epi,
+  apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso,
+  apply epi_comp_of_epi _ _ hf,
+  apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso_inverse,
+end
+
+lemma equiv_mono_iff {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D) :
+  mono f ↔ mono (e.functor.map f) :=
+⟨equiv_preserves_mono f e, equiv_reflects_mono f e⟩
+
+lemma equiv_epi_iff {D : Type u₂} [category.{v} D] (X Y : C) (f : X ⟶ Y) (e : C ≌ D) :
+  epi f ↔ epi (e.functor.map f) :=
+⟨equiv_preserves_epi f e, equiv_reflects_epi f e⟩
+
+lemma equiv_mono_iff' {D : Type u₂} [category.{v} D] {X Y : D} (f : X ⟶ Y) (e : C ≌ D) :
+  mono f ↔ mono (e.inverse.map f) :=
+⟨equiv_preserves_mono' f e, equiv_reflects_mono' f e⟩
+
+lemma equiv_epi_iff' {D : Type u₂} [category.{v} D] {X Y : D} (f : X ⟶ Y) (e : C ≌ D) :
+  epi f ↔ epi (e.inverse.map f) :=
+⟨equiv_preserves_epi' f e, equiv_reflects_epi' f e⟩
+
+lemma over_epi {B : C} {f g : over B} {k : f ⟶ g} (ke : epi k.left) : epi k :=
+begin
+  split, intros h l m a, ext, rw [← cancel_epi k.left, ← over.comp_left, a], refl
+end
+lemma over_epi' [has_binary_products.{v} C] (B : C) (f g : over B) (k : f ⟶ g) (ke : epi k) : epi k.left :=
+left_adjoint_preserves_epi (forget_adj_star _) ke
+
+lemma over_epi'' [has_binary_products.{v} C] (B : C) (f g : over B) (k : f ⟶ g) : epi k ↔ epi k.left :=
+⟨over_epi' _ _ _ _, over_epi⟩
+
+-- variable (C)
+
+@[reducible]
+def pullback_along [has_pullbacks.{v} C] {A B : C} (f : A ⟶ B) : over B ⥤ over A :=
+star (over.mk f) ⋙ (iterated_slice_equiv _).functor
+
+-- lemma thing [has_pullbacks.{v} C] [is_locally_cartesian_closed.{v} C] {A B : C} (f : A ⟶ B) : is_left_adjoint (pullback_along f) :=
+-- { right := _ ⋙ _, adj := adjunction.comp _ _ (@star_adj_pi_of_exponentiable (over B) _ (over.mk f) _ _ _ (@is_cartesian_closed.cart_closed _ _ _ _ (is_locally_cartesian_closed.overs_cc B) _)) (equivalence.to_adjunction _) }
+
+-- lemma pullback_along_of_epi [has_pullbacks.{v} C] [has_binary_products.{v} C] [is_locally_cartesian_closed.{v} C] {A B D : C} (f : A ⟶ B) (g : D ⟶ B) (hg : epi g) :
+--   epi ((pullback_along f).obj (over.mk g)).hom :=
+-- begin
+--   set g' : over.mk g ⟶ over.mk (𝟙 B) := over.hom_mk g,
+--   have: epi g' := over_epi hg,
+--   have q: epi ((pullback_along f).map g'),
+--     apply left_adjoint_preserves_epi, apply (thing f).adj, assumption,
+--   dsimp [pullback_along, iterated_slice_equiv, equivalence.mk] at q ⊢,
+--   rw over_epi'' at q, rw over.hom_mk_left at q,
+--   rw over_prod_map at q, rw over.hom_mk_left at q,
+
+-- end
+-- set_option pp.implicit false
+
+-- lemma pullback_preserves_epi [has_pullbacks.{v} C] [has_binary_products.{v} C] [is_locally_cartesian_closed.{v} C] {X Y Z : C} {f : X ⟶ Z} (g : Y ⟶ Z) (hf : epi f) :
+--   epi (pullback.fst : pullback g f ⟶ Y) :=
+-- begin
+--   have f'comm: f ≫ (terminal (@over C _ Z)).hom = f,
+--     erw comp_id,
+--   set f' : over.mk f ⟶ terminal _ := over.hom_mk f f'comm,
+--   have: epi f', rw over_epi'', exact hf,
+--   set fstar := (star (over.mk g)).map f',
+--   have z: epi fstar, apply left_adjoint_preserves_epi (@star_adj_pi_of_exponentiable (over Z) _ (over.mk g) _ _ _ (is_cartesian_closed.cart_closed _) ),
+--     assumption,
+--   rw over_epi'' at z, rw over_epi'' at z,
+--   dsimp at z, rw over_prod_map at z, rw over.hom_mk_left at z,
+-- end
 
 end category_theory
