@@ -1,6 +1,3 @@
-/- Author: E.W.Ayers
-   Show that the open covers for a topological space form a basis for a grothendieck topology.
- -/
 import category_theory.comma
 import category_theory.adjunction.basic
 import category_theory.limits.shapes
