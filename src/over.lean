@@ -1,3 +1,6 @@
+/- Author: E.W.Ayers
+   Show that the open covers for a topological space form a basis for a grothendieck topology.
+ -/
 import category_theory.comma
 import category_theory.adjunction.basic
 import category_theory.limits.shapes
@@ -139,16 +142,16 @@ instance over_has_prods_of_pullback [has_pullbacks.{v} C] (B : C) :
 {has_limits_of_shape := {has_limit := λ F, over_product_of_pullbacks B F}}
 
 lemma over_prod_is_pullback {B : C} (F : discrete walking_pair ⥤ over B) :
-  limits.limit F = @over.mk _ _ B (pullback (F.obj walking_pair.left).hom (F.obj walking_pair.right).hom) (pullback.fst ≫ (F.obj walking_pair.left).hom) := rfl
+  limits.limit F = @over.mk _ _ B (pullback (F.obj walking_pair.left).hom (F.obj walking_pair.right).hom) (pullback.fst ≫ (F.obj walking_pair.left).hom) := by simp 
 
 lemma over_prod_left {B : C} (F : discrete walking_pair ⥤ over B) :
-  (limits.limit F).left = (pullback (F.obj walking_pair.left).hom (F.obj walking_pair.right).hom) := rfl
+  (limits.limit F).left = (pullback (F.obj walking_pair.left).hom (F.obj walking_pair.right).hom) := by simp
 
 lemma over_prod_pair_left {B : C} (f g : over B) :
-  (prod f g).left = pullback f.hom g.hom := rfl
+  (prod f g).left = pullback f.hom g.hom := by simp
 
 lemma over_prod_pair {B : C} (f g : over B) :
-  prod f g = @over.mk _ _ B (pullback f.hom g.hom) (pullback.fst ≫ f.hom) := rfl
+  prod f g = @over.mk _ _ B (pullback f.hom g.hom) (pullback.fst ≫ f.hom) := by simp
 
 -- lemma thing (A : C) (g : over B) :
 --    (pullback.fst ≫ ((star B).obj A).hom) == (limits.prod.fst ≫ g.hom) := sorry
