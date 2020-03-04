@@ -6,3 +6,4 @@ RUN curl https://raw.githubusercontent.com/Kha/elan/master/elan-init.sh -sSf | b
 RUN pip3 install mathlibtools
 # sometimes it doesn't source ~/.profile so just put in the path manually. 
 ENV PATH $PATH:/root/.elan/bin
+RUN elan toolchain install leanprover-community/lean:3.5.1
