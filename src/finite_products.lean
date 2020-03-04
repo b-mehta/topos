@@ -102,91 +102,91 @@ def match_statement_lol [has_binary_products.{v} C]
   limF'.cone.π.app (w.pred (λ h, nat.succ_ne_zero j (pfin.veq_of_eq h)))
 
 set_option eqn_compiler.zeta true
--- def has_limit_for_pfin_diagram [has_binary_products.{v} C] [has_terminal.{v} C]
--- : Π {n: ℕ} (F: (discrete (pfin n)) ⥤ C)
--- , has_limit F
--- | 0 F :=
---   -- In the base case, the category of cones over a diagram of shape ∅ is simply 𝒞, so
---   -- the limit cone is 𝒞's terminal object.
---   let absurdJ (x : pfin 0) : false := x.elim0 in
---   let myCone : cone F :=
---     { X := terminal C,
---       π := nat_trans.of_homs (λ j, (absurdJ j).elim) } in
---   { cone := myCone,
---     is_limit :=
---       { lift := λ s, terminal.from s.X
---       , fac' := λ s j, (absurdJ j).elim
---       , uniq' := λ s m h, dec_trivial } }
+def has_limit_for_pfin_diagram [has_binary_products.{v} C] [has_terminal.{v} C]
+: Π {n: ℕ} (F: (discrete (pfin n)) ⥤ C)
+, has_limit F
+| 0 F :=
+  -- In the base case, the category of cones over a diagram of shape ∅ is simply 𝒞, so
+  -- the limit cone is 𝒞's terminal object.
+  let absurdJ (x : pfin 0) : false := x.elim0 in
+  let myCone : cone F :=
+    { X := terminal C,
+      π := nat_trans.of_homs (λ j, (absurdJ j).elim) } in
+  { cone := myCone,
+    is_limit :=
+      { lift := λ s, terminal.from s.X
+      , fac' := λ s j, (absurdJ j).elim
+      , uniq' := λ s m h, dec_trivial } }
 
--- | (nat.succ n) F :=
---   -- In the inductive case, we construct a limit cone with apex (F 0) ⨯ (apex of smaller limit cone)
---   -- where the smaller cone is obtained from the below functor.
---   let F' : discrete (pfin n) ⥤ C := discrete.lift pfin.succ ⋙ F in
---   let limF' : has_limit F' := has_limit_for_pfin_diagram F' in
---   let myCone : cone F :=
---     { X := (F.obj ⟨0, nat.succ_pos n⟩) ⨯ limF'.cone.X
---     , π := nat_trans.of_homs (match_statement_lol F limF') } in -- TODO(WN): using an actual match statement here
---                                                                 -- is hard to unfold later, but would obv be nicer.
---   { cone := myCone,
---     is_limit :=
---       { lift := λ s,
---           -- Show that s.X is also the apex of a cone over F' ..
---           let s' : cone F' :=
---             { X := s.X
---             , π := nat_trans.of_homs (λ j, s.π.app j.succ) } in
---           -- .. in order to get from s.X to limF'.cone.X in the right morphism
---           -- using the fact that limF' is a limit cone over F'.
---           prod.lift
---             (s.π.app $ ⟨0, nat.succ_pos n⟩)
---             (eq_to_hom rfl ≫ limF'.is_limit.lift s')
---       -- Show that lift is in fact a morphism of cones from s into myCone.
---       , fac' := λ s j, begin
---         rcases j with ⟨j, hj⟩, cases j;
---         simp only [category.id_comp, nat_trans.of_homs_app, eq_to_hom_refl, match_statement_lol,
---           prod.lift_fst, limit.lift_π_assoc, is_limit.fac, nat_trans.of_homs_app,
---           binary_fan.mk_π_app_right], congr
---       end
---       -- Show that lift is the unique morphism into myCone.
---       , uniq' := λ s m h, begin
---         have h0 := h ⟨0, nat.succ_pos n⟩,
---         simp [match_statement_lol] at h0,
---         let s' : cone F' :=
---           { X := s.X
---           , π := nat_trans.of_homs (λ j, s.π.app j.succ) },
---         have hS : m ≫ prod.snd = eq_to_hom rfl ≫ limF'.is_limit.lift s',
---         { -- m ≫ prod.snd is a morphism of cones over F' into limF'.X ..
---           have hN : ∀ (j: discrete (pfin n)), (m ≫ prod.snd) ≫ limF'.cone.π.app j = s'.π.app j,
---           { intro j,
---             unfold_projs, simp [(h j.succ).symm],
---             rcases j with ⟨j, hj⟩, refl },
---           -- .. and therefore unique.
---           have hUniq' : m ≫ prod.snd = limF'.is_limit.lift s',
---           from limF'.is_limit.uniq' s' (m ≫ prod.snd) hN,
---           simp only [hUniq', category.id_comp, eq_to_hom_refl] },
---         exact prod.lift_uniq _ _ _ h0 hS
---       end } }
+| (nat.succ n) F :=
+  -- In the inductive case, we construct a limit cone with apex (F 0) ⨯ (apex of smaller limit cone)
+  -- where the smaller cone is obtained from the below functor.
+  let F' : discrete (pfin n) ⥤ C := discrete.lift pfin.succ ⋙ F in
+  let limF' : has_limit F' := has_limit_for_pfin_diagram F' in
+  let myCone : cone F :=
+    { X := (F.obj ⟨0, nat.succ_pos n⟩) ⨯ limF'.cone.X
+    , π := nat_trans.of_homs (match_statement_lol F limF') } in -- TODO(WN): using an actual match statement here
+                                                                -- is hard to unfold later, but would obv be nicer.
+  { cone := myCone,
+    is_limit :=
+      { lift := λ s,
+          -- Show that s.X is also the apex of a cone over F' ..
+          let s' : cone F' :=
+            { X := s.X
+            , π := nat_trans.of_homs (λ j, s.π.app j.succ) } in
+          -- .. in order to get from s.X to limF'.cone.X in the right morphism
+          -- using the fact that limF' is a limit cone over F'.
+          prod.lift
+            (s.π.app $ ⟨0, nat.succ_pos n⟩)
+            (eq_to_hom rfl ≫ limF'.is_limit.lift s')
+      -- Show that lift is in fact a morphism of cones from s into myCone.
+      , fac' := λ s j, begin
+        rcases j with ⟨j, hj⟩, cases j;
+        simp only [category.id_comp, nat_trans.of_homs_app, eq_to_hom_refl, match_statement_lol,
+          prod.lift_fst, limit.lift_π_assoc, is_limit.fac, nat_trans.of_homs_app,
+          binary_fan.mk_π_app_right], congr
+      end
+      -- Show that lift is the unique morphism into myCone.
+      , uniq' := λ s m h, begin
+        have h0 := h ⟨0, nat.succ_pos n⟩,
+        simp [match_statement_lol] at h0,
+        let s' : cone F' :=
+          { X := s.X
+          , π := nat_trans.of_homs (λ j, s.π.app j.succ) },
+        have hS : m ≫ prod.snd = eq_to_hom rfl ≫ limF'.is_limit.lift s',
+        { -- m ≫ prod.snd is a morphism of cones over F' into limF'.X ..
+          have hN : ∀ (j: discrete (pfin n)), (m ≫ prod.snd) ≫ limF'.cone.π.app j = s'.π.app j,
+          { intro j,
+            unfold_projs, simp [(h j.succ).symm],
+            rcases j with ⟨j, hj⟩, refl },
+          -- .. and therefore unique.
+          have hUniq' : m ≫ prod.snd = limF'.is_limit.lift s',
+          from limF'.is_limit.uniq' s' (m ≫ prod.snd) hN,
+          simp only [hUniq', category.id_comp, eq_to_hom_refl] },
+        exact prod.lift_uniq _ _ _ h0 hS
+      end } }
 set_option eqn_compiler.zeta false
 
 end has_finite_products_of_binary_products_and_terminal_object
 
 open has_finite_products_of_binary_products_and_terminal_object
 
--- -- TODO(WN): instance or def? Is there another way one might want to construct limits of shape pfin?
--- instance has_limits_of_shape_pfin [has_binary_products.{v} C] [has_terminal.{v} C] (n : ℕ)
---   : @has_limits_of_shape (discrete $ pfin n) _ C 𝒞 :=
--- ⟨λ F, has_limit_for_pfin_diagram F⟩
+-- TODO(WN): instance or def? Is there another way one might want to construct limits of shape pfin?
+instance has_limits_of_shape_pfin [has_binary_products.{v} C] [has_terminal.{v} C] (n : ℕ)
+  : @has_limits_of_shape (discrete $ pfin n) _ C 𝒞 :=
+⟨λ F, has_limit_for_pfin_diagram F⟩
 
--- -- TODO(WN): trunc? #22
--- def has_trunc_finite_products [has_binary_products.{v} C] [has_terminal.{v} C]
---   {J : Type v} [fintype J] [decidable_eq J]
---   : trunc (has_limits_of_shape (discrete J) C) :=
--- trunc.lift_on (fintype.equiv_pfin J)
---   (λ h,
---     let hIso : discrete (pfin $ fintype.card J) ≌ discrete J :=
---       discrete.equiv_of_iso h.symm in
---     let limsPfin : @has_limits_of_shape (discrete (pfin $ fintype.card J)) _ C 𝒞 :=
---       by apply_instance in
---     trunc.mk $ has_limits_of_shape_of_equivalence hIso)
---   (λ a b, trunc.eq _ _)
+-- TODO(WN): trunc? #22
+def has_trunc_finite_products [has_binary_products.{v} C] [has_terminal.{v} C]
+  {J : Type v} [fintype J] [decidable_eq J]
+  : trunc (has_limits_of_shape (discrete J) C) :=
+trunc.lift_on (fintype.equiv_pfin J)
+  (λ h,
+    let hIso : discrete (pfin $ fintype.card J) ≌ discrete J :=
+      discrete.equiv_of_iso h.symm in
+    let limsPfin : @has_limits_of_shape (discrete (pfin $ fintype.card J)) _ C 𝒞 :=
+      by apply_instance in
+    trunc.mk $ has_limits_of_shape_of_equivalence hIso)
+  (λ a b, trunc.eq _ _)
 
 end category_theory.limits
