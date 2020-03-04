@@ -133,16 +133,54 @@ adjunction.hom_equiv_naturality_left_symm _ _ _
 
 variable [has_terminal.{v} C]
 
-instance terminal_exponentiable : exponentiable ⊤_C :=
+lemma prod_left_unitor_naturality (f : X ⟶ Y):
+  (prod.left_unitor X).inv ≫ (prodinl ⊤_C).map f = f ≫ (prod.left_unitor Y).inv :=
+begin
+  apply prod.hom_ext,
+  tidy,
+  exact id_comp C f
+end
+
+def terminal_exponentiable : exponentiable ⊤_C :=
 { exponentiable := {
   right := 𝟭 C,
   adj := adjunction.mk_of_hom_equiv
   { hom_equiv := λ X _, have unitor : _, from prod.left_unitor X,
       ⟨λ a, unitor.inv ≫ a, λ a, unitor.hom ≫ a, by tidy, by tidy⟩ } } }
 
-def exp_terminal_iso : (X⇐⊤_C) = X := rfl
-
-lemma exp_terminal_functor_iso : (exp.functor ⊤_C) = 𝟭 C := rfl
+def exp_terminal_iso [exponentiable ⊤_C] : (X⇐⊤_C) ≅ X :=
+begin
+  apply yoneda.ext (X⇐⊤_ C) X _ _ _ _ _,
+  intros Y f, exact (prod.left_unitor Y).inv ≫ exp_transpose.inv_fun f,
+  intros Y f, exact exp_transpose.to_fun ((prod.left_unitor Y).hom ≫ f),
+  {
+    intros Z g,
+    change exp_transpose.to_fun ((prod.left_unitor Z).hom ≫
+            ((prod.left_unitor Z).inv ≫ exp_transpose.inv_fun g)) =
+      g,
+    rw ← category.assoc,
+    rw iso.hom_inv_id (prod.left_unitor Z),
+    simp,
+    rw exp_transpose.right_inv,
+  },
+  {
+    intros Z g,
+    change (prod.left_unitor Z).inv ≫ exp_transpose.inv_fun
+          (exp_transpose.to_fun ((prod.left_unitor Z).hom ≫ g)) =
+      g,
+    rw exp_transpose.left_inv,
+    rw ← category.assoc,
+    rw iso.inv_hom_id (prod.left_unitor Z),
+    simp,
+  },
+  intros Z W f g,
+  change (prod.left_unitor W).inv ≫ exp_transpose.inv_fun (f ≫ g)  =
+    f ≫ (prod.left_unitor Z).inv ≫ exp_transpose.inv_fun g,
+  rw exp_transpose_natural_left_symm,
+  rw ← category.assoc, rw ← category.assoc,
+  refine congr_arg (λ h, h ≫ exp_transpose.inv_fun g) _,
+  exact prod_left_unitor_naturality _,
+end
 
 @[reducible]
 def point_at_hom (f : A ⟶ Y) : ⊤_C ⟶ (Y ⇐ A) :=
