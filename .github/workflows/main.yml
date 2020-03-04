@@ -8,8 +8,7 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    - name: Configure
+      run: leanpkg configure && update-mathlib
     - name: Build
-      run: |
-        leanpkg configure
-        update-mathlib
-        leanpkg build
+      run: leanpkg build
