@@ -144,30 +144,30 @@ begin
     let X : over B := F.obj walking_cospan.one,
     let Y : over B := F.obj walking_cospan.left,
     let Z : over B := F.obj walking_cospan.right,
-    let f : Y ⟶ X := (F.map walking_cospan.hom.inl), 
+    let f : Y ⟶ X := (F.map walking_cospan.hom.inl),
     let g : Z ⟶ X := (F.map walking_cospan.hom.inr),
     -- let L := pullback f.left g.left,
     let L : over B := over.mk (pullback.fst ≫ Y.hom : pullback f.left g.left ⟶ B),
     let π₁ : L ⟶ Y := over.hom_mk pullback.fst,
     let π₂ : L ⟶ Z, refine @over.hom_mk _ _ _ L Z (pullback.snd : L.left ⟶ Z.left) _,
-      simp, 
-      rw [← over.w f, ← assoc,  pullback.condition, assoc,  over.w g], 
+      simp,
+      rw [← over.w f, ← assoc,  pullback.condition, assoc,  over.w g],
     refine {cone := cone.of_pullback_cone (pullback_cone.mk π₁ π₂ _), is_limit := {lift := _, fac' := _, uniq' := _}},
-      ext, simp, erw pullback.condition, 
-    intro s, 
-    -- let ss := pullback_cone.of_cone s, 
+      ext, simp, erw pullback.condition,
+    intro s,
+    -- let ss := pullback_cone.of_cone s,
     apply over.hom_mk _ _,
     apply pullback.lift (s.π.app walking_cospan.left).left (s.π.app walking_cospan.right).left,
-    rw ← over.comp_left, rw ← over.comp_left, 
+    rw ← over.comp_left, rw ← over.comp_left,
     rw s.w, rw s.w, simp, sorry,
-    
-    intros s j, simp, ext1, dsimp, 
+
+    intros s j, simp, ext1, dsimp,
     cases j, simp, simp, simp, sorry,
-    intros s m J, apply over.over_morphism.ext, simp, apply pullback.hom_ext, 
-    simp at J, dsimp at J, 
-    have := J walking_cospan.left, dsimp at this, simp, rw ← this, simp, 
+    intros s m J, apply over.over_morphism.ext, simp, apply pullback.hom_ext,
+    simp at J, dsimp at J,
+    have := J walking_cospan.left, dsimp at this, simp, rw ← this, simp,
     have := J walking_cospan.right, dsimp at this, simp, rw ← this, simp
-end 
+end
 
 instance over_has_prods_of_pullback [has_pullbacks.{v} C] (B : C) :
   has_binary_products.{v} (over B) :=
@@ -336,35 +336,53 @@ lemma over_epi'' [has_binary_products.{v} C] (B : C) (f g : over B) (k : f ⟶ g
 def pullback_along [has_pullbacks.{v} C] {A B : C} (f : A ⟶ B) : over B ⥤ over A :=
 star (over.mk f) ⋙ (iterated_slice_equiv _).functor
 
--- lemma thing [has_pullbacks.{v} C] [is_locally_cartesian_closed.{v} C] {A B : C} (f : A ⟶ B) : is_left_adjoint (pullback_along f) :=
--- { right := _ ⋙ _, adj := adjunction.comp _ _ (@star_adj_pi_of_exponentiable (over B) _ (over.mk f) _ _ _ (@is_cartesian_closed.cart_closed _ _ _ _ (is_locally_cartesian_closed.overs_cc B) _)) (equivalence.to_adjunction _) }
+def over_iso {B : C} (f g : over B) (hl : f.left ≅ g.left) (hw : hl.hom ≫ g.hom = f.hom) : (f ≅ g) :=
+{ hom := over.hom_mk hl.hom, inv := over.hom_mk hl.inv (by simp [iso.inv_comp_eq, hw]) }
 
--- lemma pullback_along_of_epi [has_pullbacks.{v} C] [has_binary_products.{v} C] [is_locally_cartesian_closed.{v} C] {A B D : C} (f : A ⟶ B) (g : D ⟶ B) (hg : epi g) :
---   epi ((pullback_along f).obj (over.mk g)).hom :=
--- begin
---   set g' : over.mk g ⟶ over.mk (𝟙 B) := over.hom_mk g,
---   have: epi g' := over_epi hg,
---   have q: epi ((pullback_along f).map g'),
---     apply left_adjoint_preserves_epi, apply (thing f).adj, assumption,
---   dsimp [pullback_along, iterated_slice_equiv, equivalence.mk] at q ⊢,
---   rw over_epi'' at q, rw over.hom_mk_left at q,
---   rw over_prod_map at q, rw over.hom_mk_left at q,
+def over_left_iso {B : C} {f g : over B} (hf : f ≅ g) : f.left ≅ g.left :=
+{ hom := hf.hom.left, inv := hf.inv.left, hom_inv_id' := begin rw [← over.comp_left, hf.hom_inv_id], refl end, inv_hom_id' := begin rw [← over.comp_left, hf.inv_hom_id], refl end}
 
--- end
--- set_option pp.implicit false
+set_option pp.all false
+lemma pullback_along_obj_of_id [has_pullbacks.{v} C] {A B : C} (f : A ⟶ B) : (pullback_along f).obj (over.mk (𝟙 B)) ≅ over.mk (𝟙 A) :=
+begin
+  apply over_iso, swap,
+  have: over.mk f⨯⊤_ over B ≅ over.mk f, apply prod.right_unitor,
+  apply over_left_iso this,
+  dunfold over_left_iso iterated_slice_equiv pullback_along equivalence.mk, simp, dsimp, simp,
+end
 
--- lemma pullback_preserves_epi [has_pullbacks.{v} C] [has_binary_products.{v} C] [is_locally_cartesian_closed.{v} C] {X Y Z : C} {f : X ⟶ Z} (g : Y ⟶ Z) (hf : epi f) :
---   epi (pullback.fst : pullback g f ⟶ Y) :=
--- begin
---   have f'comm: f ≫ (terminal (@over C _ Z)).hom = f,
---     erw comp_id,
---   set f' : over.mk f ⟶ terminal _ := over.hom_mk f f'comm,
---   have: epi f', rw over_epi'', exact hf,
---   set fstar := (star (over.mk g)).map f',
---   have z: epi fstar, apply left_adjoint_preserves_epi (@star_adj_pi_of_exponentiable (over Z) _ (over.mk g) _ _ _ (is_cartesian_closed.cart_closed _) ),
---     assumption,
---   rw over_epi'' at z, rw over_epi'' at z,
---   dsimp at z, rw over_prod_map at z, rw over.hom_mk_left at z,
--- end
+lemma pullback_of_obj [has_pullbacks.{v} C] {A B D : C} (f : A ⟶ B) (g : D ⟶ B) :
+  ((pullback_along f).map (terminal.from (over.mk g))).left = (pullback.fst : pullback f g ⟶ A) ≫ (pullback.with_id_l f).inv :=
+begin
+  dsimp [pullback_along, iterated_slice_equiv, equivalence.mk, pullback.with_id_l, pullback.with_id_r, identify_limit_apex, iso_apex_of_iso_cone, pullback.with_id_r', pullback.flip', flip_limit_cone, cospan_cone.flip, is_limit.unique_up_to_iso, is_limit.lift_cone_morphism],
+  simp, ext, cases j, simp, dsimp, erw limit.lift_π, simp, dunfold pullback_cone.snd, dsimp, simp, dsimp, simp,
+  erw limit.lift_π, simp, dunfold pullback_cone.fst, simp, symmetry, exact pullback.condition,
+  simp, erw ← @limit.w walking_cospan _ _ _ _ _ _ _ walking_cospan.hom.inl, simp, dsimp, dunfold pullback_cone.mk, simp, dsimp,
+  rw ← assoc, rw ← assoc, rw ← assoc, congr' 1, simp, erw limit.lift_π, simp, dunfold pullback_cone.snd, dsimp, simp
+end
+
+lemma thing [has_pullbacks.{v} C] [is_locally_cartesian_closed.{v} C] {A B : C} (f : A ⟶ B) : is_left_adjoint (pullback_along f) :=
+{ right := _ ⋙ _, adj := adjunction.comp _ _ (@star_adj_pi_of_exponentiable (over B) _ (over.mk f) _ _ _ (@is_cartesian_closed.cart_closed _ _ _ _ (is_locally_cartesian_closed.overs_cc B) _)) (equivalence.to_adjunction _) }
+
+/--
+ P ⟶ A
+ ↓   ↓
+ D ↠ B
+If g : D ⟶ B is epi then the pullback of g along f is epi
+-/
+theorem pullback_preserves_epi [has_pullbacks.{v} C] [has_binary_products.{v} C] [is_locally_cartesian_closed.{v} C] {A B D : C}
+  (f : A ⟶ B) (g : D ⟶ B) (hg : epi g) :
+  epi (pullback.fst : pullback f g ⟶ A) :=
+begin
+  set g' : over.mk g ⟶ ⊤_ over B := terminal.from (over.mk g),
+  have: epi g' := over_epi hg,
+  have q: epi ((pullback_along f).map g'),
+    apply left_adjoint_preserves_epi, apply (thing f).adj, assumption,
+  rw over_epi'' at q,
+  erw pullback_of_obj f g at q,
+  have: (pullback.fst : pullback f g ⟶ A) ≫ (pullback.with_id_l f).inv ≫ (pullback.with_id_l f).hom = (pullback.fst : pullback f g ⟶ A),
+    simp,
+  rw ← this, rw ← assoc, apply epi_comp_of_epi, assumption, apply is_iso.epi_of_iso
+end
 
 end category_theory
