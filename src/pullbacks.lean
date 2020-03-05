@@ -203,7 +203,7 @@ def pullback.flip {Y Z W : C} {h : Y ⟶ W} {k : Z ⟶ W} {c : cone (cospan h k)
     erw J walking_cospan.left, refl,
   end
 }
-lemma pullback.flip'' {Y Z W : C} {h : Y ⟶ W} {k : Z ⟶ W} {c : cone (cospan h k)} :
+def pullback.flip'' {Y Z W : C} {h : Y ⟶ W} {k : Z ⟶ W} {c : cone (cospan h k)} :
   is_limit c ≅ is_limit (cospan_cone.flip c) :=
 { hom := pullback.flip, inv := pullback.flip ≫ (λ l, is_limit.of_iso_limit l (flip_twice _))}
 
@@ -272,7 +272,7 @@ identify_limit_apex ((pasting _ _ _ _ _ _ _ _ _ test).inv test) ≪≫ iso_apex_
 --   v       v
 --   D   ⟶   B
 -- is a pullback (needed in over/exponentiable_in_slice)
-def pullback_prod (xy : X ⟶ Y) [has_binary_products.{v} C] :
+def pullback_prod (xy : X ⟶ Y) (Z : C) [has_binary_products.{v} C] :
   is_limit (pullback_cone.mk limits.prod.fst (limits.prod.map xy (𝟙 Z)) (by simp) : pullback_cone xy limits.prod.fst) :=
 { lift := λ s, prod.lift (pullback_cone.fst s) (pullback_cone.snd s ≫ limits.prod.snd),
   fac' := λ s,
@@ -287,6 +287,24 @@ def pullback_prod (xy : X ⟶ Y) [has_binary_products.{v} C] :
     begin
       ext, cases j, simp, apply J walking_cospan.left, simp, dunfold pullback_cone.snd, erw ← J walking_cospan.right,
       simp, dsimp, simp
+    end
+}
+
+def pullback_prod' (xy : X ⟶ Y) (Z : C) [has_binary_products.{v} C] :
+  is_limit (pullback_cone.mk limits.prod.snd (limits.prod.map (𝟙 Z) xy) (by simp) : pullback_cone xy limits.prod.snd) :=
+{ lift := λ s, prod.lift (pullback_cone.snd s ≫ limits.prod.fst) (pullback_cone.fst s),
+  fac' := λ s,
+    begin
+      apply pi_app_left (pullback_cone.mk limits.prod.snd (limits.prod.map (𝟙 Z) xy) _) s, dsimp,
+        dunfold pullback_cone.fst, simp,
+      apply limit.hom_ext, intro j, cases j, simp, dsimp,
+        dunfold pullback_cone.snd, rw pullback_cone.simp_right, simp, dsimp, simp,
+      simp, dunfold pullback_cone.snd, simp, dsimp, rw pullback_cone.condition s,
+    end,
+  uniq' := λ s m J,
+    begin
+      ext, cases j, simp, dunfold pullback_cone.snd, erw ← J walking_cospan.right, simp, dsimp, simp,
+      simp, dsimp, dunfold pullback_cone.fst, erw ← J walking_cospan.left, simp,
     end
 }
 

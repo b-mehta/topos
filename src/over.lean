@@ -367,17 +367,20 @@ begin
   rw ← assoc, rw ← assoc, rw ← assoc, congr' 1, simp, erw limit.lift_π, simp, dunfold pullback_cone.snd, dsimp, simp
 end
 
-lemma thing [has_pullbacks.{v} C] [is_locally_cartesian_closed.{v} C] {A B : C} (f : A ⟶ B) : is_left_adjoint (pullback_along f) :=
+variables [has_pullbacks.{v} C] [is_locally_cartesian_closed.{v} C]
+
+lemma thing {A B : C} (f : A ⟶ B) : is_left_adjoint (pullback_along f) :=
 { right := _ ⋙ _, adj := adjunction.comp _ _ (@star_adj_pi_of_exponentiable (over B) _ (over.mk f) _ _ _ (@is_cartesian_closed.cart_closed _ _ _ _ (is_locally_cartesian_closed.overs_cc B) _)) (equivalence.to_adjunction _) }
 
+variables [has_binary_products.{v} C]
 /--
  P ⟶ A
  ↓   ↓
  D ↠ B
 If g : D ⟶ B is epi then the pullback of g along f is epi
 -/
-theorem pullback_preserves_epi [has_pullbacks.{v} C] [has_binary_products.{v} C] [is_locally_cartesian_closed.{v} C] {A B D : C}
-  (f : A ⟶ B) (g : D ⟶ B) (hg : epi g) :
+theorem pullback_preserves_epi {A B D : C}
+  (f : A ⟶ B) {g : D ⟶ B} (hg : epi g) :
   epi (pullback.fst : pullback f g ⟶ A) :=
 begin
   set g' : over.mk g ⟶ ⊤_ over B := terminal.from (over.mk g),
@@ -389,6 +392,102 @@ begin
   have: (pullback.fst : pullback f g ⟶ A) ≫ (pullback.with_id_l f).inv ≫ (pullback.with_id_l f).hom = (pullback.fst : pullback f g ⟶ A),
     simp,
   rw ← this, rw ← assoc, apply epi_comp_of_epi, assumption, apply is_iso.epi_of_iso
+end
+
+lemma pullback_preserves_epi' {A B D : C}
+  (f : A ⟶ B) {g : D ⟶ B} (hg : epi g) :
+epi (pullback.snd : pullback g f ⟶ A) :=
+begin
+  have: (pullback.snd : pullback g f ⟶ A) = (pullback.flip' _ _).hom ≫ (pullback.fst : pullback f g ⟶ A), -- TODO: this should be a lemma
+    dunfold pullback.flip' iso_apex_of_iso_cone flip_limit_cone flip_hom flip_twice, dsimp, erw id_comp, simp, refl,
+  rw this, apply epi_comp_of_epi, apply is_iso.epi_of_iso,
+  apply pullback_preserves_epi _ hg
+end
+lemma pullback_preserves_epi'' {A B D : C}
+  (f : A ⟶ B) {g : D ⟶ B} (hg : epi g) {c : pullback_cone g f} (t : is_limit c) :
+epi (pullback_cone.snd c) :=
+begin
+  have y := is_limit.unique_up_to_iso t (limit.is_limit _),
+  have z: pullback_cone.snd c = y.hom.hom ≫ pullback_cone.snd (limit.cone (cospan g f)),
+    rw y.hom.w,
+  rw z, apply epi_comp_of_epi,
+    apply @is_iso.epi_of_iso _ _ _ _ _ _, refine ⟨_, _, _⟩, apply y.inv.hom,
+    show ((y.hom ≫ y.inv).hom = 𝟙 c.X), rw y.hom_inv_id, refl,
+    show ((y.inv ≫ y.hom).hom = 𝟙 _), rw y.inv_hom_id, refl,
+  exact pullback_preserves_epi' f hg
+end
+lemma pullback_preserves_epi''' {A B D : C}
+  (f : A ⟶ B) {g : D ⟶ B} (hg : epi g) {c : pullback_cone f g} (t : is_limit c) :
+  epi (pullback_cone.fst c) :=
+begin
+  have y := is_limit.unique_up_to_iso t (limit.is_limit _),
+  have z: pullback_cone.fst c = y.hom.hom ≫ pullback_cone.fst (limit.cone (cospan f g)),
+    rw y.hom.w,
+  rw z, apply epi_comp_of_epi,
+    apply @is_iso.epi_of_iso _ _ _ _ _ _, refine ⟨_, _, _⟩, apply y.inv.hom,
+    show ((y.hom ≫ y.inv).hom = 𝟙 c.X), rw y.hom_inv_id, refl,
+    show ((y.inv ≫ y.hom).hom = 𝟙 _), rw y.inv_hom_id, refl,
+  exact pullback_preserves_epi f hg
+end
+
+variables [has_coequalizers.{v} C] {A B : C} (f : A ⟶ B)
+
+def image : C := coequalizer (pullback.fst : pullback f f ⟶ A) (pullback.snd : pullback f f ⟶ A)
+def epi_part : A ⟶ image f := coequalizer.π pullback.fst pullback.snd
+def mono_part : image f ⟶ B := coequalizer.desc _ _ f pullback.condition
+
+lemma factorises : epi_part f ≫ mono_part f = f :=
+begin
+  simp [epi_part, mono_part], refl,
+end
+lemma coequalizer_epi (g h : A ⟶ B) : epi (coequalizer.π g h) :=
+begin
+  split, intros k l m q, apply colimit.hom_ext, intro, cases j,
+  rw ← colimit.w (parallel_pair _ _) walking_parallel_pair_hom.left, rw assoc, rw q, simp,
+  exact q,
+end
+lemma epi_part_is_epi : epi (epi_part f) := coequalizer_epi _ _
+
+lemma prod_map_epi (D : C) {q : A ⟶ B} (hq : epi q) : epi (limits.prod.map q (𝟙 D)) :=
+pullback_preserves_epi'' _ hq (pullback_prod _ _)
+
+lemma prod_map_epi' (D : C) {q : A ⟶ B} (hq : epi q) : epi (limits.prod.map (𝟙 D) q) :=
+pullback_preserves_epi'' _ hq (pullback_prod' q D)
+
+lemma mono_part_is_mono : mono (mono_part f) :=
+begin
+  split, intros D g h gmhm,
+  set R := pullback f f,
+  set I := image f,
+  set q := epi_part f,
+  set m := mono_part f,
+  set E := pullback (limits.prod.map q q) (limits.prod.lift g h),
+  set n : E ⟶ D := pullback.snd,
+  set kl : E ⟶ A ⨯ A := pullback.fst,
+  set a : R ⟶ A := pullback.fst,
+  set b : R ⟶ A := pullback.snd,
+  set k : E ⟶ A := kl ≫ limits.prod.fst,
+  set l : E ⟶ A := kl ≫ limits.prod.snd,
+  have kqng: k ≫ q = n ≫ g,
+    have: (kl ≫ limits.prod.map q q) ≫ limits.prod.fst = (n ≫ limits.prod.lift g h) ≫ limits.prod.fst, rw pullback.condition,
+    rw [assoc, assoc, lift_fst, map_fst, ← assoc] at this, exact this,
+  have lqnh: l ≫ q = n ≫ h,
+    have: (kl ≫ limits.prod.map q q) ≫ limits.prod.snd = (n ≫ limits.prod.lift g h) ≫ limits.prod.snd, rw pullback.condition,
+    rw [assoc, assoc, lift_snd, map_snd, ← assoc] at this, exact this,
+  have kflf: k ≫ f = l ≫ f,
+    rw [← factorises f, ← assoc, kqng, assoc, gmhm, ← assoc, ← lqnh, assoc],
+  set p : E ⟶ R := pullback.lift k l kflf,
+  have pak: p ≫ a = k, simp,
+  have pbl: p ≫ b = l, simp,
+  have aqbq: a ≫ q = b ≫ q := coequalizer.condition a b,
+  have: n ≫ g = n ≫ h,
+    rw [← kqng, ← pak, assoc, aqbq, ← assoc, pbl, lqnh],
+  haveI: epi n := pullback_preserves_epi' _ _,
+  rwa ← cancel_epi n,
+  have: limits.prod.map q q = limits.prod.map (𝟙 _) q ≫ limits.prod.map q (𝟙 _),
+    apply prod.hom_ext, simp, dsimp, simp, simp,
+  rw this, apply epi_comp_of_epi, apply prod_map_epi' A (epi_part_is_epi f),
+  apply prod_map_epi _ (epi_part_is_epi f)
 end
 
 end category_theory
