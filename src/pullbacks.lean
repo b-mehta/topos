@@ -58,7 +58,7 @@ begin
   rw limit.lift_π, rw id_comp, refl
 end
 
-lemma iso_apex_of_iso_cone {F : J ⥤ C} {c₁ c₂ : cone F} (h : c₁ ≅ c₂) : c₁.X ≅ c₂.X :=
+def iso_apex_of_iso_cone {F : J ⥤ C} {c₁ c₂ : cone F} (h : c₁ ≅ c₂) : c₁.X ≅ c₂.X :=
 { hom := h.hom.hom,
   inv := h.inv.hom,
   hom_inv_id' :=
@@ -151,7 +151,7 @@ lemma pasting {C : Type u} [𝒞 : category.{v} C] {U V W X Y Z : C}
 , inv_hom_id' := subsingleton.elim _ _
 }
 
-lemma pullback.with_id_r' {X Y : C} (f : X ⟶ Y) :
+def pullback.with_id_r' {X Y : C} (f : X ⟶ Y) :
   is_limit (pullback_cone.mk f (𝟙 X) (by simp) : pullback_cone (𝟙 Y) f) :=
 { lift := λ c, (c.π).app walking_cospan.right,
   fac' := λ c j,
@@ -169,11 +169,11 @@ lemma pullback.with_id_r' {X Y : C} (f : X ⟶ Y) :
 def cospan_cone.flip {f : X ⟶ Z} {g : Y ⟶ Z} (c : cone (cospan f g)) : cone (cospan g f) :=
 pullback_cone.mk (pullback_cone.snd c) (pullback_cone.fst c) (pullback_cone.condition c).symm
 
-lemma flip_mk {X Y Z W : C} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W} (comm : f ≫ h = g ≫ k) :
+def flip_mk {X Y Z W : C} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W} (comm : f ≫ h = g ≫ k) :
   cospan_cone.flip (pullback_cone.mk f g comm) ≅ pullback_cone.mk g f comm.symm :=
 by apply cones.ext (iso.refl _) (λ j, _); erw id_comp
 
-lemma flip_twice {f : X ⟶ Z} {g : Y ⟶ Z} (c : cone (cospan f g)) : cospan_cone.flip (cospan_cone.flip c) ≅ c :=
+def flip_twice {f : X ⟶ Z} {g : Y ⟶ Z} (c : cone (cospan f g)) : cospan_cone.flip (cospan_cone.flip c) ≅ c :=
 begin
   apply cones.ext _ _, exact iso.refl _,
   intros j, erw id_comp, cases j, -- BM: triple case
@@ -185,8 +185,8 @@ def flip_hom {f : X ⟶ Z} {g : Y ⟶ Z} {c₁ c₂ : cone (cospan f g)} (h : c�
 { hom := h.hom,
   w' := begin rintro (_ | _ | _), apply h.w, apply h.w, erw [← assoc, h.w], refl end} -- BM: triple case
 
-lemma pullback.flip {Y Z W : C} {h : Y ⟶ W} {k : Z ⟶ W} {c : cone (cospan h k)} :
-  is_limit c ⟶ is_limit (cospan_cone.flip c) := λ z,
+def pullback.flip {Y Z W : C} {h : Y ⟶ W} {k : Z ⟶ W} {c : cone (cospan h k)} (z : is_limit c) :
+  is_limit (cospan_cone.flip c) :=
 { lift := λ s, z.lift (cospan_cone.flip s),
   fac' := λ s j, walking_cospan.cases_on j (z.fac' (cospan_cone.flip s) walking_cospan.right)
                                            (z.fac' (cospan_cone.flip s) walking_cospan.left)
@@ -207,7 +207,7 @@ lemma pullback.flip'' {Y Z W : C} {h : Y ⟶ W} {k : Z ⟶ W} {c : cone (cospan 
   is_limit c ≅ is_limit (cospan_cone.flip c) :=
 { hom := pullback.flip, inv := pullback.flip ≫ (λ l, is_limit.of_iso_limit l (flip_twice _))}
 
-lemma flip_limit_cone [@has_pullbacks C 𝒞] (f : X ⟶ Z) (g : Y ⟶ Z) :
+def flip_limit_cone [@has_pullbacks C 𝒞] (f : X ⟶ Z) (g : Y ⟶ Z) :
   cospan_cone.flip (limit.cone (cospan g f)) ≅ limit.cone (cospan f g) :=
 { hom := limit.cone_morphism _,
   inv := ((flip_twice _).inv ≫ flip_hom (limit.cone_morphism _)),
@@ -220,24 +220,24 @@ lemma flip_limit_cone [@has_pullbacks C 𝒞] (f : X ⟶ Z) (g : Y ⟶ Z) :
   end,
   inv_hom_id' := is_limit.uniq_cone_morphism (limit.is_limit _) }
 
-lemma pullback.flip' [@has_pullbacks C 𝒞] (f : X ⟶ Z) (g : Y ⟶ Z) : pullback f g ≅ pullback g f :=
+def pullback.flip' [@has_pullbacks C 𝒞] (f : X ⟶ Z) (g : Y ⟶ Z) : pullback f g ≅ pullback g f :=
 iso_apex_of_iso_cone (flip_limit_cone f g).symm
 
-lemma pullback.with_id_l' {X Y : C} (f : X ⟶ Y) :
+def pullback.with_id_l' {X Y : C} (f : X ⟶ Y) :
   is_limit (pullback_cone.mk (𝟙 X) f (show (𝟙 X) ≫ f = f ≫ (𝟙 Y), by simp)) :=
 is_limit.of_iso_limit (pullback.flip (pullback.with_id_r' f)) (flip_mk _)
 
-lemma identify_limit_apex {F : J ⥤ C} [has_limit F] {a : cone F} (t : is_limit a) :
+def identify_limit_apex {F : J ⥤ C} [has_limit F] {a : cone F} (t : is_limit a) :
   (limit.cone F).X ≅ a.X :=
 iso_apex_of_iso_cone (is_limit.unique_up_to_iso (limit.is_limit _) t)
 
 /- Note that we need `has_pullbacks` even though this particular pullback always exists, because here we are showing that the
 constructive limit derived using has_pullbacks has to be iso to this simple definition.  -/
-lemma pullback.with_id_r [@has_pullbacks C 𝒞] {X Y : C} (f : X ⟶ Y) :
+def pullback.with_id_r [@has_pullbacks C 𝒞] {X Y : C} (f : X ⟶ Y) :
   pullback (𝟙 Y) f ≅ X :=
 identify_limit_apex (pullback.with_id_r' f)
 
-lemma pullback.with_id_l [@has_pullbacks C 𝒞] {X Y : C} (f : X ⟶ Y) :
+def pullback.with_id_l [@has_pullbacks C 𝒞] {X Y : C} (f : X ⟶ Y) :
   pullback f (𝟙 Y) ≅ X :=
 pullback.flip' _ _ ≪≫ pullback.with_id_r f
 
