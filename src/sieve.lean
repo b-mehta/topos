@@ -30,6 +30,16 @@ instance : has_subset (sieve X) := ⟨λ S R, S.arrows ⊆ R.arrows⟩
 @[ext] def extensionality : Π {R S : sieve X}, R.arrows = S.arrows → R = S
 |⟨Ra,_⟩ ⟨Sa, _⟩ rfl := rfl
 
+lemma subs' {f : Y ⟶ X} (h₁ : over.mk f ∈ S) {g : Z ⟶ Y} : over.mk (g ≫ f) ∈ S :=
+begin
+  let ff := over.mk f,
+  have : f = ff.hom, by simp,
+  let gg : Z ⟶ ff.left := g,
+  rw this,
+  refine sieve.subs _ _ _ _ gg,
+  assumption
+end
+
 open lattice
 
 protected def Sup (𝒮 : set (sieve X)) : (sieve X) :=
