@@ -55,19 +55,19 @@ variables {C : Type u} [𝒞 : category.{v} C]  {X Y : C} {S R : sieve X} {J : s
 include 𝒞
 
 class basis [@category_theory.limits.has_pullbacks C 𝒞] (K : arrow_set C) :=
-(i  : ∀ {X Y : C} (e : X ≅ Y), {over.mk e.hom} ∈ K(Y))
-(ii : ∀ {X Y : C} {ℱ : set (over X)} (h₁ : ℱ ∈ K(X)) (g : Y ⟶ X), set.image (over.pullback g) ℱ ∈ K(Y))
-(iii : ∀ {X} {ℱ : set (over X)},
-       ∀ (h₁ : ℱ ∈ K(X)),
-       ∀ (𝒢 : ∀ {f : over X} (hf :f ∈ ℱ), set (over f.left)),
-       ∀ (h₃ : ∀ {f : over X} (hf : f ∈ ℱ), 𝒢 hf ∈ K(f.left)),
-         (⋃ (f : over X) (hf : f ∈ ℱ) (g : over f.left) (hg : g ∈ 𝒢 hf), {over.mk (g.hom ≫ f.hom)}) ∈ K(X))
+(has_isos      : ∀ {X Y : C} (e : X ≅ Y), {over.mk e.hom} ∈ K(Y))
+(has_pullbacks : ∀ {X Y : C} {ℱ : set (over X)} (h₁ : ℱ ∈ K(X)) (g : Y ⟶ X), set.image (over.pullback g) ℱ ∈ K(Y))
+(trans : ∀ {X} {ℱ : set (over X)},
+         ∀ (h₁ : ℱ ∈ K(X)),
+         ∀ (𝒢 : ∀ {f : over X} (hf :f ∈ ℱ), set (over f.left)),
+         ∀ (h₃ : ∀ {f : over X} (hf : f ∈ ℱ), 𝒢 hf ∈ K(f.left)),
+           {h : over X | ∃ (f : over X) (hf : f ∈ ℱ) (g : over f.left) (hg : g ∈ 𝒢 hf), h = over.mk (g.hom ≫ f.hom)} ∈ K(X))
 
 instance of_basis [@category_theory.limits.has_pullbacks C 𝒞] {K : arrow_set C} [basis K] : grothendieck (sieve_set.generate K) :=
-{ max := λ X, ⟨{over.mk (𝟙 X)}, basis.i K (iso.refl X), λ f h, ⟨⟩⟩,
+{ max := λ X, ⟨{over.mk (𝟙 X)}, basis.has_isos K (iso.refl X), λ f h, ⟨⟩⟩,
   stab := begin
     rintros X Y S ⟨ℱ,h₁,h₂⟩ f,
-    refine ⟨_,basis.ii h₁ f,_⟩,
+    refine ⟨_,basis.has_pullbacks h₁ f,_⟩,
     rintros g ⟨h,h₃,rfl⟩,
     show over.mk (_ ≫ f) ∈ S,
     simp,
@@ -83,16 +83,12 @@ instance of_basis [@category_theory.limits.has_pullbacks C 𝒞] {K : arrow_set 
       exact h₃,
     rw [sieve_set.generate],
     show ∃ (T : set (over X)) (H : T ∈ K X), T ⊆ R.arrows,
-    refine ⟨_,basis.iii h₁ _ _,_⟩,
-    -- [TODO] tidy up, find a more readable way to invoke choice.
+    refine ⟨_,basis.trans h₁ _ _,_⟩,
     { intros f hf, apply (classical.some (h₄ f (h₂ hf)))},
     { intros f hf, rcases classical.some_spec (h₄ f (h₂ hf)) with ⟨h10,h11⟩, apply h10 },
-    { -- This is pulling apart the `f ∈ ⋃ _ _ _ _, _` hypothesis. Probably a nicer way of doing it.
-      rintros f ⟨T,⟨g,⟨h1,h2,rfl⟩,h3⟩, ⟨h4,⟨h5,rfl⟩,⟨h6,⟨h7,rfl⟩,⟨h8,⟨h9,rfl⟩,h10⟩⟩⟩⟩,
-      simp at h10,
-      cases a_h_w_h,
-      rcases classical.some_spec (h₄ g (h₂ h5)) with ⟨h11,h12⟩,
-      cases h10,
+    { 
+      rintros f ⟨g,h₅,h,h₆,rfl⟩,
+      rcases classical.some_spec (h₄ g (h₂ h₅)) with ⟨h11,h12⟩,
       apply h12,
       assumption
     }

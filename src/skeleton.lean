@@ -5,9 +5,45 @@
 import .pullbacks
 import category_theory.full_subcategory
 
+def logic.equivalence := @equivalence
+
 namespace category_theory
 
 universes u v
+
+def is_thin (C : Type u) [𝒞 : category.{v} C] := ∀ {X Y : C}, subsingleton (X ⟶ Y)
+
+section arrows
+def arrows (C : Type u) [𝒞 : category.{v} C] := comma (𝟭 C) (𝟭 C)
+variables {C : Type u} [𝒞 : category.{v} C] {X Y Z : C} {i : X ≅ Y}
+include 𝒞
+
+def are_iso (X Y : C) : Prop := nonempty (X ≅ Y)
+
+lemma are_iso.refl : are_iso X X := ⟨iso.refl X⟩
+
+lemma are_iso.symm : are_iso X Y → are_iso Y X
+| ⟨i⟩ := ⟨i.symm⟩
+
+lemma are_iso.trans : are_iso X Y → are_iso Y Z → are_iso X Z
+| ⟨a⟩ ⟨b⟩ := ⟨iso.trans a b⟩
+
+lemma are_iso.equiv : logic.equivalence (@are_iso C 𝒞) := 
+⟨λ _, are_iso.refl, λ _ _, are_iso.symm, λ _ _ _, are_iso.trans⟩
+
+instance : category (arrows C) := show category (comma _ _), by apply_instance
+
+def crush.setoid : setoid (arrows C) :=
+{ r := λ f g, nonempty (f ≅ g),
+  iseqv := are_iso.equiv
+}
+
+variable (C)
+
+def crush := @quotient (arrows C) crush.setoid
+
+end arrows
+
 variables {C : Type u} [𝒞 : category.{v} C] {X Y Z : C} {i : X ≅ Y}
 include 𝒞
 
@@ -68,21 +104,11 @@ def isequiv : C ≌ skeleton r :=
 /- Define a noncomputable skeleton using quotients. -/
 namespace canonical
 
-def are_iso (X Y : C) : Prop := nonempty (X ≅ Y)
-
-lemma are_iso.refl : are_iso X X := ⟨iso.refl X⟩
-
-lemma are_iso.symm : are_iso X Y → are_iso Y X
-| ⟨i⟩ := ⟨i.symm⟩
-
-lemma are_iso.trans : are_iso X Y → are_iso Y Z → are_iso X Z
-| ⟨a⟩ ⟨b⟩ := ⟨iso.trans a b⟩
-
 variable (C)
 
 def q.setoid : setoid C :=
 { r := are_iso,
-  iseqv :=⟨λ _, are_iso.refl, λ _ _, are_iso.symm, λ _ _ _, are_iso.trans⟩
+  iseqv := are_iso.equiv
 }
 
 local attribute [instance] q.setoid

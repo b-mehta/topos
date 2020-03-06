@@ -79,12 +79,13 @@ def coev.nat_trans (A : C) [exponentiable A] : 𝟭 C ⟶ prodinl A ⋙ (exp.fun
 exp.adjunction.unit
 
 /-- `B ^ A` or `B ⇐ A` -/
-def exp (B : C) (A : C) [exponentiable A] : C := (exp.functor A).obj B
+def exp (A : C) (B : C) [exponentiable A] : C := (exp.functor A).obj B
 
-infixl `⇐`:100 := exp
+infixl `⟹`:20 := exp
+
 
 -- [todo] rename as 'post compose' or similar?
-def post (A : C) [exponentiable A] {X Y : C} (f : X ⟶ Y) : X⇐A ⟶ Y⇐A :=
+def post (A : C) [exponentiable A] {X Y : C} (f : X ⟶ Y) : A⟹X ⟶ A⟹Y :=
 (exp.functor A).map f
 
 lemma post.map_comp {f : X ⟶ Y} {g : Y ⟶ Z} : post A (f ≫ g) = post A f ≫ post A g :=
@@ -94,16 +95,16 @@ begin
   refl,
 end
 
-def ev : A ⨯ B⇐A ⟶ B :=
+def ev : A ⨯ (A⟹B) ⟶ B :=
 (ev.nat_trans A).app B
 
-def coev : B ⟶ (A⨯B)⇐A :=
+def coev : B ⟶ A⟹(A⨯B) :=
 (coev.nat_trans A).app B
 
 @[simp] lemma ev_coev : limits.prod.map (𝟙 A) coev ≫ ev = 𝟙 (A⨯B) :=
 (@adjunction.left_triangle_components C _ C _ (prodinl A) (exp.functor A) exp.adjunction B)
 
-@[simp] lemma coev_ev : coev ≫ post _ ev = 𝟙 (B⇐A) :=
+@[simp] lemma coev_ev : coev ≫ post _ ev = 𝟙 (A⟹B) :=
 (@adjunction.right_triangle_components C _ C _ (prodinl A) (exp.functor A) exp.adjunction B)
 
 lemma coev_nat (f : X ⟶ Y) : f ≫ coev = coev ≫ post _ (limits.prod.map (𝟙 A) f) :=
@@ -112,7 +113,7 @@ lemma coev_nat (f : X ⟶ Y) : f ≫ coev = coev ≫ post _ (limits.prod.map (�
 lemma ev_nat {f : X ⟶ Y} : limits.prod.map (𝟙 A) (post _ f) ≫ ev = ev ≫ f :=
 (ev.nat_trans A).naturality f
 
-def exp_transpose : (A ⨯ Y ⟶ X) ≃ (Y ⟶ X ⇐ A) :=
+def exp_transpose : (A ⨯ Y ⟶ X) ≃ (Y ⟶ A⟹X) :=
 exp.adjunction.hom_equiv _ _
 
 lemma exp_transpose_natural_left  (f : X ⟶ X') (g : A ⨯ X' ⟶ Y) :
@@ -123,19 +124,69 @@ lemma exp_transpose_natural_right (f : A ⨯ X ⟶ Y) (g : Y ⟶ Y') :
   exp_transpose.to_fun (f ≫ g) = exp_transpose.to_fun f ≫ post _ g :=
 adjunction.hom_equiv_naturality_right _ _ _
 
-lemma exp_transpose_natural_right_symm  (f : X ⟶ Y ⇐ A) (g : Y ⟶ Y') :
+lemma exp_transpose_natural_right_symm  (f : X ⟶ A⟹Y) (g : Y ⟶ Y') :
   exp_transpose.inv_fun (f ≫ post A g) = exp_transpose.inv_fun f ≫ g :=
 adjunction.hom_equiv_naturality_right_symm _ _ _
 
-lemma exp_transpose_natural_left_symm  (f : X ⟶ X') (g : X' ⟶ Y ⇐ A) :
+lemma exp_transpose_natural_left_symm  (f : X ⟶ X') (g : X' ⟶ A⟹Y) :
   exp_transpose.inv_fun (f ≫ g) = (prodinl A).map f ≫ exp_transpose.inv_fun g :=
 adjunction.hom_equiv_naturality_left_symm _ _ _
 
--- [todo] exp X 1 ≅ X
 variable [has_terminal.{v} C]
 
+lemma prod_left_unitor_naturality (f : X ⟶ Y):
+  (prod.left_unitor X).inv ≫ (prodinl ⊤_C).map f = f ≫ (prod.left_unitor Y).inv :=
+begin
+  apply prod.hom_ext,
+  tidy,
+  exact id_comp C f
+end
+
+def terminal_exponentiable : exponentiable ⊤_C :=
+{ exponentiable := {
+  right := 𝟭 C,
+  adj := adjunction.mk_of_hom_equiv
+  { hom_equiv := λ X _, have unitor : _, from prod.left_unitor X,
+      ⟨λ a, unitor.inv ≫ a, λ a, unitor.hom ≫ a, by tidy, by tidy⟩ } } }
+
+attribute [instance] terminal_exponentiable
+
+def exp_terminal_iso : (⊤_C ⟹ X) ≅ X :=
+begin
+  apply yoneda.ext (⊤_ C ⟹ X) X _ _ _ _ _,
+  intros Y f, exact (prod.left_unitor Y).inv ≫ exp_transpose.inv_fun f,
+  intros Y f, exact exp_transpose.to_fun ((prod.left_unitor Y).hom ≫ f),
+  {
+    intros Z g,
+    change exp_transpose.to_fun ((prod.left_unitor Z).hom ≫
+            ((prod.left_unitor Z).inv ≫ exp_transpose.inv_fun g)) =
+      g,
+    rw ← category.assoc,
+    rw iso.hom_inv_id (prod.left_unitor Z),
+    simp,
+    rw exp_transpose.right_inv,
+  },
+  {
+    intros Z g,
+    change (prod.left_unitor Z).inv ≫ exp_transpose.inv_fun
+          (exp_transpose.to_fun ((prod.left_unitor Z).hom ≫ g)) =
+      g,
+    rw exp_transpose.left_inv,
+    rw ← category.assoc,
+    rw iso.inv_hom_id (prod.left_unitor Z),
+    simp,
+  },
+  intros Z W f g,
+  change (prod.left_unitor W).inv ≫ exp_transpose.inv_fun (f ≫ g)  =
+    f ≫ (prod.left_unitor Z).inv ≫ exp_transpose.inv_fun g,
+  rw exp_transpose_natural_left_symm,
+  rw ← category.assoc, rw ← category.assoc,
+  refine congr_arg (λ h, h ≫ exp_transpose.inv_fun g) _,
+  exact prod_left_unitor_naturality _,
+end
+
 @[reducible]
-def point_at_hom (f : A ⟶ Y) : ⊤_C ⟶ (Y ⇐ A) :=
+def point_at_hom (f : A ⟶ Y) : ⊤_C ⟶ (A ⟹ Y) :=
 exp_transpose.to_fun (limits.prod.fst ≫ f)
 
 section pre
@@ -145,17 +196,16 @@ variables [exponentiable B]
 -- this notation (and the hats) are just here so i could figure out how to
 -- do pre_map - I think the ⟨f,g⟩ might be nice but the rest can go (TODO)
 local notation `⟨`f`, `g`⟩` := limits.prod.map f g
-local notation A` ⟹ `:100 B := exp B A
 
 @[reducible]
 def hat : (A ⨯ Y ⟶ X) → (Y ⟶ A ⟹ X) := exp_transpose.to_fun
 @[reducible]
 def unhat : (Y ⟶ A ⟹ X) → (A ⨯ Y ⟶ X) := exp_transpose.inv_fun
 
-def pre (X : C) (f : B ⟶ A) : X⇐A ⟶ X⇐B :=
+def pre (X : C) (f : B ⟶ A) :  (A⟹X) ⟶ B⟹X :=
 hat (⟨f, 𝟙 (A ⟹ X)⟩ ≫ unhat (𝟙 (A ⟹ X)))
 
-lemma pre_id : pre X (𝟙 A) = 𝟙 (X⇐A) :=
+lemma pre_id : pre X (𝟙 A) = 𝟙 (A⟹X) :=
 begin
   dunfold pre hat, erw exp_transpose_natural_left, rw exp_transpose.right_inv, simp
 end
@@ -177,7 +227,7 @@ begin
 end
 
 def pre.functor [is_cartesian_closed C] (X : C) : Cᵒᵖ ⥤ C :=
-{ obj := λ A, X⇐(A.unop),
+{ obj := λ A, (A.unop) ⟹ X,
   map := λ A B f, pre X f.unop,
   map_id' := begin intros, apply pre_id, end,
   map_comp' := begin intros, apply pre_map, end,
