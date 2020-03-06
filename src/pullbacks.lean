@@ -58,6 +58,12 @@ begin
   rw limit.lift_π, rw id_comp, refl
 end
 
+@[simp] lemma pullback.fac_fst {Q : C} [has_limit (cospan f g)] {a : Q ⟶X} {b : Q ⟶ Y} {e : a ≫ f = b ≫ g} :
+  pullback.lift a b e ≫ pullback.fst = a :=
+begin
+  apply is_limit.fac
+end
+
 def iso_apex_of_iso_cone {F : J ⥤ C} {c₁ c₂ : cone F} (h : c₁ ≅ c₂) : c₁.X ≅ c₂.X :=
 { hom := h.hom.hom,
   inv := h.inv.hom,
