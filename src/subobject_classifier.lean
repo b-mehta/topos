@@ -179,7 +179,13 @@ B --> Ω
 def mono_is_equalizer {A B : C} {m : A ⟶ B} (hm : @mono C 𝒞 _ _ m) :
   is_limit (fork.of_ι m (begin rw ← subobj.square.commutes hm, rw ← assoc, congr' 1 end) : fork (subobj.classifier_of hm) (terminal.from B ≫ subobj.truth)) :=
 { lift := λ s, (subobj.square.is_pullback hm).lift (pullback_cone.mk (terminal.from s.X) (fork.ι s) (begin erw fork.condition s, rw ← assoc, congr' 1 end)),
-  fac' := λ s, begin intro j, cases j, simp, erw (subobj.square.is_pullback hm).fac _ walking_cospan.right, refl, simp, rw ← assoc, erw (subobj.square.is_pullback hm).fac _ walking_cospan.right, rw ← s.w walking_parallel_pair_hom.left, simp, refl end,
+  fac' := λ s,
+    begin
+      intro j, cases j,
+        simp, erw (subobj.square.is_pullback hm).fac _ walking_cospan.right, refl,
+      simp, rw ← assoc, erw (subobj.square.is_pullback hm).fac _ walking_cospan.right,
+      rw ← s.w walking_parallel_pair_hom.left, simp, refl
+    end,
   uniq' := λ s n J,
   begin
     apply pullback_cone.hom_ext (subobj.square.is_pullback hm), apply subsingleton.elim,
