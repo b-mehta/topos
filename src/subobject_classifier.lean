@@ -184,7 +184,7 @@ def mono_is_equalizer {A B : C} {m : A ⟶ B} (hm : @mono C 𝒞 _ _ m) :
       intro j, cases j,
         simp, erw (subobj.square.is_pullback hm).fac _ walking_cospan.right, refl,
       simp, rw ← assoc, erw (subobj.square.is_pullback hm).fac _ walking_cospan.right,
-      rw ← s.w walking_parallel_pair_hom.left, simp, refl
+      rw ← s.w walking_parallel_pair_hom.left, refl
     end,
   uniq' := λ s n J,
   begin
