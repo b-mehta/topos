@@ -1,7 +1,8 @@
 import category_theory.limits.shapes
 import category_theory.limits.types
+import category_theory.types
 import pullbacks
-import test
+import subobject_classifier
 
 universes v v₂ u
 
@@ -9,7 +10,7 @@ open category_theory category_theory.category category_theory.limits
 
 instance types_has_pullbacks: has_pullbacks.{u} (Type u) := ⟨limits.has_limits_of_shape_of_has_limits⟩
 
-lemma set_classifier {U X : Type} {f : U ⟶ X} (h : mono f) {χ₁ : X ⟶ Prop} (q : @classifies Type _ Prop unit U X (λ _, true) f h χ₁) :
+lemma set_classifier {U X : Type} {f : U ⟶ X} (h : mono f) {χ₁ : X ⟶ Prop} (q : @classifying _ category_theory.types _ unit _ _ (λ _, true) _ h χ₁) :
   ∀ x, χ₁ x ↔ ∃ a, f a = x :=
 begin
   obtain ⟨ka, la, ma⟩ := q,
@@ -32,9 +33,11 @@ noncomputable instance types_has_subobj_classifier : has_subobject_classifier Ty
   Ω₀ := unit,
   truth := λ _, true,
   truth_mono' := ⟨λ A f g _, begin ext i, apply subsingleton.elim end⟩,
-  classifies' := λ A B f mon, ⟨λ b, ∃ (a : A), f a = b, -- is this the right prop to use? I (BM) think so
+  classifier_of := λ A B f mon, λ b, ∃ (a : A), f a = b,
+  classifies' :=
   begin
-    refine ⟨λ _, (), _, _⟩,
+    intros A B f mon,
+    refine {k := λ _, (), commutes := _, forms_pullback' := _},
     funext, simp, use x,
     refine ⟨λ c i, _, _, _⟩,
     show A,
@@ -58,12 +61,10 @@ noncomputable instance types_has_subobj_classifier : has_subobject_classifier Ty
     erw classical.some_spec this,
     simp at J, have Jl := congr_fun (J walking_cospan.right) x,
     simp at Jl, exact Jl,
-  end
-⟩, uniquely' :=
+  end,
+  uniquely' :=
   begin
-    introv fst snd, ext x,
-    show χ₁ x ↔ χ₂ x,
-    rw set_classifier h fst x,
-    rw set_classifier h snd x,
+    introv fst, ext x,
+    rw set_classifier h fst x
   end
 }
