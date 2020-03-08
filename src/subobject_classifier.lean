@@ -169,13 +169,8 @@ lemma terminal_obj (C : Type u) [𝒞 : category.{v} C] [has_subobject_classifie
 instance unique_to_Ω₀ {C : Type u} [𝒞 : category.{v} C] [has_subobject_classifier C] (P : C) : unique (P ⟶ subobj.Ω₀) :=
 limits.unique_to_terminal P
 
-/--
-A --> 1
-|   / |
-|  /  |
-v /   v
-B --> Ω
--/
+-- TODO: really, we should prove that subobj.truth is an equalizer, and that
+-- the pullback of an equalizer is an equalizer (and every mono is a pullback of truth)
 def mono_is_equalizer {A B : C} {m : A ⟶ B} (hm : @mono C 𝒞 _ _ m) :
   is_limit (fork.of_ι m (begin rw ← subobj.square.commutes hm, rw ← assoc, congr' 1 end) : fork (subobj.classifier_of hm) (terminal.from B ≫ subobj.truth)) :=
 { lift := λ s, (subobj.square.is_pullback hm).lift (pullback_cone.mk (terminal.from s.X) (fork.ι s) (begin erw fork.condition s, rw ← assoc, congr' 1 end)),

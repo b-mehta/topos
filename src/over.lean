@@ -217,11 +217,11 @@ end
 end over_limits
 
 variable (C)
-class is_locally_cartesian_closed [@has_pullbacks C 𝒞] :=
+class is_locally_cartesian_closed extends has_pullbacks.{v} C :=
 (overs_cc : Π (B : C), is_cartesian_closed (over B))
 
-instance cartesian_closed_of_lcc [has_binary_products.{v} C] [has_pullbacks.{v} C] [is_locally_cartesian_closed.{v} C] {B : C} :
-  is_cartesian_closed (over B) := @is_locally_cartesian_closed.overs_cc _ 𝒞 _ _ B
+instance cartesian_closed_over_of_lcc [has_binary_products.{v} C] [is_locally_cartesian_closed.{v} C] {B : C} :
+  is_cartesian_closed (over B) := @is_locally_cartesian_closed.overs_cc _ 𝒞 _ B
 
 variable {C}
 @[reducible]
@@ -367,7 +367,7 @@ begin
   rw ← assoc, rw ← assoc, rw ← assoc, congr' 1, simp, erw limit.lift_π, simp, dunfold pullback_cone.snd, dsimp, simp
 end
 
-variables [has_pullbacks.{v} C] [is_locally_cartesian_closed.{v} C]
+variables [is_locally_cartesian_closed.{v} C]
 
 lemma thing {A B : C} (f : A ⟶ B) : is_left_adjoint (pullback_along f) :=
 { right := _ ⋙ _, adj := adjunction.comp _ _ (@star_adj_pi_of_exponentiable (over B) _ (over.mk f) _ _ _ (@is_cartesian_closed.cart_closed _ _ _ _ (is_locally_cartesian_closed.overs_cc B) _)) (equivalence.to_adjunction _) }
@@ -477,7 +477,8 @@ begin
   apply prod_map_epi _ (epi_part_is_epi f)
 end
 
-def image_map {A' B' : C} (f' : A' ⟶ B') {l : A ⟶ A'} {r : B ⟶ B'} (h : l ≫ f' = f ≫ r) : image f ⟶ image f' :=
+variable {f}
+def image_map {A' B' : C} {f' : A' ⟶ B'} {l : A ⟶ A'} {r : B ⟶ B'} (h : l ≫ f' = f ≫ r) : image f ⟶ image f' :=
 begin
   apply coequalizer.desc _ _ (l ≫ epi_part f'),
   rw ← @cancel_mono _ _ _ _ _ (mono_part f') (mono_part_is_mono _),
@@ -487,23 +488,22 @@ begin
   congr' 2, rw factorises, apply coequalizer.condition
 end
 
-lemma image_map_comm_left {A' B' : C} (f' : A' ⟶ B') (l : A ⟶ A') (r : B ⟶ B') (h : l ≫ f' = f ≫ r) :
-  epi_part f ≫ image_map f f' h = l ≫ epi_part f' :=
-begin
-  dunfold image_map epi_part, rw colimit.ι_desc, refl
-end
+lemma image_map_comm_left {A' B' : C} {f' : A' ⟶ B'} {l : A ⟶ A'} {r : B ⟶ B'} (h : l ≫ f' = f ≫ r) :
+  epi_part f ≫ image_map h = l ≫ epi_part f' :=
+colimit.ι_desc _ _
 
-lemma image_map_comm_right {A' B' : C} (f' : A' ⟶ B') (l : A ⟶ A') (r : B ⟶ B') (h : l ≫ f' = f ≫ r) :
-  image_map f f' h ≫ mono_part f' = mono_part f ≫ r :=
+lemma image_map_comm_right {A' B' : C} {f' : A' ⟶ B'} {l : A ⟶ A'} {r : B ⟶ B'} (h : l ≫ f' = f ≫ r) :
+  image_map h ≫ mono_part f' = mono_part f ≫ r :=
 begin
-  rw ← @cancel_epi _ _ _ _ _ (epi_part f) (epi_part_is_epi _),
+  haveI := epi_part_is_epi f,
+  rw ← cancel_epi (epi_part f),
   rw ← assoc, rw image_map_comm_left, rw assoc, rw factorises, rw h, rw ← assoc, rw factorises
 end
 
 lemma cofork.of_π_app_zero {X Y : C} {f g : X ⟶ Y} {P : C} (π : Y ⟶ P) (w : f ≫ π = g ≫ π) :
   (cofork.of_π π w).ι.app walking_parallel_pair.zero = f ≫ π := rfl
 lemma cofork.of_π_app_one {X Y : C} {f g : X ⟶ Y} {P : C} (π : Y ⟶ P) (w : f ≫ π = g ≫ π) :
-  (cofork.of_π π w).ι.app walking_parallel_pair.one = π := by refl
+  (cofork.of_π π w).ι.app walking_parallel_pair.one = π := rfl
 
 lemma coequalizer.hom_ext {X Y P : C} {f g : X ⟶ Y} {h k : coequalizer f g ⟶ P}
   (hyp : coequalizer.π f g ≫ h = coequalizer.π f g ≫ k) :
@@ -514,8 +514,8 @@ begin
   rw hyp, rw hyp
 end
 
-lemma image_map_uniq {A' B' : C} (f' : A' ⟶ B') (l : A ⟶ A') (r : B ⟶ B') (h : l ≫ f' = f ≫ r) (k : image f ⟶ image f') :
-  epi_part f ≫ k = l ≫ epi_part f' → k ≫ mono_part f' = mono_part f ≫ r → k = image_map f f' h :=
+lemma image_map_uniq {A' B' : C} {f' : A' ⟶ B'} {l : A ⟶ A'} {r : B ⟶ B'} (h : l ≫ f' = f ≫ r) (k : image f ⟶ image f') :
+  epi_part f ≫ k = l ≫ epi_part f' → k ≫ mono_part f' = mono_part f ≫ r → k = image_map h :=
 begin
   intros, refine coequalizer.hom_ext _,
   erw a, erw image_map_comm_left
@@ -524,8 +524,29 @@ end
 -- Image is a functor from the "arrow" category
 def image.functor : comma (𝟭 C) (𝟭 C) ⥤ C :=
 { obj := λ f, image f.hom,
-  map := λ f g k, @image_map _ _ _ _ _ _ _ _ f.hom _ _ g.hom k.left k.right k.w,
+  map := λ f g k, image_map k.w,
   map_id' := λ f, begin symmetry, apply image_map_uniq, erw [id_comp, comp_id], erw [id_comp, comp_id] end,
-  map_comp' := λ f g h α β, begin symmetry, apply image_map_uniq, rw ← assoc, rw image_map_comm_left, rw assoc, rw image_map_comm_left, rw ← assoc, refl, rw assoc, rw image_map_comm_right, rw ← assoc, rw image_map_comm_right, rw assoc, refl end }
+  map_comp' := λ f g h α β,
+    begin
+      symmetry,
+      apply image_map_uniq,
+      rw [← assoc, image_map_comm_left, assoc, image_map_comm_left, ← assoc], refl,
+      rw [assoc, image_map_comm_right, ← assoc, image_map_comm_right, assoc], refl
+    end
+}
 
+def image_is_smallest_subobject {I : C} {q : A ⟶ I} {m : I ⟶ B} (hm : mono m) (h : q ≫ m = f) :
+  image f ⟶ I :=
+begin
+  apply coequalizer.desc _ _ q, rw ← cancel_mono m, simp [h], rw pullback.condition
+end
+
+lemma smallest_subobject_factors {I : C} {q : A ⟶ I} {m : I ⟶ B} (hm : mono m) (h : q ≫ m = f) :
+  image_is_smallest_subobject hm h ≫ m = mono_part f :=
+begin
+  haveI := epi_part_is_epi f,
+  rw ← cancel_epi (epi_part f),
+  rw factorises, rw ← assoc, erw colimit.ι_desc,
+  exact h
+end
 end category_theory
