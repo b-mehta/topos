@@ -22,8 +22,6 @@ This right adjoint is written `Π_B` and is interpreted as dependent product.
 We say `C` is locally cartesian closed if it has all finite limits, and each
 `C/B` is cartesian closed.
 
-TODO: prove everything below this line.
-
 Given `f : A ⟶ B` in `C/B`, the iterated slice `(C/B)/f` is isomorphic to
 `C/A`, and so `f* : C/B ⥤ (C/B)/f` is 'the same thing' as pulling back
 morphisms along `f`. In particular, `C` is locally cartesian closed iff
