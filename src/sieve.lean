@@ -92,10 +92,10 @@ instance : complete_lattice (sieve X) :=
   le_Inf       := begin rintros 𝒮 S h f hf fs ⟨⟨R,hR⟩,rfl⟩, apply h _ hR hf  end,
   le_sup_left  := begin intros _ _ _ _, apply set.subset_union_left, assumption end,
   le_sup_right := begin intros _ _ _ _, apply set.subset_union_right, assumption end,
-  sup_le       := begin intros _ _ _ _ _, apply set.union_subset, assumption, assumption  end,
+  sup_le       := begin intros _ _ _ _ _, apply set.union_subset; assumption  end,
   inf_le_left  := begin intros _ _ _ _, apply set.inter_subset_left, assumption end,
   inf_le_right := begin intros _ _ _ _, apply set.inter_subset_right, assumption end,
-  le_inf       := begin intros _ _ _ _ _, apply set.subset_inter, assumption, assumption  end,
+  le_inf       := begin intros _ _ _ _ _, apply set.subset_inter; assumption  end,
   le_top       := begin intros _ _ _, trivial end,
   bot_le       := begin intros _ _ h, exfalso, apply h end
 }
@@ -128,11 +128,10 @@ def gi_generate :
     le_l_u    := λ S _, generate_sets.basic
   }
 
--- [TODO] what is the established name for this? Notation is h* S.
 /-- Given a morhpism `h : Y ⟶ X`, send a sieve S on X to a sieve on Y
     as the inverse image of S with `_ ≫ h`.
-    That is, `yank S h := (≫ h) '⁻¹ S`. -/
-def yank (S : sieve X) (h : Y ⟶ X) :  sieve Y :=
+    That is, `sieve.pullback S h := (≫ h) '⁻¹ S`. -/
+def pullback (S : sieve X) (h : Y ⟶ X) :  sieve Y :=
 { arrows := {sl | (over.mk $ sl.hom ≫ h) ∈ S },
   subs :=
   begin
@@ -159,20 +158,20 @@ def comps
   (S : sieve X) : sieve X :=
   ⨆ (f ∈ S), comp (R f) f.hom
 
-@[simp] lemma yank_def (h : Y ⟶ X) {f : Z ⟶ Y}
-: ((over.mk f) ∈ (yank S h)) = ((over.mk $ f ≫ h) ∈ S) := rfl
+@[simp] lemma pullback_def (h : Y ⟶ X) {f : Z ⟶ Y}
+: ((over.mk f) ∈ (pullback S h)) = ((over.mk $ f ≫ h) ∈ S) := rfl
 
-@[simp] lemma yank_def2 (h : Y ⟶ X)  {f : over Y}
-: (f ∈ (yank S h)) = ((over.mk $ f.hom ≫ h) ∈ S) := rfl
+@[simp] lemma pullback_def2 (h : Y ⟶ X)  {f : over Y}
+: (f ∈ (pullback S h)) = ((over.mk $ f.hom ≫ h) ∈ S) := rfl
 
-lemma yank_le_map {S R : sieve X} (Hss : S ≤ R) (f : Y ⟶ X) : yank S f ≤ yank R f :=
+lemma pullback_le_map {S R : sieve X} (Hss : S ≤ R) (f : Y ⟶ X) : pullback S f ≤ pullback R f :=
 begin rintros ⟨Z,g⟩ H, apply Hss, apply H end
 
-lemma yank_top {f : Y ⟶ X} : yank ⊤ f = ⊤ :=
+lemma pullback_top {f : Y ⟶ X} : pullback ⊤ f = ⊤ :=
 begin apply top_unique, rintros g Hg, trivial end
 
-lemma le_yank_comp {R : sieve Y} {f : Y ⟶ X} :
-  R ≤ yank (comp R f) f :=
+lemma le_pullback_comp {R : sieve Y} {f : Y ⟶ X} :
+  R ≤ pullback (comp R f) f :=
 begin rintros g b, refine ⟨_,_,rfl⟩, simp, assumption end
 
 lemma top_of_has_id : over.mk (𝟙 X) ∈ S → S = ⊤ :=
@@ -213,14 +212,15 @@ end
 def as_functor (S : sieve X) : Cᵒᵖ ⥤ Type v :=
 { obj := λ Y, {g : Y.unop ⟶ X // over.mk g ∈ S},
   map := λ Y Z f g, subtype.mk (f.unop ≫ g.1) (begin
-    cases g with g gS,  apply sieve.subs S (over.mk g) gS _ f.unop,
+    cases g with g gS, 
+    apply sieve.subs S (over.mk g) gS _ f.unop,
   end)
 }
 
 def functor_inclusion (S : sieve X) : S.as_functor ⟶ yoneda.obj X :=
 nat_trans.mk (λ Y f, f.1) (λ Y Z g, rfl)
 
--- [todo] show it's monic.
+-- [todo] show functor_inclusion is monic.
 
 end sieve
 end category_theory

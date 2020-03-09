@@ -32,14 +32,14 @@ open sieve category
 /-- Definition of a Grothendiek Topology. -/
 class grothendieck {C : Type u} [𝒞 : category.{v} C] (J : sieve_set C) :=
 (max : ∀ X, ⊤ ∈ J(X))
-(stab : ∀ (X Y : C) (S ∈ J(X)) (h : Y ⟶ X), yank S h ∈ J(Y))
+(stab : ∀ (X Y : C) (S ∈ J(X)) (h : Y ⟶ X), sieve.pullback S h ∈ J(Y))
 (trans :
   ∀ ⦃X : C⦄,
   ∀ (S ∈ J(X)),
   ∀ (R : sieve X),
   ∀ (_ : ∀ (f : over X),
          ∀ (_ : f ∈ S),
-           yank R f.hom ∈ J(f.left)),
+           sieve.pullback R f.hom ∈ J(f.left)),
     R ∈ J(X)
 )
 
@@ -51,7 +51,9 @@ structure Site :=
 
 namespace grothendieck
 
-variables {C : Type u} [𝒞 : category.{v} C]  {X Y : C} {S R : sieve X} {J : sieve_set C} [grothendieck J]
+variables {C : Type u} [𝒞 : category.{v} C] 
+variables {X Y : C} {S R : sieve X} 
+variables {J : sieve_set C} [grothendieck J]
 include 𝒞
 
 class basis [@category_theory.limits.has_pullbacks C 𝒞] (K : arrow_set C) :=
@@ -98,13 +100,14 @@ instance of_basis [@category_theory.limits.has_pullbacks C 𝒞] {K : arrow_set 
 def superset_covers (Hss : S ⊆ R) (sjx : S ∈ J(X)) : (R ∈ J(X)) :=
 begin
   apply grothendieck.trans,
-  apply sjx,
+    apply sjx,
   rintros h H2,
-  have : over.mk (𝟙 h.left) ∈ (yank R h.hom),
+  have : over.mk (𝟙 h.left) ∈ (sieve.pullback R h.hom),
     apply Hss,
     simp, rw [@category.id_comp _ _ h.left _ h.hom], simp,
     apply H2,
-  have : yank R h.hom = ⊤, apply top_of_has_id, apply this,
+  have : sieve.pullback R h.hom = ⊤,
+    apply top_of_has_id this,
   rw this,
   apply grothendieck.max
 end
@@ -116,47 +119,52 @@ def trans2
   : comps R S ∈ J(X) :=
   begin
     apply grothendieck.trans,
-    apply sjx,
+      apply sjx,
     rintros f Hf,
     apply superset_covers,
-    apply yank_le_map,
-    apply comp_le_comps,
-    apply Hf,
+      apply sieve.pullback_le_map,
+      apply comp_le_comps,
+      apply Hf,
     apply superset_covers,
-    apply le_yank_comp,
+      apply le_pullback_comp,
     apply hR,
     apply Hf,
   end
 
-def covers (J : sieve_set C) (S : sieve X) (f : Y ⟶ X) := yank S f ∈ J(Y)
+def covers (J : sieve_set C) (S : sieve X) (f : Y ⟶ X) := 
+sieve.pullback S f ∈ J(Y)
 
 lemma intersection_covers (rj : R ∈ J(X)) (sj : S ∈ J(X)) : R ⊓ S ∈ J(X) :=
 begin
   apply grothendieck.trans R, assumption,
   intros f Hf,
   apply superset_covers,
-  show yank S (f.hom) ⊆ yank (R ⊓ S) (f.hom),
+  show sieve.pullback S (f.hom) ⊆ sieve.pullback (R ⊓ S) (f.hom),
     intros g gys, refine ⟨_,gys⟩,
     apply sieve.subs,
     assumption,
   apply grothendieck.stab, assumption, apply_instance
 end
 
-
 open sieve_set
 
 instance trivial.grothendieck : grothendieck (sieve_set.trivial C) :=
-{ max := λ X, set.mem_singleton _
-, stab := λ X Y S HS h , begin have : S = ⊤, apply set.eq_of_mem_singleton, assumption, rw [this, yank_top], apply set.mem_singleton end
-, trans := λ X S HS R HR, begin
-  have : S = ⊤, apply set.eq_of_mem_singleton, assumption, subst this,
-  apply set.mem_singleton_of_eq,
-  apply lattice.top_unique,
-  rintros g Hg,
-  have : yank R (g.hom) ≥ ⊤, refine (ge_of_eq (set.eq_of_mem_singleton (HR g Hg))),
-  have : over.mk (𝟙 g.left) ∈ yank R (g.hom), refine this _, trivial,
-  have : over.mk (𝟙 (g.left) ≫ g.hom) ∈ R, apply this,
-  simpa,
+{ max := λ X, set.mem_singleton _, 
+  stab := λ X Y S HS h , begin 
+    have : S = ⊤, 
+      apply set.eq_of_mem_singleton, assumption, 
+    rw [this, sieve.pullback_top], 
+    apply set.mem_singleton 
+  end, 
+  trans := λ X S HS R HR, begin
+    have : S = ⊤, apply set.eq_of_mem_singleton, assumption, subst this,
+    apply set.mem_singleton_of_eq,
+    apply lattice.top_unique,
+    rintros g Hg,
+    have : sieve.pullback R (g.hom) ≥ ⊤, refine (ge_of_eq (set.eq_of_mem_singleton (HR g Hg))),
+    have : over.mk (𝟙 g.left) ∈ sieve.pullback R (g.hom), refine this _, trivial,
+    have : over.mk (𝟙 (g.left) ≫ g.hom) ∈ R, apply this,
+    simpa,
   end
 }
 
@@ -188,37 +196,32 @@ instance atomic.grothendieck
     ∃ (W : C)     (wy : W ⟶ Y) (wz : W ⟶ Z),
       wy ≫ yx = wz ≫ zx)
   : grothendieck (atomic C) :=
-{ max := λ X, begin
-    refine ⟨_,_⟩,
-    apply over.mk (𝟙 _),
-    trivial
-  end
-, stab := begin
+{ max := λ X, ⟨over.mk (𝟙 _),⟨⟩⟩, 
+  stab := begin
     rintros X Y S HS h,
     cases HS with f HS,
     rcases square h f.hom with ⟨a,b,c,d⟩,
     refine ⟨over.mk b,_⟩,
     simp, rw d,
     apply sieve.subs, assumption
+   end, 
+   trans := begin
+     rintros _ _ ⟨f,fS⟩ _ Ra,
+     rcases Ra f fS with ⟨g,h₁⟩,
+     refine ⟨_,h₁⟩
    end
-, trans := begin
-    rintros _ _ ⟨f,fS⟩ _ Ra,
-    rcases Ra f fS with ⟨g,h₁⟩,
-    refine ⟨_,h₁⟩
-  end
 }
 
 open opposite
 
-def matching_family (P : Cᵒᵖ ⥤ Type v) (S : sieve X) := S.as_functor ⟶ P
+def matching_family (P : Cᵒᵖ ⥤ Type v) (S : sieve X) := 
+S.as_functor ⟶ P
 
 def amalgamation {P : Cᵒᵖ ⥤ Type v} {S : sieve X} (γ : matching_family P S) :=
 {α : yoneda.obj X ⟶ P // sieve.functor_inclusion S ≫ α = γ}
 
 def sheaf (J : sieve_set C) [grothendieck J] (P : Cᵒᵖ ⥤ Type v) :=
 ∀ (X : C) (S : sieve X) (γ : matching_family P S), S ∈ J(X) → unique (amalgamation γ)
-
--- [TODO] the topological site
 
 end grothendieck
 
