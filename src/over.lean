@@ -346,7 +346,6 @@ def over_iso {B : C} (f g : over B) (hl : f.left ≅ g.left) (hw : hl.hom ≫ g.
 def over_left_iso {B : C} {f g : over B} (hf : f ≅ g) : f.left ≅ g.left :=
 { hom := hf.hom.left, inv := hf.inv.left, hom_inv_id' := begin rw [← over.comp_left, hf.hom_inv_id], refl end, inv_hom_id' := begin rw [← over.comp_left, hf.inv_hom_id], refl end}
 
-set_option pp.all false
 lemma pullback_along_obj_of_id [has_pullbacks.{v} C] {A B : C} (f : A ⟶ B) : (pullback_along f).obj (over.mk (𝟙 B)) ≅ over.mk (𝟙 A) :=
 begin
   apply over_iso, swap,
@@ -397,7 +396,7 @@ lemma pullback_preserves_epi' {A B D : C}
 epi (pullback.snd : pullback g f ⟶ A) :=
 begin
   have: (pullback.snd : pullback g f ⟶ A) = (pullback.flip' _ _).hom ≫ (pullback.fst : pullback f g ⟶ A), -- TODO: this should be a lemma
-    dunfold pullback.flip' iso_apex_of_iso_cone flip_limit_cone flip_hom flip_twice, dsimp, erw id_comp, simp, refl,
+    dunfold pullback.flip' iso_apex_of_iso_cone flip_limit_cone flip_hom flip_twice, dsimp, erw id_comp, rw [limit.lift_π], refl,
   rw this, apply epi_comp_of_epi, apply is_iso.epi_of_iso,
   apply pullback_preserves_epi _ hg
 end

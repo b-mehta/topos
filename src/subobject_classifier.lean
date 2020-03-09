@@ -74,13 +74,6 @@ def has_equalizers_of_pullbacks_and_binary_products
 }
 
 -- Define what it means for χ to classify the mono f.
--- Should this be a class? I don't think so but maybe
--- Maybe it should be a structure though
--- def classifies {C : Type u} [𝒞 : category.{v} C]
---   {Ω Ω₀ U X : C} (true : Ω₀ ⟶ Ω) {f : U ⟶ X} (h : mono f) (χ : X ⟶ Ω)
---   := Σ' (k : U ⟶ Ω₀) (comm : k ≫ true = f ≫ χ),
---         is_limit (pullback_cone.mk _ _ comm)
-
 structure classifying {Ω Ω₀ U X : C} (true : Ω₀ ⟶ Ω) {f : U ⟶ X} (h : @mono _ 𝒞 _ _ f) (χ : X ⟶ Ω) :=
 (k : U ⟶ Ω₀)
 (commutes : k ≫ true = f ≫ χ)
