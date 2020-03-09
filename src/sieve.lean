@@ -217,10 +217,20 @@ def as_functor (S : sieve X) : Cᵒᵖ ⥤ Type v :=
   end)
 }
 
+/-- The natural inclusion from the functor induced by a sieve to the yoneda embedding. -/
 def functor_inclusion (S : sieve X) : S.as_functor ⟶ yoneda.obj X :=
 nat_trans.mk (λ Y f, f.1) (λ Y Z g, rfl)
 
--- [todo] show functor_inclusion is monic.
+def functor_inclusion_is_mono : mono (functor_inclusion S) :=
+begin 
+    refine ⟨_⟩,
+    intros Z f g h,
+    ext Y y,
+    apply subtype.ext.2, 
+    have : (f ≫ functor_inclusion S).app Y y = (g ≫ functor_inclusion S).app Y y,
+      rw h,
+    apply this
+end
 
 end sieve
 end category_theory
