@@ -1,3 +1,9 @@
+/-
+Copyright (c) 2020 Bhavik Mehta. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Bhavik Mehta
+-/
+
 import category_theory.equivalence
 import category_theory.adjunction
 
@@ -11,6 +17,7 @@ local attribute [elab_simple] whisker_left whisker_right
 variables {C : Type u₁} [𝒞 : category.{v₁} C] {D : Type u₂} [𝒟 : category.{v₂} D]
 include 𝒞 𝒟
 
+-- Some basic adjunction properties
 @[reducible]
 def equiv_homset_left_of_nat_iso {C : Type u₁} [𝒞 : category.{v₁} C] {D : Type u₂} [𝒟 : category.{v₂} D]
   {F G : C ⥤ D} (iso : F ≅ G) (X : C) (Y : D) :

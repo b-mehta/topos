@@ -15,6 +15,7 @@ variables {C : Type u} [𝒞 : category.{v} C] {X Y : C}
 include 𝒞
 
 /-- The subobject category -/
+-- NB: this isn't currently correct, it needs quotienting over
 def sub (X : C) := {f : over X // mono f.hom}
 
 def sub.obj_of_iso (f : X ≅ Y) : sub Y :=
@@ -35,7 +36,7 @@ variables {A B D: sub X}
 
 def sub.mk_iso {A B : sub X} (f : A.dom ≅ B.dom) (e : f.hom ≫ B.hom = A.hom) : A ≅ B :=
 begin
-  refine iso.mk (over.hom_mk f.hom e) (over.hom_mk f.inv (eq.symm _)) _ _, 
+  refine iso.mk (over.hom_mk f.hom e) (over.hom_mk f.inv (eq.symm _)) _ _,
     apply (iso.eq_inv_comp f).2 e,
     {ext, show _ ≫ _ = 𝟙 _, simp  },
     {ext, show _ ≫ _ = 𝟙 _, simp  }

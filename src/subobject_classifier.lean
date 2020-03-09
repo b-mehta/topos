@@ -1,7 +1,19 @@
+/-
+Copyright (c) 2020 Bhavik Mehta. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Bhavik Mehta
+-/
+
 import category_theory.limits.shapes
 import category_theory.limits.types
 import pullbacks
 
+/-!
+# Subobject classifiers
+
+Define a subobject classifier, show that it implies there's a terminal object,
+show that if there is a subobject classifier then every mono is regular.
+-/
 universes v u
 
 open category_theory category_theory.category category_theory.limits

@@ -6,6 +6,12 @@ import subobject_classifier
 
 universes v v₂ u
 
+/-!
+# Types
+
+Show that Type has a subobject classifier (assuming choice).
+-/
+
 open category_theory category_theory.category category_theory.limits
 
 instance types_has_pullbacks: has_pullbacks.{u} (Type u) := ⟨limits.has_limits_of_shape_of_has_limits⟩

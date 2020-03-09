@@ -1,7 +1,18 @@
+/-
+Copyright (c) 2020 Bhavik Mehta, Edward Ayers. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Bhavik Mehta, Edward Ayers
+-/
+
 import category_theory.limits.shapes
 import category_theory.limits.preserves
 import .comma
 
+/-!
+# Pullbacks
+
+Many, many lemmas to work with pullbacks.
+-/
 open category_theory category_theory.category category_theory.limits
 
 universes u v

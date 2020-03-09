@@ -1,8 +1,20 @@
+/-
+Copyright (c) 2020 Bhavik Mehta, Edward Ayers. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Bhavik Mehta, Edward Ayers
+-/
+
 import category_theory.limits.shapes.binary_products
 import category_theory.adjunction
 import adjunction
 import tactic
 
+/-!
+# Cartesian closed categories
+
+Define exponentiable objects and cartesian closed categories.
+Show that exponential forms a difunctor.
+-/
 universes u v
 
 namespace category_theory
