@@ -225,9 +225,9 @@ def flip_limit_cone [@has_pullbacks C 𝒞] (f : X ⟶ Z) (g : Y ⟶ Z) :
   hom_inv_id' :=
   begin
     ext, simp, dunfold flip_hom flip_twice cones.ext, erw [id_comp, limit.lift_π],
-    revert j, refine pi_app_left (cospan_cone.flip (limit.cone _)) (limit.cone _) _ _ _,
     { erw limit.lift_π, refl },
-    { erw limit.lift_π, refl }
+    { simp, erw limit.lift_π, dunfold flip_twice cospan_cone.flip, simp,
+      erw [id_comp, limit.lift_π], refl }
   end,
   inv_hom_id' := is_limit.uniq_cone_morphism (limit.is_limit _) }
 

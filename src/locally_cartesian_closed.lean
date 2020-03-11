@@ -150,10 +150,8 @@ lemma pullback_of_obj [has_pullbacks.{v} C] {A B D : C} (f : A ⟶ B) (g : D ⟶
   ((pullback_along f).map (terminal.from (over.mk g))).left = (pullback.fst : pullback f g ⟶ A) ≫ (pullback.with_id_l f).inv :=
 begin
   dsimp [pullback_along, iterated_slice_equiv, equivalence.mk, pullback.with_id_l, pullback.with_id_r, identify_limit_apex, iso_apex_of_iso_cone, pullback.with_id_r', pullback.flip', flip_limit_cone, cospan_cone.flip, is_limit.unique_up_to_iso, is_limit.lift_cone_morphism],
-  simp, ext, cases j, simp, dsimp, erw limit.lift_π, simp, dunfold pullback_cone.snd, dsimp, simp, dsimp, simp,
+  simp, ext,  simp, dsimp, erw limit.lift_π, simp, dunfold pullback_cone.snd, dsimp, simp, dsimp, simp,
   erw limit.lift_π, simp, dunfold pullback_cone.fst, simp, symmetry, exact pullback.condition,
-  simp, erw ← @limit.w walking_cospan _ _ _ _ _ _ _ walking_cospan.hom.inl, simp, dsimp, dunfold pullback_cone.mk, simp, dsimp,
-  rw ← assoc, rw ← assoc, rw ← assoc, congr' 1, simp, erw limit.lift_π, simp, dunfold pullback_cone.snd, dsimp, simp
 end
 
 variables [is_locally_cartesian_closed.{v} C]
@@ -213,9 +211,8 @@ def epi_part : A ⟶ image f := coequalizer.π pullback.fst pullback.snd
 def mono_part : image f ⟶ B := coequalizer.desc _ _ f pullback.condition
 
 lemma factorises : epi_part f ≫ mono_part f = f :=
-begin
-  simp [epi_part, mono_part], refl,
-end
+by simp [epi_part, mono_part]
+
 lemma coequalizer_epi (g h : A ⟶ B) : epi (coequalizer.π g h) :=
 begin
   split, intros k l m q, apply colimit.hom_ext, intro, cases j,

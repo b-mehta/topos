@@ -4,11 +4,8 @@ jobs:
   build_job:
     runs-on: ubuntu-latest
     container: edayers/lean
-    name: Run leanpkg build
+    name: Run leanproject build
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Configure
-      run: leanpkg configure && update-mathlib
-    - name: Build
-      run: leanpkg build
+    - uses: actions/checkout@v1
+    - run: leanproject upgrade-mathlib
+    - run: leanproject build

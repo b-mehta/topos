@@ -113,9 +113,9 @@ def over_product_of_pullbacks (B : C) (F : discrete walking_pair ⥤ over B)
       end,
     fac' := begin intros s j, ext, cases j, simp [nat_trans.of_homs], simp [nat_trans.of_homs] end,
     uniq' := begin intros s m j,
-    ext, revert j_1, apply pi_app,
-    simp, erw ← j walking_pair.left, erw limit.lift_π, simp, refl,
-    simp, erw ← j walking_pair.right, simp, erw limit.lift_π, simp, refl end } }
+    ext,
+    { erw ← j walking_pair.left, simp },
+    { erw ← j walking_pair.right, simp } end } }
 
 instance (B : C) : has_terminal.{v} (over B) :=
 { has_limits_of_shape :=
