@@ -7,8 +7,6 @@ jobs:
     name: Run leanproject build
     steps:
     - uses: actions/checkout@v2
-    - run: git fetch --prune --unshallow
-    - name: Configure
-      run: leanproject upgrade-mathlib
-    - name: Build
-      run: leanproject build
+    - run: git checkout HEAD
+    - run: leanproject upgrade-mathlib
+    - run: leanproject build
