@@ -41,9 +41,7 @@ def prod_functor : C ⥤ C ⥤ C :=
 { obj := λ X, { obj := λ Y, X ⨯ Y, map := λ Y Z, limits.prod.map (𝟙 X) },
   map := λ Y Z f, { app := λ T, limits.prod.map f (𝟙 T) }}
 
-def prodinl (X : C) : C ⥤ C :=
-{ obj := λ Y, limits.prod X Y,
-  map := λ Y Z f, limits.prod.map (𝟙 X) f }
+def prodinl (X : C) : C ⥤ C := prod_functor.obj X
 
 @[simp] lemma prodinl_map_def {f : Y ⟶ Z} : (prodinl X).map f = limits.prod.map (𝟙 X) f := rfl
 @[simp] lemma map_fst {f : U ⟶ V} {g : W ⟶ X} : limits.prod.map f g ≫ limits.prod.fst = limits.prod.fst ≫ f := by simp
@@ -62,16 +60,15 @@ class exponentiable {C : Type u} [𝒞 : category.{v} C] [bp : @has_binary_produ
 (exponentiable : is_left_adjoint (prodinl X))
 
 def binary_product_exponentiable {C : Type u} [𝒞 : category.{v} C] [bp : @has_binary_products C 𝒞] {X Y : C}
-  (hX : exponentiable X) (hY : exponentiable Y) :
-  exponentiable (limits.prod X Y) :=
+  (hX : exponentiable X) (hY : exponentiable Y) : exponentiable (X ⨯ Y) :=
 { exponentiable :=
   { right := hX.exponentiable.right ⋙ hY.exponentiable.right,
     adj := adjunction_of_nat_iso_left (adjunction.comp _ _ hY.exponentiable.adj hX.exponentiable.adj) (prodinl_comp _ _).symm } }
 
-class is_cartesian_closed (C : Type u) [𝒞 : category.{v} C] [@has_binary_products C 𝒞] [@has_terminal C 𝒞] :=
+class is_cartesian_closed (C : Type u) [𝒞 : category.{v} C] [@has_binary_products C 𝒞] extends has_terminal.{v} C :=
 (cart_closed : Π (X : C), exponentiable X)
 
-instance exponentiable_of_cc {C : Type u} [𝒞 : category.{v} C] [@has_binary_products C 𝒞] [@has_terminal C 𝒞] [is_cartesian_closed C] {A : C} :
+instance exponentiable_of_cc {C : Type u} [𝒞 : category.{v} C] [@has_binary_products C 𝒞] [is_cartesian_closed C] {A : C} :
   exponentiable A := is_cartesian_closed.cart_closed A
 
 variables {C : Type u} [𝒞 : category.{v} C] [has_binary_products.{v} C] {X X' Y Y' Z A B : C} [exponentiable A]
@@ -81,13 +78,13 @@ include 𝒞
 def exp.functor (A : C) [exponentiable A] : C ⥤ C :=
 (exponentiable.exponentiable A).right
 
-def exp.adjunction : (prodinl A) ⊣ (exp.functor A) :=
+def exp.adjunction : prodinl A ⊣ exp.functor A :=
 (exponentiable.exponentiable A).adj
 
-def ev.nat_trans (A : C) [exponentiable A] : (exp.functor A) ⋙ prodinl A ⟶ 𝟭 C :=
+def ev.nat_trans (A : C) [exponentiable A] : exp.functor A ⋙ prodinl A ⟶ 𝟭 C :=
 exp.adjunction.counit
 
-def coev.nat_trans (A : C) [exponentiable A] : 𝟭 C ⟶ prodinl A ⋙ (exp.functor A) :=
+def coev.nat_trans (A : C) [exponentiable A] : 𝟭 C ⟶ prodinl A ⋙ exp.functor A :=
 exp.adjunction.unit
 
 /-- `B ^ A` or `B ⇐ A` -/
@@ -129,7 +126,7 @@ def exp_transpose : (A ⨯ Y ⟶ X) ≃ (Y ⟶ A⟹X) :=
 exp.adjunction.hom_equiv _ _
 
 lemma exp_transpose_natural_left  (f : X ⟶ X') (g : A ⨯ X' ⟶ Y) :
-  exp_transpose.to_fun ((prodinl A).map f ≫ g) = f ≫ exp_transpose.to_fun g :=
+  exp_transpose.to_fun (limits.prod.map (𝟙 _) f ≫ g) = f ≫ exp_transpose.to_fun g :=
 adjunction.hom_equiv_naturality_left _ _ _
 
 lemma exp_transpose_natural_right (f : A ⨯ X ⟶ Y) (g : Y ⟶ Y') :
@@ -141,17 +138,17 @@ lemma exp_transpose_natural_right_symm  (f : X ⟶ A⟹Y) (g : Y ⟶ Y') :
 adjunction.hom_equiv_naturality_right_symm _ _ _
 
 lemma exp_transpose_natural_left_symm  (f : X ⟶ X') (g : X' ⟶ A⟹Y) :
-  exp_transpose.inv_fun (f ≫ g) = (prodinl A).map f ≫ exp_transpose.inv_fun g :=
+  exp_transpose.inv_fun (f ≫ g) = limits.prod.map (𝟙 _) f ≫ exp_transpose.inv_fun g :=
 adjunction.hom_equiv_naturality_left_symm _ _ _
 
 variable [has_terminal.{v} C]
 
 lemma prod_left_unitor_naturality (f : X ⟶ Y):
-  (prod.left_unitor X).inv ≫ (prodinl ⊤_C).map f = f ≫ (prod.left_unitor Y).inv :=
+  (prod.left_unitor X).inv ≫ limits.prod.map (𝟙 _) f = f ≫ (prod.left_unitor Y).inv :=
 begin
   apply prod.hom_ext,
-  tidy,
-  exact id_comp C f
+  { apply subsingleton.elim },
+  { simp [id_comp C f] }
 end
 
 def terminal_exponentiable : exponentiable ⊤_C :=
@@ -168,33 +165,18 @@ begin
   apply yoneda.ext (⊤_ C ⟹ X) X _ _ _ _ _,
   intros Y f, exact (prod.left_unitor Y).inv ≫ exp_transpose.inv_fun f,
   intros Y f, exact exp_transpose.to_fun ((prod.left_unitor Y).hom ≫ f),
-  {
-    intros Z g,
-    change exp_transpose.to_fun ((prod.left_unitor Z).hom ≫
-            ((prod.left_unitor Z).inv ≫ exp_transpose.inv_fun g)) =
-      g,
-    rw ← category.assoc,
-    rw iso.hom_inv_id (prod.left_unitor Z),
-    simp,
-    rw exp_transpose.right_inv,
-  },
-  {
-    intros Z g,
-    change (prod.left_unitor Z).inv ≫ exp_transpose.inv_fun
-          (exp_transpose.to_fun ((prod.left_unitor Z).hom ≫ g)) =
-      g,
+  { intros Z g, dsimp,
+    rw ← assoc, erw iso.hom_inv_id (prod.left_unitor Z),
+    simp [exp_transpose.right_inv g] },
+  { intros Z g, dsimp,
     rw exp_transpose.left_inv,
-    rw ← category.assoc,
-    rw iso.inv_hom_id (prod.left_unitor Z),
-    simp,
-  },
-  intros Z W f g,
-  change (prod.left_unitor W).inv ≫ exp_transpose.inv_fun (f ≫ g)  =
-    f ≫ (prod.left_unitor Z).inv ≫ exp_transpose.inv_fun g,
-  rw exp_transpose_natural_left_symm,
-  rw ← category.assoc, rw ← category.assoc,
-  refine congr_arg (λ h, h ≫ exp_transpose.inv_fun g) _,
-  exact prod_left_unitor_naturality _,
+    rw ← assoc,
+    erw iso.inv_hom_id (prod.left_unitor Z),
+    simp },
+  { intros Z W f g, dsimp,
+    rw exp_transpose_natural_left_symm,
+    rw ← assoc, rw ← assoc,
+    erw prod_left_unitor_naturality _, refl },
 end
 
 @[reducible]
@@ -271,7 +253,7 @@ begin
   rw comp_id
 end
 
-def exp.difunctor [is_cartesian_closed C] : C ⥤ (Cᵒᵖ ⥤ C) :=
+def exp.difunctor [is_cartesian_closed C] : C ⥤ Cᵒᵖ ⥤ C :=
 { obj := pre.functor,
   map := λ A B f, { app := λ X, post X.unop f, naturality' := λ X Y g, begin apply exp_natural end },
   map_id' := λ X, begin ext, apply functor.map_id end,
