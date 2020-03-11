@@ -44,17 +44,9 @@ lemma equiv_reflects_mono {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ 
   (hef : mono (e.functor.map f)) : mono f :=
 faithful_reflects_mono e.functor hef
 
-lemma equiv_reflects_mono' {D : Type u₂} [category.{v} D] {X Y : D} (f : X ⟶ Y) (e : C ≌ D)
-  (hef : mono (e.inverse.map f)) : mono f :=
-faithful_reflects_mono e.inverse hef
-
 lemma equiv_reflects_epi {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D)
   (hef : epi (e.functor.map f)) : epi f :=
 faithful_reflects_epi e.functor hef
-
-lemma equiv_reflects_epi' {D : Type u₂} [category.{v} D] {X Y : D} (f : X ⟶ Y) (e : C ≌ D)
-  (hef : epi (e.inverse.map f)) : epi f :=
-faithful_reflects_epi e.inverse hef
 
 lemma equiv_preserves_mono {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D) :
   mono f → mono (e.functor.map f) :=
@@ -65,17 +57,6 @@ begin
   apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso_inverse,
   apply mono_comp_of_mono _ _ hf,
   apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso,
-end
-
-lemma equiv_preserves_mono' {D : Type u₂} [category.{v} D] {X Y : D} (f : X ⟶ Y) (e : C ≌ D) :
-  mono f → mono (e.inverse.map f) :=
-begin
-  intro hf, apply equiv_reflects_mono' (e.inverse.map f) e.symm,
-  erw equivalence.fun_inv_map,
-  apply mono_comp_of_mono,
-  apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso,
-  apply mono_comp_of_mono _ _ hf,
-  apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso_inverse,
 end
 
 lemma equiv_preserves_epi {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D) :
@@ -89,17 +70,6 @@ begin
   apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso,
 end
 
-lemma equiv_preserves_epi' {D : Type u₂} [category.{v} D] {X Y : D} (f : X ⟶ Y) (e : C ≌ D) :
-  epi f → epi (e.inverse.map f) :=
-begin
-  intro hf, apply equiv_reflects_epi' (e.inverse.map f) e.symm,
-  erw equivalence.fun_inv_map,
-  apply epi_comp_of_epi,
-  apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso,
-  apply epi_comp_of_epi _ _ hf,
-  apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso_inverse,
-end
-
 lemma equiv_mono_iff {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D) :
   mono f ↔ mono (e.functor.map f) :=
 ⟨equiv_preserves_mono f e, equiv_reflects_mono f e⟩
@@ -107,14 +77,6 @@ lemma equiv_mono_iff {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e
 lemma equiv_epi_iff {D : Type u₂} [category.{v} D] (X Y : C) (f : X ⟶ Y) (e : C ≌ D) :
   epi f ↔ epi (e.functor.map f) :=
 ⟨equiv_preserves_epi f e, equiv_reflects_epi f e⟩
-
-lemma equiv_mono_iff' {D : Type u₂} [category.{v} D] {X Y : D} (f : X ⟶ Y) (e : C ≌ D) :
-  mono f ↔ mono (e.inverse.map f) :=
-⟨equiv_preserves_mono' f e, equiv_reflects_mono' f e⟩
-
-lemma equiv_epi_iff' {D : Type u₂} [category.{v} D] {X Y : D} (f : X ⟶ Y) (e : C ≌ D) :
-  epi f ↔ epi (e.inverse.map f) :=
-⟨equiv_preserves_epi' f e, equiv_reflects_epi' f e⟩
 
 lemma over_epi {B : C} {f g : over B} {k : f ⟶ g} (ke : epi k.left) : epi k :=
 begin
@@ -157,7 +119,7 @@ end
 variables [is_locally_cartesian_closed.{v} C]
 
 lemma thing {A B : C} (f : A ⟶ B) : is_left_adjoint (pullback_along f) :=
-{ right := _ ⋙ _, adj := adjunction.comp _ _ (@star_adj_pi_of_exponentiable (over B) _ (over.mk f) _ _ _ (@is_cartesian_closed.cart_closed _ _ _ _ (is_locally_cartesian_closed.overs_cc B) _)) (equivalence.to_adjunction _) }
+{ right := _ ⋙ _, adj := adjunction.comp _ _ (@star_adj_pi_of_exponentiable (over B) _ (over.mk f) _ _ _ (@is_cartesian_closed.cart_closed _ _ _ (is_locally_cartesian_closed.overs_cc B) _)) (equivalence.to_adjunction _) }
 
 variables [has_binary_products.{v} C]
 /--
@@ -206,6 +168,7 @@ end
 
 variables [has_coequalizers.{v} C] {A B : C} (f : A ⟶ B)
 
+-- Technically the regular coimage, but in a LCCC with coequalizers it is the image
 def image : C := coequalizer (pullback.fst : pullback f f ⟶ A) (pullback.snd : pullback f f ⟶ A)
 def epi_part : A ⟶ image f := coequalizer.π pullback.fst pullback.snd
 def mono_part : image f ⟶ B := coequalizer.desc _ _ f pullback.condition
