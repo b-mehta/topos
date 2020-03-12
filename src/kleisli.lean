@@ -61,7 +61,8 @@ namespace adjunction
     dunfold category_struct.comp, dsimp,
     simp only [monad.assoc T Z, functor.map_comp, category.assoc],
     congr' 1,
-    erw [←category.assoc, nat_trans.naturality (μ_ T) g, category.assoc],
+    slice_lhs 1 2 { erw [nat_trans.naturality (μ_ T) g] },
+    simp only [category.assoc]
   end }
 
 /-- The Kleisli adjunction which gives rise to the monad `(T, η_ T, μ_ T)`.
