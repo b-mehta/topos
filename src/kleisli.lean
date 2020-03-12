@@ -6,7 +6,12 @@ Author: Wojciech Nawrocki
 -/
 
 /-! # Kleisli category on a monad
-TODO(WN): reference a book or the notes -/
+
+This file defines the Kleisli category on a monad `(T, η_ T, μ_ T)`. It also defines the Kleisli adjunction which gives rise to `(T, η_ T, μ_ T)`.
+
+## References
+* [Riehl, *Category theory in context*, Definition 5.2.9][riehl2017]
+-/
 namespace category_theory
 
 universes v u -- declare the `v`'s first; see `category_theory.category` for an explanation
@@ -16,6 +21,8 @@ include 𝒞
 
 def kleisli (T : C ⥤ C) [monad.{v} T] := C
 
+/-- The Kleisli category on a monad `T`.
+    cf Definition 5.2.9 in [Riehl][riehl2017]. -/
 instance kleisli.category (T : C ⥤ C) [monad.{v} T] : category (kleisli T) :=
 { hom  := λ (X Y : C), X ⟶ T.obj Y,
   id   := λ X, (η_ T).app X,
@@ -26,15 +33,16 @@ instance kleisli.category (T : C ⥤ C) [monad.{v} T] : category (kleisli T) :=
   assoc'   := λ W X Y Z f g h, begin
     simp only [functor.map_comp, category.assoc],
     congr' 2, rw monad.assoc T Z,
-    conv_rhs { erw [←category.assoc, nat_trans.naturality (μ_ T) h,
-                    category.assoc] } -- TODO(WN): assoc_rw pls
+    slice_rhs 1 2 { erw [nat_trans.naturality (μ_ T) h] },
+    simp only [category.assoc],
   end }
 
 namespace kleisli
 
 variables (T : C ⥤ C) [monad.{v} T]
 
--- TODO(WN): what to call these functors (F_T and G_T)?
+namespace adjunction
+
 @[simps] def F_T : C ⥤ kleisli T :=
 { obj       := λ X, X,
   map       := λ X Y f, by dunfold has_hom.hom; exact f ≫ (η_ T).app Y,
@@ -45,7 +53,7 @@ variables (T : C ⥤ C) [monad.{v} T]
                  functor.map_comp, category.assoc,
                  ←nat_trans.naturality (η_ T) g] end }
 
-@[simps] def G_T : kleisli T ⥤ C :=
+@[simps] def U_T : kleisli T ⥤ C :=
 { obj       := λ X, T.obj X,
   map       := λ X Y f, T.map f ≫ (μ_ T).app Y,
   map_id'   := λ X, by simp only [category_struct.id, monad.right_unit],
@@ -56,38 +64,23 @@ variables (T : C ⥤ C) [monad.{v} T]
     erw [←category.assoc, nat_trans.naturality (μ_ T) g, category.assoc],
   end }
 
-theorem F_T_G_T_eq_T : F_T T ⋙ G_T T = T :=
-begin
-  apply functor.ext,
-  { intros X Y f,
-    show T.map (f ≫ (η_ T).app Y) ≫ (μ_ T).app Y = _,
-    simp only [category.comp_id, category.id_comp,
-               eq_to_hom_refl, monad.right_unit,
-               category.assoc, functor.map_comp] },
-  { intro X, refl }
-end
-
-/- The Kleisli adjunction which gives rise to the monad (T, η_ T, μ_ T). -/
-def adj : F_T T ⊣ G_T T :=
-adjunction.mk_of_unit_counit
-{ unit := by rw [F_T_G_T_eq_T]; exact η_ T,
-  counit :=
-    { app := λ X, 𝟙 (T.obj X),
-      naturality' := λ X Y f, begin
-        dunfold category_struct.comp, dsimp,
-        simp only [category.comp_id, category.id_comp, category.assoc,
-                   functor.map_id, monad.left_unit] end },
-  left_triangle' := begin
-    ext X, simp, dunfold category_struct.comp, dsimp,
-    simp [category_struct.id],
-    congr, exact F_T_G_T_eq_T T,
-    simp only [eq_mpr_heq]
+/-- The Kleisli adjunction which gives rise to the monad `(T, η_ T, μ_ T)`.
+    cf Lemma 5.2.11 of [Riehl][riehl2017]. -/
+def adj : F_T T ⊣ U_T T :=
+adjunction.mk_of_hom_equiv
+{ hom_equiv := λ X Y,
+  { to_fun := λ F, F,
+    inv_fun := λ F, F,
+    left_inv := λ X, rfl,
+    right_inv := λ X, rfl },
+  hom_equiv_naturality_left_symm' := λ X Y Z f g, begin
+    simp, dunfold category_struct.comp, dsimp,
+    slice_rhs 2 3 { rw [←nat_trans.naturality (η_ T) g] },
+    slice_rhs 3 4 { erw [monad.left_unit T] },
+    dsimp, simp only [category.comp_id]
   end,
-  right_triangle' := begin
-    sorry
-    -- TODO(WN): rw in unit causes horrible heq stuff here, how to get rid?
-    -- or alternatively, how to write a reasonable proof using heqs?
-  end }
+  hom_equiv_naturality_right' := λ X Y Z f g, rfl }
 
+end adjunction
 end kleisli
 end category_theory
