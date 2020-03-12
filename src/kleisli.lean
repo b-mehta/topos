@@ -68,11 +68,7 @@ namespace adjunction
     cf Lemma 5.2.11 of [Riehl][riehl2017]. -/
 def adj : F_T T ⊣ U_T T :=
 adjunction.mk_of_hom_equiv
-{ hom_equiv := λ X Y,
-  { to_fun := λ F, F,
-    inv_fun := λ F, F,
-    left_inv := λ X, rfl,
-    right_inv := λ X, rfl },
+{ hom_equiv := λ X Y, equiv.refl _,
   hom_equiv_naturality_left_symm' := λ X Y Z f g, begin
     simp, dunfold category_struct.comp, dsimp,
     slice_rhs 2 3 { rw [←nat_trans.naturality (η_ T) g] },
