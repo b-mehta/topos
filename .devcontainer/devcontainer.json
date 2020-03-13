@@ -1,5 +1,6 @@
 {
-    "image": "edayers/lean",
+    // "dockerFile": "Dockerfile",
+    "image": "edayers/lean:3.6.1",
     "postCreateCommand" : "leanproject upgrade-mathlib",
     "extensions": [
         "jroesch.lean"

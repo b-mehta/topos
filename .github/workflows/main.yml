@@ -3,7 +3,7 @@ on: [push]
 jobs:
   build_job:
     runs-on: ubuntu-latest
-    container: edayers/lean
+    container: edayers/lean:3.6.1
     name: Run leanproject build
     steps:
     - uses: actions/checkout@v1
