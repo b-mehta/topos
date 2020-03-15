@@ -15,7 +15,7 @@ import tactic
 Define exponentiable objects and cartesian closed categories.
 Show that exponential forms a difunctor.
 -/
-universes u v
+universes v u
 
 namespace category_theory
 
@@ -65,7 +65,7 @@ def binary_product_exponentiable {C : Type u} [𝒞 : category.{v} C] [bp : @has
   { right := hX.exponentiable.right ⋙ hY.exponentiable.right,
     adj := adjunction_of_nat_iso_left (adjunction.comp _ _ hY.exponentiable.adj hX.exponentiable.adj) (prodinl_comp _ _).symm } }
 
-class is_cartesian_closed (C : Type u) [𝒞 : category.{v} C] [@has_binary_products C 𝒞] extends has_terminal.{v} C :=
+class is_cartesian_closed (C : Type u) [𝒞 : category.{v} C] [has_binary_products.{v} C] extends has_terminal.{v} C :=
 (cart_closed : Π (X : C), exponentiable X)
 
 instance exponentiable_of_cc {C : Type u} [𝒞 : category.{v} C] [@has_binary_products C 𝒞] [is_cartesian_closed C] {A : C} :
@@ -87,11 +87,10 @@ exp.adjunction.counit
 def coev.nat_trans (A : C) [exponentiable A] : 𝟭 C ⟶ prodinl A ⋙ exp.functor A :=
 exp.adjunction.unit
 
-/-- `B ^ A` or `B ⇐ A` -/
+/-- `B ^ A` or `A ⟹ B` -/
 def exp (A : C) (B : C) [exponentiable A] : C := (exp.functor A).obj B
 
 infixl `⟹`:20 := exp
-
 
 -- [todo] rename as 'post compose' or similar?
 def post (A : C) [exponentiable A] {X Y : C} (f : X ⟶ Y) : A⟹X ⟶ A⟹Y :=
@@ -141,6 +140,7 @@ lemma exp_transpose_natural_left_symm  (f : X ⟶ X') (g : X' ⟶ A⟹Y) :
   exp_transpose.inv_fun (f ≫ g) = limits.prod.map (𝟙 _) f ≫ exp_transpose.inv_fun g :=
 adjunction.hom_equiv_naturality_left_symm _ _ _
 
+section terminal
 variable [has_terminal.{v} C]
 
 lemma prod_left_unitor_naturality (f : X ⟶ Y):
@@ -182,6 +182,7 @@ end
 @[reducible]
 def point_at_hom (f : A ⟶ Y) : ⊤_C ⟶ (A ⟹ Y) :=
 exp_transpose.to_fun (limits.prod.fst ≫ f)
+end terminal
 
 section pre
 
@@ -259,5 +260,50 @@ def exp.difunctor [is_cartesian_closed C] : C ⥤ Cᵒᵖ ⥤ C :=
   map_id' := λ X, begin ext, apply functor.map_id end,
   map_comp' := λ X Y Z f g, begin ext, apply functor.map_comp end
 }
+
+section functor
+
+universes v₂ u₂
+
+variables {D : Type u} [category.{v} D] [has_binary_products.{v} D]
+variables (F : C ⥤ D) [preserves_limits_of_shape (discrete walking_pair) F]
+
+-- (implementation)
+def alternative_cone (A B : C) : cone (pair A B ⋙ F) :=
+{ X := F.obj A ⨯ F.obj B,
+  π := nat_trans.of_homs (λ j, walking_pair.cases_on j limits.prod.fst limits.prod.snd)}
+
+-- (implementation)
+def alt_is_limit (A B : C) : is_limit (functor.map_cone F (limit.cone (pair A B))) :=
+preserves_limit.preserves F (limit.is_limit (pair A B))
+
+-- the multiplicative comparison isomorphism
+def mult_comparison (A B : C) : F.obj (A ⨯ B) ≅ F.obj A ⨯ F.obj B :=
+{ hom := prod.lift (F.map limits.prod.fst) (F.map limits.prod.snd),
+  inv := (alt_is_limit F A B).lift (alternative_cone F A B),
+  hom_inv_id' :=
+  begin
+    apply is_limit.hom_ext (alt_is_limit F A B),
+    rintro ⟨j⟩,
+      rw assoc, rw (alt_is_limit F A B).fac,
+      erw limit.lift_π, simp,
+    rw assoc, rw (alt_is_limit F A B).fac,
+    erw limit.lift_π, simp
+  end,
+  inv_hom_id' :=
+  begin
+    ext ⟨j⟩, simp, erw (alt_is_limit F A B).fac, refl,
+    simp, erw (alt_is_limit F A B).fac, refl,
+  end
+}
+
+variables [is_cartesian_closed C] [is_cartesian_closed D]
+
+-- the exponential comparison map
+def exp_comparison (A B : C) :
+  F.obj (A ⟹ B) ⟶ F.obj A ⟹ F.obj B :=
+hat ((mult_comparison F A _).inv ≫ F.map ev)
+
+end functor
 
 end category_theory
