@@ -3,6 +3,7 @@ import category_theory.limits.types
 import category_theory.types
 import pullbacks
 import subobject_classifier
+import locally_cartesian_closed
 
 universes v v₂ u
 
@@ -74,3 +75,32 @@ noncomputable instance types_has_subobj_classifier : has_subobject_classifier Ty
     rw set_classifier h fst x
   end
 }
+
+@[simps]
+def currying_equiv (A X Y : Type u) : ((prodinl A).obj X ⟶ Y) ≃ (X ⟶ A → Y) :=
+{ to_fun := λ f b a,
+  begin
+    refine f ⟨λ j, walking_pair.cases_on j a b, λ j₁ j₂, _⟩,
+    rintros ⟨⟨rfl⟩⟩, refl
+  end,
+  inv_fun := λ g ab, g (ab.1 walking_pair.right) (ab.1 walking_pair.left),
+  left_inv := λ f, by { ext ⟨ba⟩, dsimp, congr, ext ⟨j⟩, simp },
+  right_inv := λ _, rfl }
+
+instance type_exponentials (A : Type u) : exponentiable A :=
+{ exponentiable :=
+  { right := adjunction.right_adjoint_of_equiv (currying_equiv _) (
+    begin
+      intros X X' Y f g, ext, dsimp [currying_equiv], congr,
+      show lim.map (@map_pair (Type u) _ _ _ _ _ id f) _ = _,
+      rw types.types_limit_map,
+      congr, ext ⟨j⟩, simp, simp
+    end),
+    adj := adjunction.adjunction_of_equiv_right _ _ } }
+
+instance type_cc : is_cartesian_closed (Type u) :=
+begin
+  split,
+  intro A,
+  apply_instance
+end
