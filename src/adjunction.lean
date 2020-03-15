@@ -83,30 +83,17 @@ def left_adjoints_coyoneda_equiv {F F' : C ⥤ D} {G : D ⥤ C}
   F.op ⋙ coyoneda ≅ F'.op ⋙ coyoneda :=
 begin
   refine nat_iso.of_components _ _,
-  {
-    intro X,
+  { intro X,
     refine nat_iso.of_components _ _,
-    {
-      intro Y,
-      have equiv1 := adj1.hom_equiv X.unop Y,
-      have equiv2 := adj2.hom_equiv X.unop Y,
-      exact equiv.to_iso (equiv.trans equiv1 (equiv.symm equiv2)),
-    },
-    tidy,
-  },
-  tidy,
+    { intro Y,
+      exact equiv.to_iso ((adj1.hom_equiv X.unop Y).trans ((adj2.hom_equiv X.unop Y).symm)) },
+    tidy },
+  tidy
 end
-
--- In mathlib PR Add nat_iso.unop #2132
-def iso_unop {F F' : C ⥤ D} (α : F'.op ≅ F.op) : F ≅ F' :=
-{ hom := nat_trans.unop α.hom,
-  inv := nat_trans.unop α.inv,
-  hom_inv_id' := begin ext, dsimp, rw ←unop_comp, rw nat_iso.inv_hom_id_app, refl, end,
-  inv_hom_id' := begin ext, dsimp, rw ←unop_comp, rw nat_iso.hom_inv_id_app, refl, end }
 
 def left_adjoint_uniq {F F' : C ⥤ D} {G : D ⥤ C}
   (adj1 : F ⊣ G) (adj2 : F' ⊣ G) : F ≅ F' :=
-  iso_unop
+  nat_iso.unop
     (faithful_functor_right_cancel
       (left_adjoints_coyoneda_equiv adj2 adj1))
 
@@ -115,15 +102,27 @@ adjunction.mk_of_hom_equiv
 { hom_equiv := λ X Y,
     { to_fun := λ f, ((adj.hom_equiv (Y.unop) (X.unop)).inv_fun f.unop).op,
       inv_fun := λ g, ((adj.hom_equiv (Y.unop) (X.unop)).to_fun g.unop).op,
-      left_inv := λ f, begin dsimp, rw (adj.hom_equiv _ _).right_inv, refl end,
-      right_inv := λ f, begin dsimp, rw (adj.hom_equiv _ _).left_inv, refl end },
-  hom_equiv_naturality_left_symm' := λ X' X Y f g, begin dsimp, apply has_hom.hom.unop_inj, simp, apply adj.hom_equiv_naturality_right end,
-  hom_equiv_naturality_right' := λ Y' Y X f g, begin dsimp, apply has_hom.hom.unop_inj, simp, apply adj.hom_equiv_naturality_left_symm end
+      left_inv := λ f, by { dsimp, rw (adj.hom_equiv _ _).right_inv, refl },
+      right_inv := λ f, by { dsimp, rw (adj.hom_equiv _ _).left_inv, refl } },
+  hom_equiv_naturality_left_symm' := λ X' X Y f g,
+  begin
+    dsimp,
+    apply has_hom.hom.unop_inj,
+    rw [unop_comp, has_hom.hom.unop_op],
+    apply adj.hom_equiv_naturality_right
+  end,
+  hom_equiv_naturality_right' := λ Y' Y X f g,
+  begin
+    dsimp,
+    apply has_hom.hom.unop_inj,
+    rw [unop_comp, has_hom.hom.unop_op],
+    apply adj.hom_equiv_naturality_left_symm
+  end
 }
 
 def right_adjoint_uniq {F : C ⥤ D} {G G' : D ⥤ C}
   (adj1 : F ⊣ G) (adj2 : F ⊣ G') : G ≅ G' :=
-iso_unop (left_adjoint_uniq (adjunction_op adj2) (adjunction_op adj1))
+nat_iso.unop (left_adjoint_uniq (adjunction_op adj2) (adjunction_op adj1))
 
 end
 
