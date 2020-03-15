@@ -36,10 +36,22 @@ class has_power_object (A : C) :=
 (uniquely' : ∀ {B R} (m : R ⟶ B ⨯ A) [hm : @mono _ 𝒞 _ _ m] (hat' : B ⟶ PA), powerises memA m hat' → hat' = hat m)
 
 variable (C)
+
 class has_power_objects :=
 (has_power_object : Π (A : C), has_power_object.{v} A)
 
+variable {C}
+
+instance has_power_object_of_has_all [has_power_objects.{v} C] {A : C} :
+  has_power_object.{v} A := has_power_objects.has_power_object A
+
 variable [has_power_objects.{v} C]
 
-def pow.functor_obj : Cᵒᵖ ⟶ C :=
-  λ (X : Cᵒᵖ), (has_power_objects.has_power_object.{v} X.unop).PA
+def P (A : C) : C := @has_power_object.PA _ 𝒞 _ A _
+def eps (A : C) : C := @has_power_object.epsA _ 𝒞 _ A _
+def mem (A : C) : eps A ⟶ P A ⨯ A := has_power_object.memA A
+def hat {A B R : C} (m : R ⟶ B ⨯ A) [hm : mono m] : B ⟶ P A := has_power_object.hat m
+instance mem_mono (A : C) : mono (mem A) := has_power_object.mem_mono' A
+
+def P_map (A B : C) (f : A ⟶ B) : P B ⟶ P A :=
+hat (pullback.snd : pullback (mem B) (limits.prod.map (𝟙 _) f) ⟶ P B ⨯ A)
