@@ -88,11 +88,9 @@ left_adjoint_preserves_epi (forget_adj_star _) ke
 lemma over_epi'' [has_binary_products.{v} C] (B : C) (f g : over B) (k : f ⟶ g) : epi k ↔ epi k.left :=
 ⟨over_epi' _ _ _ _, over_epi⟩
 
--- variable (C)
-
 @[reducible]
 def pullback_along [has_pullbacks.{v} C] {A B : C} (f : A ⟶ B) : over B ⥤ over A :=
-star (over.mk f) ⋙ (iterated_slice_equiv _).functor
+star (over.mk f) ⋙ (over.iterated_slice_equiv _).functor
 
 def over_iso {B : C} (f g : over B) (hl : f.left ≅ g.left) (hw : hl.hom ≫ g.hom = f.hom) : (f ≅ g) :=
 { hom := over.hom_mk hl.hom, inv := over.hom_mk hl.inv (by simp [iso.inv_comp_eq, hw]) }
@@ -105,7 +103,7 @@ begin
   apply over_iso, swap,
   have: over.mk f⨯⊤_ over B ≅ over.mk f, apply prod.right_unitor,
   apply over_left_iso this,
-  dunfold over_left_iso iterated_slice_equiv pullback_along equivalence.mk, simp, dsimp, simp,
+  dunfold over_left_iso over.iterated_slice_equiv pullback_along equivalence.mk, simp, dsimp, simp,
 end
 
 lemma pullback_of_obj [has_pullbacks.{v} C] {A B D : C} (f : A ⟶ B) (g : D ⟶ B) :

@@ -20,71 +20,6 @@ open category_theory category_theory.category category_theory.limits
 
 variables {C : Type u} [𝒞 : category.{v} C]
 
--- Start with a long instance. Probably belongs in mathlib if it wasn't so poorly done
-def has_equalizers_of_pullbacks_and_binary_products
-  (C : Type u) [𝒞 : category.{v} C] [has_binary_products.{v} C] [has_pullbacks.{v} C] :
-  has_equalizers.{v} C :=
-{ has_limits_of_shape :=
-  { has_limit := λ F,
-    { cone :=
-      { X := pullback (prod.lift (𝟙 (F.obj walking_parallel_pair.zero)) (F.map walking_parallel_pair_hom.left))
-                      (prod.lift (𝟙 (F.obj walking_parallel_pair.zero)) (F.map walking_parallel_pair_hom.right)),
-        π :=
-        { app := λ x, walking_parallel_pair.cases_on x pullback.fst (pullback.fst ≫ F.map walking_parallel_pair_hom.left),
-          naturality' :=
-          begin
-            intros, cases f, dsimp, rw id_comp,
-              dsimp, rw id_comp,
-              have q := @pullback.condition _ _ _ _ _
-                        (prod.lift (𝟙 (F.obj walking_parallel_pair.zero)) (F.map walking_parallel_pair_hom.left))
-                        (prod.lift (𝟙 (F.obj walking_parallel_pair.zero)) (F.map walking_parallel_pair_hom.right)) _,
-              have l: pullback.fst ≫ prod.lift (𝟙 (F.obj walking_parallel_pair.zero)) (F.map walking_parallel_pair_hom.left)  ≫ limits.prod.fst =
-                      pullback.snd ≫ prod.lift (𝟙 (F.obj walking_parallel_pair.zero)) (F.map walking_parallel_pair_hom.right) ≫ limits.prod.fst,
-                rw ← assoc, rw ← assoc, rw q,
-              simp [limit.lift_π, limit.lift_π] at l,
-              have r: pullback.fst ≫ prod.lift (𝟙 (F.obj walking_parallel_pair.zero)) (F.map walking_parallel_pair_hom.left) ≫ limits.prod.snd =
-                     pullback.snd ≫ prod.lift (𝟙 (F.obj walking_parallel_pair.zero)) (F.map walking_parallel_pair_hom.right) ≫ limits.prod.snd,
-                rw ← assoc, rw ← assoc, rw q,
-              simp at r, rw r, rw l,
-            cases X, dsimp, rw id_comp, simp,
-                     dsimp, rw id_comp, simp
-          end } },
-      is_limit :=
-      { lift :=
-        begin
-          intro c, apply pullback.lift (c.π.app _) (c.π.app _),
-          apply limit.hom_ext,
-          rintro (_ | _), all_goals { simp [assoc, limit.lift_π] }
-        end,
-        fac' :=
-        begin
-          rintro _ (_ | _), simp, simp
-        end,
-        uniq' :=
-        begin
-          dsimp, intros c _ J,
-          have J1 := J walking_parallel_pair.zero, dsimp at J1,
-          apply limit.hom_ext, conv in (_ = _) { rw limit.lift_π },
-          intro j, cases j, dunfold pullback_cone.mk, dsimp, rw ← J1,
-          dunfold pullback_cone.mk, dsimp, rw ← J1,
-          show m ≫ pullback.snd = m ≫ pullback.fst,
-          symmetry,
-          have q := @pullback.condition _ _ _ _ _
-                    (prod.lift (𝟙 (F.obj walking_parallel_pair.zero)) (F.map walking_parallel_pair_hom.left))
-                    (prod.lift (𝟙 (F.obj walking_parallel_pair.zero)) (F.map walking_parallel_pair_hom.right)) _,
-          have l: pullback.fst ≫ prod.lift (𝟙 (F.obj walking_parallel_pair.zero)) (F.map walking_parallel_pair_hom.left)  ≫ limits.prod.fst =
-                  pullback.snd ≫ prod.lift (𝟙 (F.obj walking_parallel_pair.zero)) (F.map walking_parallel_pair_hom.right) ≫ limits.prod.fst,
-            rw ← assoc, rw ← assoc, rw q,
-          simp [limit.lift_π, limit.lift_π] at l,
-          rw l, dunfold pullback_cone.mk, dsimp, rw ← limit.w _ _,
-          swap, exact walking_cospan.left,
-          swap, exact walking_cospan.hom.inl,
-          rw ← assoc, rw J1, refl
-        end
-      }
-      }}
-}
-
 -- Define what it means for χ to classify the mono f.
 structure classifying {Ω Ω₀ U X : C} (true : Ω₀ ⟶ Ω) {f : U ⟶ X} (h : @mono _ 𝒞 _ _ f) (χ : X ⟶ Ω) :=
 (k : U ⟶ Ω₀)
@@ -193,26 +128,5 @@ def mono_is_equalizer {A B : C} {m : A ⟶ B} (hm : @mono C 𝒞 _ _ m) :
   end
 }
 
--- TODO: move
-lemma equalizer_is_mono {A B E : C} {f : A ⟶ B}
-  {i₁ i₂ : B ⟶ E} (w : f ≫ i₁ = f ≫ i₂) (t : is_limit (fork.of_ι f w)) :
-@mono C 𝒞 _ _ f :=
-begin
-  split,
-  intros,
-  apply t.hom_ext,
-  intro j, cases j,
-  simpa, simp, rw ← assoc, simp [w_1]
-end
-
--- TODO: move
-lemma epi_equalizer_is_iso {A B E : C} {f : A ⟶ B} (ef : @epi C 𝒞 _ _ f)
-  {i₁ i₂ : B ⟶ E} {w : f ≫ i₁ = f ≫ i₂} (t : is_limit (fork.of_ι f w)) :
-is_iso f :=
-{ inv := t.lift (fork.of_ι (𝟙 B) (begin simp only [id_comp], rwa ← cancel_epi f end)),
-  inv_hom_id' := t.fac (fork.of_ι (𝟙 B) _) walking_parallel_pair.zero,
-  hom_inv_id' := begin haveI := equalizer_is_mono w t, rw ← cancel_mono f, rw assoc, erw t.fac (fork.of_ι (𝟙 B) _) walking_parallel_pair.zero, simp end
-}
-
-lemma balanced {A B : C} {f : A ⟶ B} (ef : @epi C 𝒞 _ _ f) (mf : mono f) : is_iso f :=
-epi_equalizer_is_iso ef (mono_is_equalizer mf)
+lemma balanced {A B : C} {f : A ⟶ B} [ef : @epi C 𝒞 _ _ f] [mf : mono f] : is_iso f :=
+@epi_limit_cone_parallel_pair_is_iso _ _ _ _ _ _ _ (mono_is_equalizer mf) ef
