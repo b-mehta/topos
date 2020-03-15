@@ -6,6 +6,9 @@ Authors: Bhavik Mehta
 
 import category_theory.equivalence
 import category_theory.adjunction
+import category_theory.yoneda
+import category_theory.natural_isomorphism
+import category_theory.fully_faithful
 
 namespace category_theory
 open category
@@ -13,6 +16,8 @@ open category
 universes v₁ v₂ v₃ u₁ u₂ u₃ -- declare the `v`'s first; see `category_theory.category` for an explanation
 
 local attribute [elab_simple] whisker_left whisker_right
+
+section
 
 variables {C : Type u₁} [𝒞 : category.{v₁} C] {D : Type u₂} [𝒟 : category.{v₂} D]
 include 𝒞 𝒟
@@ -45,5 +50,81 @@ adjunction.mk_of_hom_equiv
 { hom_equiv := λ X Y, equiv.trans (adj.hom_equiv X Y) (equiv_homset_right_of_nat_iso iso),
   hom_equiv_naturality_left_symm' := λ X X' Y f g, by simp,
   hom_equiv_naturality_right' := λ X Y Y' f g, begin simp, congr' 1, rw ← assoc, rw ← assoc, congr' 1, rw [nat_trans.naturality] end}
+
+end
+
+section
+
+variables {C : Type u₁} [𝒞 : category.{v₁} C]
+          {D : Type u₂} [𝒟 : category.{v₂} D]
+          {E : Type u₃} [ℰ : category.{v₃} E]
+include 𝒞 𝒟 ℰ
+
+def faithful_functor_right_cancel {F G : C ⥤ D} {H : D ⥤ E}
+  [full H] [faithful H] (comp_iso: F ⋙ H ≅ G ⋙ H) : F ≅ G :=
+begin
+  refine nat_iso.of_components (λX, preimage_iso (comp_iso.app X)) _,
+  intros X Y f,
+  apply functor.injectivity H,
+  simp only [preimage_iso_hom, iso.app, functor.image_preimage, functor.map_comp],
+  exact comp_iso.hom.naturality f,
+end
+
+end
+
+section
+
+variables {C : Type u₁} [𝒞 : category.{v₁} C]
+          {D : Type u₂} [𝒟 : category.{v₂} D]
+include 𝒞 𝒟
+
+def left_adjoints_coyoneda_equiv {F F' : C ⥤ D} {G : D ⥤ C}
+  (adj1 : F ⊣ G) (adj2 : F' ⊣ G):
+  F.op ⋙ coyoneda ≅ F'.op ⋙ coyoneda :=
+begin
+  refine nat_iso.of_components _ _,
+  {
+    intro X,
+    refine nat_iso.of_components _ _,
+    {
+      intro Y,
+      have equiv1 := adj1.hom_equiv X.unop Y,
+      have equiv2 := adj2.hom_equiv X.unop Y,
+      exact equiv.to_iso (equiv.trans equiv1 (equiv.symm equiv2)),
+    },
+    tidy,
+  },
+  tidy,
+end
+
+-- In mathlib PR Add nat_iso.unop #2132
+def iso_unop {F F' : C ⥤ D} (α : F'.op ≅ F.op) : F ≅ F' :=
+{ hom := nat_trans.unop α.hom,
+  inv := nat_trans.unop α.inv,
+  hom_inv_id' := begin ext, dsimp, rw ←unop_comp, rw nat_iso.inv_hom_id_app, refl, end,
+  inv_hom_id' := begin ext, dsimp, rw ←unop_comp, rw nat_iso.hom_inv_id_app, refl, end }
+
+def left_adjoint_uniq {F F' : C ⥤ D} {G : D ⥤ C}
+  (adj1 : F ⊣ G) (adj2 : F' ⊣ G) : F ≅ F' :=
+  iso_unop
+    (faithful_functor_right_cancel
+      (left_adjoints_coyoneda_equiv adj2 adj1))
+
+def adjunction_op {F : C ⥤ D} {G : D ⥤ C} (adj : F ⊣ G) : G.op ⊣ F.op :=
+adjunction.mk_of_hom_equiv
+{ hom_equiv := λ X Y,
+    { to_fun := λ f, ((adj.hom_equiv (Y.unop) (X.unop)).inv_fun f.unop).op,
+      inv_fun := λ g, ((adj.hom_equiv (Y.unop) (X.unop)).to_fun g.unop).op,
+      left_inv := λ f, begin dsimp, rw (adj.hom_equiv _ _).right_inv, refl end,
+      right_inv := λ f, begin dsimp, rw (adj.hom_equiv _ _).left_inv, refl end },
+  hom_equiv_naturality_left_symm' := λ X' X Y f g, begin dsimp, apply has_hom.hom.unop_inj, simp, apply adj.hom_equiv_naturality_right end,
+  hom_equiv_naturality_right' := λ Y' Y X f g, begin dsimp, apply has_hom.hom.unop_inj, simp, apply adj.hom_equiv_naturality_left_symm end
+}
+
+def right_adjoint_uniq {F : C ⥤ D} {G G' : D ⥤ C}
+  (adj1 : F ⊣ G) (adj2 : F ⊣ G') : G ≅ G' :=
+iso_unop (left_adjoint_uniq (adjunction_op adj2) (adjunction_op adj1))
+
+end
 
 end category_theory
