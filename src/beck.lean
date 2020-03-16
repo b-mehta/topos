@@ -1,10 +1,12 @@
 import data.fintype
 import category_theory.limits.limits
+import category_theory.monad.limits
+import category_theory.monad
 import category_theory.limits.shapes.equalizers
 import tactic
 import category_theory.monad.adjunction
-universes u v u₂ v₂ v₁ 
-  
+universes u v u₂ v₂ v₁ u₁
+
 namespace category_theory
 
 open limits
@@ -56,7 +58,7 @@ instance walking_parallel_pair_hom_category : small_category.{v} reflexive_pair 
   comp_id' := begin intros, cases f, all_goals {refl} end,
 }
 
-variables {C : Type u} [𝒞 : category.{v} C] 
+variables {C : Type u} [𝒞 : category.{v} C]
 include 𝒞
 variables {A B : C}
 
@@ -71,69 +73,80 @@ structure split_coequaliser  (f g : A ⟶ B) :=
 -- [todo] show it's a coequaliser
 open category_theory
 
-@[simp] lemma fml {f g : A ⟶ B} (t : cofork f g) : t.ι.app walking_parallel_pair.zero = f ≫ t.π :=
+@[simp] lemma simp_parallel_zero {f g : A ⟶ B} (t : cofork f g) : t.ι.app walking_parallel_pair.zero = f ≫ t.π :=
 begin rw  ← cocone.w t walking_parallel_pair_hom.left, refl end
 
 /-- You can make a coequaliser by finding a π which uniquely factors any other cofork. -/
-def is_coeq_lemma {f g : A ⟶ B} {X : C} (π : B ⟶ X) 
-  (e : f ≫ π = g ≫ π) 
+def is_coeq_lemma {f g : A ⟶ B} {X : C} (π : B ⟶ X)
+  (e : f ≫ π = g ≫ π)
   (factor : ∀ {Y} (c : B ⟶ Y), (f ≫ c = g ≫ c) →  unique {m : X ⟶ Y // c = π ≫ m}) :
   has_colimit (parallel_pair f g) :=
   begin
     refine {cocone := cofork.of_π π e, is_colimit := _},
     refine {desc := λ c : cofork f g, _, fac' :=  λ c : cofork f g, _, uniq' :=  λ c : cofork f g, _},
     rcases (factor c.π c.condition) with ⟨⟨⟨k,h1⟩⟩,h2⟩, apply k,
-    rcases (factor c.π c.condition) with ⟨⟨⟨k,h1⟩⟩,h2⟩, rintros (_|_), 
-      change (_ ≫ _) ≫ k = _,  rw category.assoc, rw ← h1, rw fml,
+    rcases (factor c.π c.condition) with ⟨⟨⟨k,h1⟩⟩,h2⟩, rintros (_|_),
+      change (_ ≫ _) ≫ k = _,  rw category.assoc, rw ← h1, rw simp_parallel_zero,
       change π ≫ k = c.π, dsimp, rw h1,
     rcases (factor c.π c.condition) with ⟨⟨⟨k,h1⟩⟩,h2⟩,
         intros, change m = k,
          have, apply h2 ⟨m,eq.symm (w walking_parallel_pair.one)⟩,
-         apply subtype.ext.1 this, 
+         apply subtype.ext.1 this,
   end
- 
-def as_coeq {f g : A ⟶ B} (sc : split_coequaliser f g) : has_colimit (parallel_pair f g):= 
+
+def split_coequaliser_is_coequaliser {f g : A ⟶ B} (sc : split_coequaliser f g) : has_colimit (parallel_pair f g):=
 begin
   refine is_coeq_lemma sc.cf.π _ _,
-  apply limits.cofork.condition, 
+  apply limits.cofork.condition,
   intros, refine ⟨⟨⟨sc.s ≫ c,_⟩⟩,_⟩,
   rw [← category.assoc, ← sc.p3, category.assoc, a, ← category.assoc, sc.p2, category.id_comp],
   rintros ⟨m2,p⟩,
   apply subtype.ext.2,
-  change m2 = sc.s ≫ c, 
+  change m2 = sc.s ≫ c,
   rw [p, ← category.assoc, sc.p1], dsimp, simp
 end
 
 -- [todo] sort out universe polymorphism
-variables {D : Type u} [𝒟 : category.{v} D] 
+variables {D : Type u} [𝒟 : category.{v} D]
 include 𝒟
 
--- variables (G : D ⥤ C)
+/-- Take a G-split coequaliser `cf` for `f,g : A ⟶ B`, then we have a coequaliser for `f,g` and `G` of this coequaliser is still a colimit.  -/
+def creates_split_coequalisers (G : D ⥤ C) :=
+Π {A B : D} (f g : A ⟶ B) (cf : split_coequaliser (G.map f) (G.map g)),
+  Σ (hcl : has_colimit (parallel_pair f g)), is_colimit $ (limits.cocones.functoriality G).obj hcl.cocone
 
-def functor_split (G : D ⥤ C) {A B : D} {f g : A ⟶ B} := 
-split_coequaliser (G.map f) (G.map g)
+variables {J : Type v} [𝒥 : small_category J]
+include 𝒥
 
-def paraparapar  (G : D ⥤ C) {A B : D} (f g : A ⟶ B) : parallel_pair (G.map f) (G.map g) = (parallel_pair f g) ⋙ G :=
-begin
-  apply functor.ext, intros, cases f_1, dsimp, simp, dsimp, simp, dsimp, simp,
-  intros, cases X, refl, refl
-end
+-- [todo] double check that mathlib doesn't have creates limits.
 
--- [NOTE] we really need a creates_limits 
+def creates_limits (d : J ⥤ C) (F : C ⥤ D) :=
+Π [fl : has_limit (d ⋙ F)], Σ (l : has_limit d),
+  is_limit $ (limits.cones.functoriality F).obj l.cone
 
--- [TODO] make the above definition not completely foul. To do this, instead of showing that the cones are iso, show that the apexes are iso and the pis commute
-def creates_split_coequalisers (G : D ⥤ C) : Prop := 
-∀ {A B : D} (f g : A ⟶ B) (cf : split_coequaliser (G.map f) (G.map g)), 
-  ∃ (hcl : has_colimit (parallel_pair f g)), 
-    let c1 := (limits.cocones.functoriality G).obj (@colimit.cocone _ _ _ _  (parallel_pair f g) hcl) in
-    let c2 := cf.cf in
-    ∃ e : c1.X ≅ c2.X, (c1.ι.app limits.walking_parallel_pair.one) ≫ e.hom = c2.π
+def creates_colimits (d : J ⥤ C) (F : C ⥤ D) :=
+Π [fl : has_colimit (d ⋙ F)], Σ (l : has_colimit d),
+  is_colimit $ (limits.cocones.functoriality F).obj l.cocone
 
--- def precise_monadicity (G : D ⥤ C) [is_right_adjoint G] : creates_split_coequalisers G ≃ is_equivalence (monad.comparison G) := 
+open category_theory.monad
+open category_theory.monad.algebra
+
+variables {T : C ⥤ C} [monad T]
+omit 𝒟
+
+-- def forget_really_creates_limits (d : J ⥤ algebra T) : @creates_limits (algebra T) _ C _ J _ d (monad.forget T : algebra T ⥤ C) := sorry
+
+-- def monadic_creates_colimits (d : J ⥤ D) (R : D ⥤ C) [monadic_right_adjoint R] : (preserves_colimits T)
+
+-- def precise_monadicity_1 (G : D ⥤ C) [is_right_adjoint G] : creates_split_coequalisers G → is_equivalence (monad.comparison G) :=
 -- sorry
+-- def precise_monadicity_2 (G : D ⥤ C) [ra : is_right_adjoint G] : is_equivalence (monad.comparison G) → creates_split_coequalisers G:=
+-- begin
+--   let F := ra.1,
+--   rintros e A B f g ⟨cf, _⟩,
+--   refine ⟨_,_,_⟩,
 
-
--- variables {J : Type v} [𝒥 : small_category J]
--- include 𝒥
+-- end
 
 end category_theory
+
