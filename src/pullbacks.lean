@@ -256,8 +256,9 @@ lemma make_pullback [has_limit (cospan f g)] :
   pullback_cone.mk pullback.fst pullback.snd pullback.condition ≅ limit.cone (cospan f g) :=
 begin
   apply cones.ext _ (λ j, _), refl, erw id_comp, cases j, refl, refl,
-  show _ ≫ _ = _, rw limit.cone_π, rw ← limit.w (cospan f g) walking_cospan.hom.inl, refl
+  apply (limit.cone (cospan f g)).w walking_cospan.hom.inl
 end
+
 -- todo: use pasting here
 lemma pullback.comp_l {W X Y Z : C} {xz : X ⟶ Z} {yz : Y ⟶ Z} {wx : W ⟶ X} [@has_pullbacks C 𝒞]:
 pullback (wx ≫ xz) yz ≅ pullback wx (@pullback.fst _ _ _ _ _ xz yz _) :=
@@ -269,7 +270,7 @@ begin
   {apply pullback.hom_ext, simp, simp, apply pullback.hom_ext, simp, apply pullback.condition, simp},
 end
 
-lemma test [@has_pullbacks C 𝒞] {X Y Z : C} {xz : X ⟶ Z} {yz : Y ⟶ Z} :
+lemma test [has_pullbacks.{v} C] {X Y Z : C} {xz : X ⟶ Z} {yz : Y ⟶ Z} :
   is_limit (pullback_cone.mk pullback.fst pullback.snd pullback.condition : pullback_cone yz xz) :=
 (limit.is_limit _).of_iso_limit make_pullback.symm
 

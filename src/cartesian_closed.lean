@@ -8,6 +8,7 @@ import category_theory.limits.shapes.binary_products
 import category_theory.adjunction
 import adjunction
 import tactic
+import to_mathlib
 
 /-!
 # Cartesian closed categories
@@ -23,17 +24,6 @@ open limits category
 section
 variables {C : Type u} [𝒞 : category.{v} C] [@has_binary_products.{v} C 𝒞] {A U V W X Y Z : C}
 include 𝒞
-
-@[simp] lemma prod_left_def : limit.π (pair X Y) walking_pair.left = limits.prod.fst := rfl
-@[simp] lemma prod_right_def : limit.π (pair X Y) walking_pair.right = limits.prod.snd := rfl
-
-lemma prod.hom_ext {a b : A ⟶ X ⨯ Y} (h1 : a ≫ limits.prod.fst = b ≫ limits.prod.fst) (h2 : a ≫ limits.prod.snd = b ≫ limits.prod.snd) : a = b :=
-begin
-  apply limit.hom_ext,
-  rintros (_ | _),
-  simp, assumption,
-  simp, assumption,
-end
 
 local attribute [tidy] tactic.case_bash
 
@@ -228,11 +218,6 @@ def pre.functor [is_cartesian_closed C] (X : C) : Cᵒᵖ ⥤ C :=
   map_comp' := begin intros, apply pre_map, end,
 }
 end pre
-
-lemma prod_map_comm (f : A ⟶ B) (g : X ⟶ Y) : (limits.prod.map (𝟙 _) f ≫ limits.prod.map g (𝟙 _)) = limits.prod.map g (𝟙 _) ≫ limits.prod.map (𝟙 _) f :=
-begin
-  apply prod.hom_ext, simp, erw id_comp, simp, erw id_comp
-end
 
 lemma exp_natural [is_cartesian_closed C] (A B : C) (X Y : Cᵒᵖ) (f : A ⟶ B) (g : X ⟶ Y) :
   (pre.functor A).map g ≫ post (opposite.unop Y) f = post (opposite.unop X) f ≫ (pre.functor B).map g :=
