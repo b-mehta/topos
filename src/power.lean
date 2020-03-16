@@ -31,7 +31,6 @@ def op_equiv (A : C) (B : Cᵒᵖ): (opposite.op A ⟶ B) ≃ (B.unop ⟶ A) :=
 
 variables [has_finite_limits.{v} C]
 
-
 structure powerises {A PA niA B R : C} (memA : niA ⟶ PA ⨯ A) (m : R ⟶ B ⨯ A) (mhat : B ⟶ PA) :=
 (top : R ⟶ niA)
 (commutes : top ≫ memA = m ≫ limits.prod.map mhat (𝟙 A))
@@ -231,19 +230,20 @@ def P_functor : Cᵒᵖ ⥤ C :=
   map_id' := λ X, P_map_id _,
   map_comp' := λ X Y Z f g, P_map_comp _ _ }
 
-def self_adj : is_right_adjoint (@P_functor C 𝒞 _ _) :=
-{ left := P_functor.right_op,
-  adj := adjunction.mk_of_hom_equiv
-  { hom_equiv :=
-    begin
-      intros A B,
-      apply equiv.trans _ hat_sub''.symm,
-      rw functor.right_op_obj,
-      apply equiv.trans (op_equiv _ _) _,
-      apply equiv.trans hat_sub'',
-      show sub (opposite.unop B⨯A) ≃ sub (A⨯opposite.unop B),
-      -- should be easy with preserves_iso now!
-    end
-
-  }
-}
+-- def self_adj : is_right_adjoint (@P_functor C 𝒞 _ _) :=
+-- { left := P_functor.right_op,
+--   adj := adjunction.mk_of_hom_equiv
+--   { hom_equiv :=
+--     begin
+--       intros A B,
+--       apply equiv.trans _ hat_sub''.symm,
+--       rw functor.right_op_obj,
+--       apply equiv.trans (op_equiv _ _) _,
+--       apply equiv.trans hat_sub'',
+--       show sub (opposite.unop B⨯A) ≃ sub (A⨯opposite.unop B),
+--       apply @preserves_iso _ _ (has_pullbacks_of_has_finite_limits _),
+--       apply limits.prod.braiding,
+--       apply_instance
+--     end
+--   }
+-- }

@@ -13,12 +13,13 @@ This is a WIP project to define some topos theory within the Lean theorem prover
 - Skeleton of a category (assuming choice)
 - Subobject category
 - Subobject classifier
+- Power objects
 
 ## What's coming soon?
 - Definition of a topos
 - Proof that category of coalgebras for a comonad form a topos
 - Every topos is locally cartesian closed, Fundamental theorem of Topos Theory
-- Power objects, (internal) Beck-Chevalley and Pare's theorem
+- (Internal) Beck-Chevalley and Pare's theorem
 - Beck's monadicity theorem [unless someone else does it sooner]
 - Every topos is finitely cocomplete
 - Lawvere-Tierney topologies, sheaves
