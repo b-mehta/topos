@@ -41,6 +41,18 @@ begin
   dsimp, simp,
 end
 
+@[simps]
+def postcompose_sub' (f : X ⟶ Y) [mono f] (g : sub' X) : sub' Y :=
+⟨over.mk (g.1.hom ≫ f), begin haveI := g.2, dsimp, apply_instance end⟩
+
+lemma postcompose_preserves_le' (f : X ⟶ Y) [mono f] {g₁ g₂ : sub' X} (h : le g₁ g₂) :
+  le (postcompose_sub' f g₁) (postcompose_sub' f g₂) :=
+begin
+  cases h with h k,
+  use h,
+  dsimp, simp [k]
+end
+
 def equiv (X : C) : sub' X → sub' X → Prop := λ f g, le f g ∧ le g f
 lemma equiv_is_equivalence : _root_.equivalence (@equiv _ _ X) :=
 begin
@@ -134,19 +146,85 @@ def sub.functor [has_pullbacks.{v} C] : Cᵒᵖ ⥤ Type (max u v) :=
   end
 }
 
--- TODO: should be pretty easy to make this work without the pullbacks: use the map as just composition with the iso
-def preserves_iso [has_pullbacks.{v} C] {X Y : C} (e : X ≅ Y) : sub X ≃ sub Y :=
-{ to_fun := sub_map e.inv,
-  inv_fun := sub_map e.hom,
+variable {C}
+
+def postcompose {X Y : C} (f : X ⟶ Y) [mono f] : sub X → sub Y :=
+begin
+  refine quotient.lift (λ g, quotient.mk (postcompose_sub' f g)) _,
+  intros a b k,
+  apply quotient.sound,
+  exact ⟨postcompose_preserves_le' f k.1, postcompose_preserves_le' f k.2⟩,
+end
+-- quotient.map (postcompose_sub' f) (λ a b k, ⟨postcompose_preserves_le' f k.1, postcompose_preserves_le' f k.2⟩)
+
+lemma postcompose_map_id (g : sub X) : postcompose (𝟙 X) g = g :=
+begin
+  apply quotient.induction_on g,
+  intro a,
+  dsimp [postcompose],
+  apply quotient.sound,
+  split,
+  use 𝟙 _,
+  dsimp [postcompose_sub'], simp,
+  use (𝟙 _),
+  dsimp [postcompose_sub'], simp,
+end
+
+lemma postcompose_map_comp {Z : C} (f : X ⟶ Y) (g : Y ⟶ Z) [mono f] [mono g] (h : sub X) : postcompose (f ≫ g) h = postcompose g (postcompose f h) :=
+begin
+  apply quotient.induction_on h,
+  intro a,
+  dsimp [postcompose],
+  apply quotient.sound,
+  split,
+  refine ⟨𝟙 _, _⟩,
+  dsimp, simp,
+  refine ⟨𝟙 _, _⟩, dsimp, simp
+end
+
+def sub_iso_compose (e : X ≅ Y) : sub X ≃ sub Y :=
+{ to_fun := postcompose e.hom,
+  inv_fun := postcompose e.inv,
   left_inv :=
   begin
-    intro g, rw ← sub_map_comp,
-    rw e.hom_inv_id, rw sub_map_id
+    intro g,
+    rw ← postcompose_map_comp,
+    simp only [iso.hom_inv_id],
+    rw postcompose_map_id
   end,
   right_inv :=
   begin
-    intro f, rw ← sub_map_comp,
-    rw e.inv_hom_id, rw sub_map_id
+    intro g,
+    rw ← postcompose_map_comp,
+    simp only [iso.inv_hom_id],
+    rw postcompose_map_id
   end
 }
+
+def postcompose_sub_comm [has_pullbacks.{v} C] {X Y Z W : C} (f : X ⟶ Y) (g : X ⟶ Z) (h : Y ⟶ W) (k : Z ⟶ W) [mono h] [mono g] (comm : f ≫ h = g ≫ k) (t : is_limit (pullback_cone.mk f g comm)) (p : sub Y) :
+  postcompose g (sub_map f p) = sub_map k (postcompose h p) :=
+begin
+  apply quotient.induction_on p,
+  intro a,
+  dsimp [postcompose, sub_map],
+  apply quotient.sound,
+  split;
+  refine ⟨_, _⟩,
+  apply pullback.lift pullback.fst (pullback.snd ≫ g) _,
+  slice_rhs 2 3 {rw ← comm},
+  dsimp [postcompose_sub'],
+  slice_lhs 1 2 {rw pullback.condition}, rw category.assoc,
+  dsimp, rw limit.lift_π,
+  refl,
+  apply pullback.lift pullback.fst _ _,
+  apply t.lift (pullback_cone.mk (pullback.fst ≫ a.val.hom) pullback.snd _),
+  rw ← pullback.condition,
+  rw category.assoc, refl,
+  erw t.fac (pullback_cone.mk (pullback.fst ≫ a.val.hom) pullback.snd _) walking_cospan.left, refl,
+  dsimp,
+  rw ← category.assoc,
+  rw limit.lift_π, dsimp,
+  erw t.fac _ walking_cospan.right, refl,
+
+end
 end category_theory

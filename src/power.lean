@@ -28,7 +28,6 @@ def op_equiv (A : C) (B : Cᵒᵖ): (opposite.op A ⟶ B) ≃ (B.unop ⟶ A) :=
   left_inv := λ _, rfl,
   right_inv := λ _, rfl }
 
-
 variables [has_finite_limits.{v} C]
 
 structure powerises {A PA niA B R : C} (memA : niA ⟶ PA ⨯ A) (m : R ⟶ B ⨯ A) (mhat : B ⟶ PA) :=
@@ -170,6 +169,36 @@ quotient.lift (λ (f : sub' (B ⨯ A)), @hat _ _ _ _ _ _ _ f.1.hom f.2) liftable
 def hat_sub' {A B : C} (k : B ⟶ P A) : sub (B ⨯ A) :=
 quotient.mk ⟨over.mk (pullback.snd : pullback (mem A) (limits.prod.map k (𝟙 _)) ⟶ B ⨯ A), pullback.snd_of_mono⟩
 
+lemma prod_functorial {X Y Z W : C} (f : X ⟶ Y) (g : Y ⟶ Z) : limits.prod.map (f ≫ g) (𝟙 W) = limits.prod.map f (𝟙 W) ≫ limits.prod.map g (𝟙 W) :=
+begin
+  apply prod.hom_ext,
+  simp, simp, dsimp, simp
+end
+def hat_sub'_natural_left {A B B' : C} (k : B ⟶ P A) (g : B' ⟶ B) : hat_sub' (g ≫ k) = sub_map (limits.prod.map g (𝟙 A)) (hat_sub' k) :=
+begin
+  dsimp [hat_sub', sub_map, pullback_sub'], apply quotient.sound,
+  split,
+  refine ⟨_, _⟩,
+  apply pullback.lift (pullback.lift pullback.fst (pullback.snd ≫ limits.prod.map g (𝟙 _)) _) pullback.snd _,
+  rw pullback.condition, rw assoc, congr' 1, rw prod_functorial,
+  rw limit.lift_π, refl,
+  erw limit.lift_π, refl,
+  refine ⟨_, _⟩,
+  apply pullback.lift (pullback.fst ≫ pullback.fst) pullback.snd _,
+  slice_lhs 2 3 {rw pullback.condition},
+  slice_lhs 1 2 {rw pullback.condition},
+  rw assoc, congr' 1, rw prod_functorial,
+  erw limit.lift_π, refl
+end
+
+def hat_sub_natural_right {A A' B : C} (k : sub (B ⨯ A)) (g : A' ⟶ A) : hat_sub k ≫ P_map g = hat_sub (sub_map (limits.prod.map (𝟙 B) g) k) :=
+begin
+  apply quotient.induction_on k,
+  dsimp [hat_sub, sub_map],
+  intro a,
+  rw ← easy_lemma
+end
+
 def hat_sub'' {A B : C} : (B ⟶ P A) ≃ sub (B ⨯ A) :=
 { to_fun := hat_sub',
   inv_fun := hat_sub,
@@ -197,8 +226,25 @@ def hat_sub'' {A B : C} : (B ⟶ P A) ≃ sub (B ⨯ A) :=
     refine ⟨_, _⟩,
     apply pullback.lift (square.top g'.1.hom) g'.1.hom (square.commutes g'.1.hom),
     simp
-  end
-}
+  end }
+
+
+def hat_sub_natural_left (A B B' : C) (k : sub (B ⨯ A)) (g : B' ⟶ B) : g ≫ hat_sub k = hat_sub (sub_map (limits.prod.map g (𝟙 A)) k) :=
+begin
+  erw hat_sub''.eq_symm_apply,
+  apply eq.trans (hat_sub'_natural_left (hat_sub k) g) _,
+  congr' 1,
+  apply hat_sub''.right_inv,
+end
+def hat_sub'_natural_right (A A' B : C) (k : B ⟶ P A) (g : A' ⟶ A) : hat_sub' (k ≫ P_map g) = sub_map (limits.prod.map (𝟙 B) g) (hat_sub' k) :=
+begin
+  symmetry,
+  erw ← hat_sub''.symm_apply_eq,
+  dsimp [hat_sub''],
+  rw ← hat_sub_natural_right,
+  congr' 1,
+  apply hat_sub''.left_inv
+end
 
 lemma P_map_id (X : C) : P_map (𝟙 X) = 𝟙 (P X) :=
 begin
@@ -230,20 +276,73 @@ def P_functor : Cᵒᵖ ⥤ C :=
   map_id' := λ X, P_map_id _,
   map_comp' := λ X Y Z f g, P_map_comp _ _ }
 
--- def self_adj : is_right_adjoint (@P_functor C 𝒞 _ _) :=
--- { left := P_functor.right_op,
---   adj := adjunction.mk_of_hom_equiv
---   { hom_equiv :=
---     begin
---       intros A B,
---       apply equiv.trans _ hat_sub''.symm,
---       rw functor.right_op_obj,
---       apply equiv.trans (op_equiv _ _) _,
---       apply equiv.trans hat_sub'',
---       show sub (opposite.unop B⨯A) ≃ sub (A⨯opposite.unop B),
---       apply @preserves_iso _ _ (has_pullbacks_of_has_finite_limits _),
---       apply limits.prod.braiding,
---       apply_instance
---     end
---   }
--- }
+def thing (X Y Z : C) (g : Y ⟶ Z) :
+  is_limit (pullback_cone.mk (limits.prod.map g (𝟙 X)) (prod.lift limits.prod.snd limits.prod.fst) (begin apply prod.hom_ext; simp end) : pullback_cone (prod.lift limits.prod.snd limits.prod.fst) (limits.prod.map (𝟙 X) g)) :=
+begin
+  refine ⟨_, _, _⟩,
+  intro c,
+  apply pullback_cone.snd c ≫ (limits.prod.braiding _ _).hom,
+  intro c,
+  apply pi_app_left (pullback_cone.mk (limits.prod.map g (𝟙 X)) (limits.prod.lift limits.prod.snd limits.prod.fst) _) c,
+  change (pullback_cone.snd c ≫ (limits.prod.braiding _ _).hom) ≫ (limits.prod.map _ _) = pullback_cone.fst c,
+  apply prod.hom_ext,
+  have := pullback_cone.condition c =≫ limits.prod.snd,
+  simp at this, simp, exact this.symm,
+  simp,
+  have := pullback_cone.condition c =≫ limits.prod.fst,
+  simp at this, exact this.symm,
+  change (pullback_cone.snd c ≫ (limits.prod.braiding _ _).hom) ≫ (limits.prod.lift limits.prod.snd limits.prod.fst) = pullback_cone.snd c,
+  rw category.assoc, apply prod.hom_ext,
+  simp, simp,
+  intros c m J,
+  rw ← cancel_mono (limits.prod.braiding X Y).inv,
+  rw category.assoc, rw iso.hom_inv_id, rw comp_id,
+  apply J walking_cospan.right,
+end
+
+def self_adj : is_right_adjoint (@P_functor C 𝒞 _ _) :=
+{ left := P_functor.right_op,
+  adj := adjunction.mk_of_hom_equiv
+  { hom_equiv :=
+    begin
+      intros A B,
+      apply equiv.trans _ hat_sub''.symm,
+      apply equiv.trans (op_equiv (P_functor.obj (opposite.op A)) B),
+      apply equiv.trans hat_sub'',
+      apply sub_iso_compose (limits.prod.braiding _ _),
+    end,
+    hom_equiv_naturality_left_symm' :=
+    begin
+      intros X' X Y f g,
+      dsimp [hat_sub''],
+      simp,
+      change (hat_sub ((sub_iso_compose (prod.braiding (opposite.unop Y) X')).inv_fun (hat_sub' (f ≫ g)))).op =
+      (P_functor.map (has_hom.hom.op f)).op ≫
+        (hat_sub ((sub_iso_compose (prod.braiding (opposite.unop Y) X)).inv_fun (hat_sub' g))).op,
+      rw ← op_comp,
+      congr' 1,
+      erw hat_sub_natural_right,
+      congr' 1,
+      rw has_hom.hom.unop_op,
+      dsimp [sub_iso_compose],
+      rw hat_sub'_natural_left,
+      apply postcompose_sub_comm,
+      swap,
+      apply prod.hom_ext, simp, simp,
+      apply thing
+    end,
+    hom_equiv_naturality_right' :=
+    begin
+      intros X Y Y' f g,
+      dsimp [hat_sub'', sub_iso_compose, op_equiv],
+      erw hat_sub_natural_right, congr' 1,
+      rw hat_sub'_natural_left,
+      apply postcompose_sub_comm,
+      swap,
+      apply prod.hom_ext,
+      simp,
+      simp,
+      apply thing
+    end
+  }
+}
