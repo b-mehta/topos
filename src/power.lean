@@ -158,6 +158,25 @@ begin
   simp, show _ ≫ _ = _ ≫ _ ≫ _, slice_rhs 1 2 {rw hi},
   erw id_comp
 end
+def how_inj_is_hat {A B R₁ R₂ : C} {f₁ : R₁ ⟶ B ⨯ A} {f₂ : R₂ ⟶ B ⨯ A} [mono f₁] [mono f₂] (h : hat f₁ = hat f₂) : R₁ ≅ R₂ :=
+{ hom := (square.is_pullback f₂).lift (pullback_cone.mk (square.top f₁) f₁ (h ▸ square.commutes f₁)),
+  inv := (square.is_pullback f₁).lift (pullback_cone.mk (square.top f₂) f₂ (h.symm ▸ square.commutes f₂)),
+  hom_inv_id' :=
+  begin
+    rw ← cancel_mono f₁, rw assoc, erw (square.is_pullback f₁).fac _ walking_cospan.right, simp,
+    erw (square.is_pullback f₂).fac _ walking_cospan.right, refl
+  end,
+  inv_hom_id' :=
+  begin
+    rw ← cancel_mono f₂,
+    rw assoc, erw (square.is_pullback f₂).fac _ walking_cospan.right, simp,
+    erw (square.is_pullback f₁).fac _ walking_cospan.right, refl
+  end }
+
+lemma very_inj {A B R₁ R₂ : C} {f₁ : R₁ ⟶ B ⨯ A} {f₂ : R₂ ⟶ B ⨯ A} [mono f₁] [mono f₂] (h : hat f₁ = hat f₂) :
+  (how_inj_is_hat h).hom ≫ f₂ = f₁ :=
+(square.is_pullback f₂).fac _ walking_cospan.right
+
 lemma liftable {A B : C} (a b : sub' (B ⨯ A)) : (a ≈ b) → (@hat _ _ _ _ _ _ _ a.1.hom a.2 = @hat _ _ _ _ _ _ _ b.1.hom b.2) :=
 begin
   rintros ⟨⟨hom, k⟩, ⟨inv, l⟩⟩,
@@ -174,6 +193,24 @@ begin
   apply prod.hom_ext,
   simp, simp, dsimp, simp
 end
+def hat_natural_right {A A' B R : C} (k : R ⟶ B ⨯ A) [mono k] (g : A' ⟶ A) : hat k ≫ P_map g = hat (pullback.snd : pullback k (limits.prod.map (𝟙 B) g) ⟶ B ⨯ A') :=
+begin
+  rw easy_lemma
+end
+def hat_natural_left {A B B' R : C} (k : R ⟶ B ⨯ A) [mono k] (g : B' ⟶ B) : g ≫ hat k = hat (pullback.snd : pullback k (limits.prod.map g (𝟙 A)) ⟶ B' ⨯ A) := -- hat_sub (sub_map (limits.prod.map g (𝟙 A)) k) :=
+begin
+  apply unique_hat,
+  refine ⟨pullback.fst ≫ square.top k, _, _⟩,
+  slice_lhs 2 3 {rw square.commutes},
+  slice_lhs 1 2 {rw pullback.condition},
+  rw assoc,
+  rw ← prod_functorial,
+  have := (pasting pullback.fst _ pullback.snd k _ (limits.prod.map g (𝟙 A)) _ _ _ (square.is_pullback k)).inv (cone_is_pullback _ _),
+  convert this,
+  rw prod_functorial,
+  rw prod_functorial,
+end
+-- TODO shorten this proof
 def hat_sub'_natural_left {A B B' : C} (k : B ⟶ P A) (g : B' ⟶ B) : hat_sub' (g ≫ k) = sub_map (limits.prod.map g (𝟙 A)) (hat_sub' k) :=
 begin
   dsimp [hat_sub', sub_map, pullback_sub'], apply quotient.sound,
@@ -346,3 +383,81 @@ def self_adj : is_right_adjoint (@P_functor C 𝒞 _ _) :=
     end
   }
 }
+
+@[reducible]
+def diagonal (A : C) : A ⟶ A ⨯ A := limits.prod.lift (𝟙 A) (𝟙 A)
+instance mono_prod_of_left {X Y Z : C} (f : X ⟶ Y) (g : X ⟶ Z) [mono f] : mono (limits.prod.lift f g) :=
+begin
+  split, intros W h k l,
+  have := l =≫ limits.prod.fst,
+  simp at this,
+  rwa cancel_mono at this,
+end
+
+instance mono_prod_of_right {X Y Z : C} (f : X ⟶ Y) (g : X ⟶ Z) [mono g] : mono (limits.prod.lift f g) :=
+begin
+  split, intros W h k l,
+  have := l =≫ limits.prod.snd,
+  simp at this,
+  rwa cancel_mono at this,
+end
+
+def singleton_arrow (A : C) : A ⟶ P A := hat (diagonal A)
+
+#check hat_natural_left
+#check hat_natural_right
+lemma seven_six_one {A B : C} (f : A ⟶ B) : hat (limits.prod.lift (𝟙 A) f) = f ≫ singleton_arrow B :=
+begin
+  erw hat_natural_left,
+  refine lifting (pullback.lift f (limits.prod.lift (𝟙 A) f) _) (pullback.snd ≫ limits.prod.fst) _ _,
+  apply prod.hom_ext,
+  simp, erw id_comp, simp, erw comp_id,
+  simp, apply prod.hom_ext, simp,
+  slice_rhs 3 4 {rw limit.lift_π},
+  have: (_ ≫ diagonal B) ≫ _ = (_ ≫ limits.prod.map f (𝟙 B)) ≫ _ := pullback.condition =≫ limits.prod.fst,
+  simp at this, erw ← this,
+  have: (_ ≫ diagonal B) ≫ _ = (_ ≫ limits.prod.map f (𝟙 B)) ≫ _ := pullback.condition =≫ limits.prod.snd,
+  simp at this, rw this, dsimp, rw comp_id
+end
+
+lemma seven_six_two {A B : C} (f : A ⟶ B) : hat (limits.prod.lift f (𝟙 A)) = singleton_arrow B ≫ P_map f :=
+begin
+  erw hat_natural_right,
+  refine lifting (pullback.lift f (limits.prod.lift f (𝟙 A)) _) (pullback.snd ≫ limits.prod.snd) _ _,
+  apply prod.hom_ext, simp, erw comp_id,
+  simp, erw id_comp,
+  simp, apply prod.hom_ext,
+  simp,
+  have: (_ ≫ diagonal B) ≫ _ = (_ ≫ limits.prod.map (𝟙 B) f) ≫ _ := pullback.condition =≫ limits.prod.snd,
+  simp at this, erw ← this,
+  have: (_ ≫ diagonal B) ≫ _ = (_ ≫ limits.prod.map (𝟙 B) f) ≫ _ := pullback.condition =≫ limits.prod.fst,
+  simp at this, rw this, dsimp, simp,
+  simp
+end
+
+instance: mono (singleton_arrow A) :=
+begin
+  split,
+  intros,
+  rw ← seven_six_one at w, rw ← seven_six_one at w,
+  have q := very_inj w =≫ limits.prod.fst,
+  simp at q,
+  have r := very_inj w =≫ limits.prod.snd,
+  simp [q] at r,
+  rw r
+end
+
+instance pfaithful : faithful (@P_functor _ 𝒞 _ _) :=
+begin
+  refine ⟨_⟩,
+  dsimp, intros A B f g k,
+  have w: hat (limits.prod.lift f.unop (𝟙 B.unop)) = hat (limits.prod.lift g.unop (𝟙 B.unop)),
+    rw seven_six_two, rw seven_six_two,
+    show _ ≫ P_functor.map f = _ ≫ P_map (has_hom.hom.unop g),
+    rw k, refl,
+  have q := very_inj w =≫ limits.prod.snd,
+  simp at q,
+  have r := very_inj w =≫ limits.prod.fst,
+  simp [q] at r,
+  apply has_hom.hom.unop_inj, symmetry, assumption
+end
