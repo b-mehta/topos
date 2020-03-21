@@ -644,7 +644,7 @@ begin
 end
 
 def classifying_powers {U X : C} (f : U ⟶ X) [hf : mono f] :
-  classifying (mem (⊤_ C) ≫ limits.prod.fst) hf (hat (f ≫ prod.lift (𝟙 X) (terminal.from X))) :=
+  classifying (mem (⊤_ C) ≫ limits.prod.fst) f (hat (f ≫ prod.lift (𝟙 X) (terminal.from X))) :=
 { k := square.top (f ≫ prod.lift (𝟙 X) (terminal.from X)),
   commutes :=
   begin
@@ -691,7 +691,7 @@ def classifying_powers {U X : C} (f : U ⟶ X) [hf : mono f] :
   }
 }
 
-def classifying_powers' {U X : C} (f : U ⟶ X) [hf : mono f] (χ₁ : X ⟶ P (⊤_ C)) (k : classifying (mem (⊤_ C) ≫ (prod.right_unitor (P (⊤_ C))).hom) hf χ₁) :
+def classifying_powers' {U X : C} (f : U ⟶ X) [hf : mono f] (χ₁ : X ⟶ P (⊤_ C)) (k : classifying (mem (⊤_ C) ≫ (prod.right_unitor (P (⊤_ C))).hom) f χ₁) :
   powerises (mem (⊤_ C)) (f ≫ prod.lift (𝟙 X) (terminal.from X)) χ₁ :=
 begin
   set top := k.k,
@@ -725,7 +725,7 @@ begin
   }
 end
 
-instance weak_topos_has_subobj : has_subobject_classifier C :=
+instance weak_topos_has_subobj : has_subobject_classifier.{v} C :=
 { Ω := P (⊤_ C),
   Ω₀ := ni (⊤_ C),
   truth := mem (⊤_ C) ≫ (prod.right_unitor _).hom,
@@ -742,8 +742,9 @@ instance weak_topos_has_subobj : has_subobject_classifier C :=
   end,
   uniquely' := λ U X f hf χ₁ k,
   begin
+    haveI := hf,
     apply unique_hat,
-    apply classifying_powers' _,
+    apply classifying_powers' f,
     exact k
   end
 }
