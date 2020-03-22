@@ -23,6 +23,20 @@ open category_theory category_theory.category category_theory.limits
 variables {C : Type u} [𝒞 : category.{v} C]
 include 𝒞
 
+lemma cone_is_pullback {X Y Z : C} (f : X ⟶ Z) (g : Y ⟶ Z) [has_limit (cospan f g)] :
+  is_limit (pullback_cone.mk _ _ pullback.condition : pullback_cone f g) :=
+begin
+  apply is_limit.of_iso_limit,
+  apply limit.is_limit,
+  refine cones.ext _ _, refl,
+  intro j,
+  erw id_comp,
+  cases j, refl, refl,
+  rw limit.cone_π,
+  erw ← limit.w (cospan _ _) walking_cospan.hom.inl,
+  refl
+end
+
 section faithful
 
 variables {D : Type u₂} [𝒟 : category.{v₂} D]
@@ -70,40 +84,35 @@ variable {C}
 instance has_power_object_of_has_all [has_power_objects.{v} C] {A : C} :
   has_power_object.{v} A := has_power_objects.has_power_object A
 
-variable [has_power_objects.{v} C]
+section convenience
 
-def P (A : C) : C := @has_power_object.PA _ 𝒞 _ A _
-def ni (A : C) : C := @has_power_object.niA _ 𝒞 _ A _
-def mem (A : C) : ni A ⟶ P A ⨯ A := has_power_object.memA A
-def hat {A B R : C} (m : R ⟶ B ⨯ A) [hm : mono m] : B ⟶ P A := has_power_object.hat m
-instance mem_mono (A : C) : mono (mem A) := has_power_object.mem_mono' A
-def hat_powerises {A B R : C} (m : R ⟶ B ⨯ A) [mono m] : powerises (mem A) m (hat m) := has_power_object.powerises' m
-def square.top {A B R : C} (m : R ⟶ B ⨯ A) [mono m] : R ⟶ ni A := (hat_powerises m).top
-def square.commutes {A B R : C} (m : R ⟶ B ⨯ A) [mono m] : square.top m ≫ mem A = m ≫ limits.prod.map (hat m) (𝟙 A) := (hat_powerises m).commutes
-def square.is_pullback {A B R : C} (m : R ⟶ B ⨯ A) [mono m] : is_limit (pullback_cone.mk _ _ (square.commutes m)) := (hat_powerises m).forms_pullback
-lemma unique_hat {A B R : C} (m : R ⟶ B ⨯ A) [mono m] (hat' : B ⟶ P A) (hp : powerises (mem A) m hat') : hat' = hat m := has_power_object.uniquely' m hat' hp
+variables (A : C) [has_power_object.{v} A]
 
-variables {A B : C} (f : A ⟶ B)
+def P : C := @has_power_object.PA _ 𝒞 _ A _
+def ni : C := @has_power_object.niA _ 𝒞 _ A _
+def mem : ni A ⟶ P A ⨯ A := has_power_object.memA A
+instance mem_mono : mono (mem A) := has_power_object.mem_mono' A
+
+variables {A} {B R : C} (m : R ⟶ B ⨯ A) [mono m]
+
+def hat : B ⟶ P A := has_power_object.hat m
+def hat_powerises : powerises (mem A) m (hat m) := has_power_object.powerises' m
+def square.top : R ⟶ ni A := (hat_powerises m).top
+def square.commutes : square.top m ≫ mem A = m ≫ limits.prod.map (hat m) (𝟙 A) := (hat_powerises m).commutes
+def square.is_pullback : is_limit (pullback_cone.mk _ _ (square.commutes m)) := (hat_powerises m).forms_pullback
+lemma unique_hat (hat' : B ⟶ P A) (hp : powerises (mem A) m hat') : hat' = hat m := has_power_object.uniquely' m hat' hp
+end convenience
+
+section functor_setup
+variables {A B : C} (f : A ⟶ B) [has_power_object.{v} B]
 def E : C := pullback (mem B) (limits.prod.map (𝟙 _) f)
 def Emap : E f ⟶ P B ⨯ A := pullback.snd
 instance : mono (Emap f) := pullback.snd_of_mono
-
 lemma Esquare : (pullback.fst : E f ⟶ _) ≫ mem B = Emap f ≫ limits.prod.map (𝟙 _) f := pullback.condition
-lemma cone_is_pullback {X Y Z : C} (f : X ⟶ Z) (g : Y ⟶ Z) : is_limit (pullback_cone.mk _ _ pullback.condition : pullback_cone f g) :=
-begin
-  apply is_limit.of_iso_limit,
-  apply limit.is_limit,
-  refine cones.ext _ _, refl,
-  intro j,
-  erw id_comp,
-  cases j, refl, refl,
-  rw limit.cone_π,
-  erw ← limit.w (cospan _ _) walking_cospan.hom.inl,
-  refl
-end
 lemma Epb : is_limit (pullback_cone.mk _ _ (Esquare f)) :=
 cone_is_pullback _ _
 
+variable [has_power_object.{v} A]
 def P_map : P B ⟶ P A :=
 hat (Emap f)
 
@@ -151,7 +160,9 @@ begin
   exact comm4.symm
 end
 
-lemma lifting {A B R₁ R₂ : C} {g₁ : R₁ ⟶ B ⨯ A} {g₂ : R₂ ⟶ B ⨯ A} [mono g₁] [mono g₂] (hom : R₁ ⟶ R₂) (inv : R₂ ⟶ R₁) :
+-- We need to assume g₁ = hom ≫ g₂. From here if we know that hom,inv cancel then we get g₂ = inv ≫ g₁.
+-- Instead we assume this and derive that hom,inv cancel
+lemma lifting {A B R₁ R₂ : C} [has_power_object.{v} A] {g₁ : R₁ ⟶ B ⨯ A} {g₂ : R₂ ⟶ B ⨯ A} [mono g₁] [mono g₂] (hom : R₁ ⟶ R₂) (inv : R₂ ⟶ R₁) :
   g₁ = hom ≫ g₂ → g₂ = inv ≫ g₁ → hat g₁ = hat g₂ :=
 begin
   intros k l,
@@ -174,34 +185,38 @@ begin
   simp, show _ ≫ _ = _ ≫ _ ≫ _, slice_rhs 1 2 {rw hi},
   erw id_comp
 end
-def how_inj_is_hat {A B R₁ R₂ : C} {f₁ : R₁ ⟶ B ⨯ A} {f₂ : R₂ ⟶ B ⨯ A} [mono f₁] [mono f₂] (h : hat f₁ = hat f₂) : R₁ ≅ R₂ :=
+def how_inj_is_hat {A B R₁ R₂ : C} [has_power_object.{v} A] {f₁ : R₁ ⟶ B ⨯ A} {f₂ : R₂ ⟶ B ⨯ A} [mono f₁] [mono f₂] (h : hat f₁ = hat f₂) :
+  R₁ ≅ R₂ :=
 { hom := (square.is_pullback f₂).lift (pullback_cone.mk (square.top f₁) f₁ (h ▸ square.commutes f₁)),
   inv := (square.is_pullback f₁).lift (pullback_cone.mk (square.top f₂) f₂ (h.symm ▸ square.commutes f₂)),
   hom_inv_id' :=
   begin
-    rw ← cancel_mono f₁, rw assoc, erw (square.is_pullback f₁).fac _ walking_cospan.right, simp,
-    erw (square.is_pullback f₂).fac _ walking_cospan.right, refl
+    erw [← cancel_mono f₁, assoc,
+         (square.is_pullback f₁).fac _ walking_cospan.right,
+         (square.is_pullback f₂).fac _ walking_cospan.right],
+    simp
   end,
   inv_hom_id' :=
   begin
-    rw ← cancel_mono f₂,
-    rw assoc, erw (square.is_pullback f₂).fac _ walking_cospan.right, simp,
-    erw (square.is_pullback f₁).fac _ walking_cospan.right, refl
+    erw [← cancel_mono f₂, assoc,
+         (square.is_pullback f₂).fac _ walking_cospan.right,
+         (square.is_pullback f₁).fac _ walking_cospan.right],
+    simp
   end }
 
-lemma very_inj {A B R₁ R₂ : C} {f₁ : R₁ ⟶ B ⨯ A} {f₂ : R₂ ⟶ B ⨯ A} [mono f₁] [mono f₂] (h : hat f₁ = hat f₂) :
+lemma very_inj {A B R₁ R₂ : C} [has_power_object.{v} A] {f₁ : R₁ ⟶ B ⨯ A} {f₂ : R₂ ⟶ B ⨯ A} [mono f₁] [mono f₂] (h : hat f₁ = hat f₂) :
   (how_inj_is_hat h).hom ≫ f₂ = f₁ :=
 (square.is_pullback f₂).fac _ walking_cospan.right
 
-lemma liftable {A B : C} (a b : sub' (B ⨯ A)) : (a ≈ b) → (@hat _ _ _ _ _ _ _ a.1.hom a.2 = @hat _ _ _ _ _ _ _ b.1.hom b.2) :=
+lemma liftable {A B : C} [has_power_object.{v} A] (a b : sub' (B ⨯ A)) : (a ≈ b) → @hat _ _ _ _ _ _ _ a.1.hom a.2 = @hat _ _ _ _ _ _ _ b.1.hom b.2 :=
 begin
   rintros ⟨⟨hom, k⟩, ⟨inv, l⟩⟩,
   exact @lifting _ _ _ _ _ _ _ _ _ _ a.2 b.2 _ _ k l,
 end
-def hat_sub {A B : C} : sub (B ⨯ A) → (B ⟶ P A) :=
+def hat_sub {A B : C} [has_power_object.{v} A] : sub (B ⨯ A) → (B ⟶ P A) :=
 quotient.lift (λ (f : sub' (B ⨯ A)), @hat _ _ _ _ _ _ _ f.1.hom f.2) liftable
 
-def hat_sub' {A B : C} (k : B ⟶ P A) : sub (B ⨯ A) :=
+def hat_sub' {A B : C} [has_power_object.{v} A] (k : B ⟶ P A) : sub (B ⨯ A) :=
 quotient.mk ⟨over.mk (pullback.snd : pullback (mem A) (limits.prod.map k (𝟙 _)) ⟶ B ⨯ A), pullback.snd_of_mono⟩
 
 lemma prod_functorial {X Y Z W : C} (f : X ⟶ Y) (g : Y ⟶ Z) :
@@ -216,11 +231,12 @@ begin
   apply prod.hom_ext,
   simp, dsimp, simp, simp
 end
-def hat_natural_right {A A' B R : C} (k : R ⟶ B ⨯ A) [mono k] (g : A' ⟶ A) : hat k ≫ P_map g = hat (pullback.snd : pullback k (limits.prod.map (𝟙 B) g) ⟶ B ⨯ A') :=
+def hat_natural_right {A A' B R : C} [has_power_object.{v} A] [has_power_object.{v} A'] (k : R ⟶ B ⨯ A) [mono k] (g : A' ⟶ A) :
+  hat k ≫ P_map g = hat (pullback.snd : pullback k (limits.prod.map (𝟙 B) g) ⟶ B ⨯ A') :=
 begin
   rw easy_lemma
 end
-def hat_natural_left {A B B' R : C} (k : R ⟶ B ⨯ A) [mono k] (g : B' ⟶ B) : g ≫ hat k = hat (pullback.snd : pullback k (limits.prod.map g (𝟙 A)) ⟶ B' ⨯ A) := -- hat_sub (sub_map (limits.prod.map g (𝟙 A)) k) :=
+def hat_natural_left {A B B' R : C} [has_power_object.{v} A] (k : R ⟶ B ⨯ A) [mono k] (g : B' ⟶ B) : g ≫ hat k = hat (pullback.snd : pullback k (limits.prod.map g (𝟙 A)) ⟶ B' ⨯ A) := -- hat_sub (sub_map (limits.prod.map g (𝟙 A)) k) :=
 begin
   apply unique_hat,
   refine ⟨pullback.fst ≫ square.top k, _, _⟩,
@@ -233,25 +249,17 @@ begin
   rw prod_functorial,
   rw prod_functorial,
 end
--- TODO shorten this proof
-def hat_sub'_natural_left {A B B' : C} (k : B ⟶ P A) (g : B' ⟶ B) : hat_sub' (g ≫ k) = sub_map (limits.prod.map g (𝟙 A)) (hat_sub' k) :=
+
+def hat_sub_natural_left (A B B' : C) [has_power_object.{v} A] (k : sub (B ⨯ A)) (g : B' ⟶ B) : g ≫ hat_sub k = hat_sub (sub_map (limits.prod.map g (𝟙 A)) k) :=
 begin
-  dsimp [hat_sub', sub_map, pullback_sub'], apply quotient.sound,
-  split,
-  refine ⟨_, _⟩,
-  apply pullback.lift (pullback.lift pullback.fst (pullback.snd ≫ limits.prod.map g (𝟙 _)) _) pullback.snd _,
-  rw pullback.condition, rw assoc, congr' 1, rw prod_functorial,
-  rw limit.lift_π, refl,
-  erw limit.lift_π, refl,
-  refine ⟨_, _⟩,
-  apply pullback.lift (pullback.fst ≫ pullback.fst) pullback.snd _,
-  slice_lhs 2 3 {rw pullback.condition},
-  slice_lhs 1 2 {rw pullback.condition},
-  rw assoc, congr' 1, rw prod_functorial,
-  erw limit.lift_π, refl
+  apply quotient.induction_on k,
+  dsimp [hat_sub, sub_map], intro a,
+  rw hat_natural_left
 end
 
-def hat_sub_natural_right {A A' B : C} (k : sub (B ⨯ A)) (g : A' ⟶ A) : hat_sub k ≫ P_map g = hat_sub (sub_map (limits.prod.map (𝟙 B) g) k) :=
+
+
+def hat_sub_natural_right {A A' B : C} [has_power_object.{v} A] [has_power_object.{v} A'] (k : sub (B ⨯ A)) (g : A' ⟶ A) : hat_sub k ≫ P_map g = hat_sub (sub_map (limits.prod.map (𝟙 B) g) k) :=
 begin
   apply quotient.induction_on k,
   dsimp [hat_sub, sub_map],
@@ -259,7 +267,7 @@ begin
   rw ← easy_lemma
 end
 
-def hat_sub'' {A B : C} : (B ⟶ P A) ≃ sub (B ⨯ A) :=
+def hat_sub'' {A B : C} [has_power_object.{v} A] : (B ⟶ P A) ≃ sub (B ⨯ A) :=
 { to_fun := hat_sub',
   inv_fun := hat_sub,
   left_inv :=
@@ -288,30 +296,31 @@ def hat_sub'' {A B : C} : (B ⟶ P A) ≃ sub (B ⨯ A) :=
     simp
   end }
 
-
-def hat_sub_natural_left (A B B' : C) (k : sub (B ⨯ A)) (g : B' ⟶ B) : g ≫ hat_sub k = hat_sub (sub_map (limits.prod.map g (𝟙 A)) k) :=
+def hat_sub'_natural_right (A A' B : C) [has_power_object.{v} A] [has_power_object.{v} A'] (k : B ⟶ P A) (g : A' ⟶ A) : hat_sub' (k ≫ P_map g) = sub_map (limits.prod.map (𝟙 B) g) (hat_sub' k) :=
 begin
-  erw hat_sub''.eq_symm_apply,
-  apply eq.trans (hat_sub'_natural_left (hat_sub k) g) _,
-  congr' 1,
-  apply hat_sub''.right_inv,
-end
-def hat_sub'_natural_right (A A' B : C) (k : B ⟶ P A) (g : A' ⟶ A) : hat_sub' (k ≫ P_map g) = sub_map (limits.prod.map (𝟙 B) g) (hat_sub' k) :=
-begin
-  symmetry,
-  erw ← hat_sub''.symm_apply_eq,
+  erw ← hat_sub''.eq_symm_apply,
   dsimp [hat_sub''],
   rw ← hat_sub_natural_right,
   congr' 1,
-  apply hat_sub''.left_inv
+  apply (hat_sub''.left_inv k).symm
 end
 
-lemma P_map_id (X : C) : P_map (𝟙 X) = 𝟙 (P X) :=
+def hat_sub'_natural_left {A B B' : C} [has_power_object.{v} A] (k : B ⟶ P A) (g : B' ⟶ B) : hat_sub' (g ≫ k) = sub_map (limits.prod.map g (𝟙 A)) (hat_sub' k) :=
+begin
+  erw ← hat_sub''.eq_symm_apply,
+  dsimp [hat_sub''],
+  rw ← hat_sub_natural_left,
+  congr' 1,
+  apply (hat_sub''.left_inv k).symm
+end
+
+lemma P_map_id (X : C) [has_power_object.{v} X] : P_map (𝟙 X) = 𝟙 (P X) :=
 begin
   symmetry, apply unique_hat,
   refine ⟨pullback.fst, pullback.condition, cone_is_pullback _ _⟩
 end
-lemma P_map_comp {X Y Z : C} (f : X ⟶ Y) (g : Y ⟶ Z) : P_map (f ≫ g) = P_map g ≫ P_map f :=
+lemma P_map_comp {X Y Z : C} [has_power_object.{v} X] [has_power_object.{v} Y] [has_power_object.{v} Z] (f : X ⟶ Y) (g : Y ⟶ Z) :
+  P_map (f ≫ g) = P_map g ≫ P_map f :=
 begin
   erw ← easy_lemma,
   rw P_map,
@@ -330,11 +339,12 @@ begin
   { erw limit.lift_π, refl }
 end
 
-def P_functor : Cᵒᵖ ⥤ C :=
+def P_functor [has_power_objects.{v} C] : Cᵒᵖ ⥤ C :=
 { obj := λ X, P X.unop,
   map := λ X Y f, P_map f.unop,
   map_id' := λ X, P_map_id _,
   map_comp' := λ X Y Z f g, P_map_comp _ _ }
+end functor_setup
 
 def thing (X Y Z : C) (g : Y ⟶ Z) :
   is_limit (pullback_cone.mk (limits.prod.map g (𝟙 X)) (prod.lift limits.prod.snd limits.prod.fst) (begin apply prod.hom_ext; simp end) : pullback_cone (prod.lift limits.prod.snd limits.prod.fst) (limits.prod.map (𝟙 X) g)) :=
@@ -360,7 +370,7 @@ begin
   apply J walking_cospan.right,
 end
 
-def self_adj : is_right_adjoint (@P_functor C 𝒞 _ _) :=
+def self_adj [has_power_objects.{v} C] : is_right_adjoint (@P_functor C 𝒞 _ _) :=
 { left := P_functor.right_op,
   adj := adjunction.mk_of_hom_equiv
   { hom_equiv :=
@@ -425,9 +435,9 @@ begin
   rwa cancel_mono at this,
 end
 
-def singleton_arrow (A : C) : A ⟶ P A := hat (diagonal A)
+def singleton_arrow (A : C) [has_power_object.{v} A] : A ⟶ P A := hat (diagonal A)
 
-lemma seven_six_one {A B : C} (f : A ⟶ B) : hat (limits.prod.lift (𝟙 A) f) = f ≫ singleton_arrow B :=
+lemma seven_six_one {A B : C} [has_power_object.{v} B] (f : A ⟶ B) : hat (limits.prod.lift (𝟙 A) f) = f ≫ singleton_arrow B :=
 begin
   erw hat_natural_left,
   refine lifting (pullback.lift f (limits.prod.lift (𝟙 A) f) _) (pullback.snd ≫ limits.prod.fst) _ _,
@@ -441,7 +451,8 @@ begin
   simp at this, rw this, dsimp, rw comp_id
 end
 
-lemma seven_six_two {A B : C} (f : A ⟶ B) : hat (limits.prod.lift f (𝟙 A)) = singleton_arrow B ≫ P_map f :=
+lemma seven_six_two {A B : C} [has_power_object.{v} A] [has_power_object.{v} B] (f : A ⟶ B) :
+  hat (limits.prod.lift f (𝟙 A)) = singleton_arrow B ≫ P_map f :=
 begin
   erw hat_natural_right,
   refine lifting (pullback.lift f (limits.prod.lift f (𝟙 A)) _) (pullback.snd ≫ limits.prod.snd) _ _,
@@ -456,7 +467,7 @@ begin
   simp
 end
 
-instance singleton_mono (A : C) : mono (singleton_arrow A) :=
+instance singleton_mono (A : C) [has_power_object.{v} A] : mono (singleton_arrow A) :=
 begin
   split,
   intros,
@@ -468,7 +479,7 @@ begin
   rw r
 end
 
-instance pfaithful : faithful (@P_functor _ 𝒞 _ _) :=
+instance pfaithful [has_power_objects.{v} C] : faithful (@P_functor _ 𝒞 _ _) :=
 begin
   refine ⟨_⟩,
   dsimp, intros A B f g k,
@@ -483,7 +494,7 @@ begin
   apply has_hom.hom.unop_inj, symmetry, assumption
 end
 
-lemma p_faithful (f g : A ⟶ B) : P_map f = P_map g → f = g :=
+lemma p_faithful {A B : C} [has_power_object.{v} A] [has_power_object.{v} B] (f g : A ⟶ B) : P_map f = P_map g → f = g :=
 begin
   intro k,
   have w: hat (limits.prod.lift f (𝟙 _)) = hat (limits.prod.lift g (𝟙 _)),
@@ -508,10 +519,11 @@ begin
   rwa ← cancel_mono g, simpa
 end
 
-def internal_image (f : A ⟶ B) [mono f] : P A ⟶ P B :=
+def internal_image {A B : C} [has_power_object.{v} A] [has_power_object.{v} B] (f : A ⟶ B) [mono f] : P A ⟶ P B :=
 hat (mem A ≫ limits.prod.map (𝟙 (P A)) f)
 
-lemma naturalish (f : A ⟶ B) [mono f] {R D : C} (m : R ⟶ D ⨯ A) [mono m] :
+-- TODO: this doesn't use pasting so it's super long. can we make it nicer by using pasting?
+lemma naturalish {A B : C} [has_power_object.{v} A] [has_power_object.{v} B] (f : A ⟶ B) [mono f] {R D : C} (m : R ⟶ D ⨯ A) [mono m] :
   hat m ≫ internal_image f = hat (m ≫ limits.prod.map (𝟙 D) f) :=
 begin
   apply unique_hat,
@@ -594,26 +606,32 @@ begin
   }
 end
 
-lemma internal_image_map_comp {X Y Z : C} (f : X ⟶ Y) (g : Y ⟶ Z) [mono f] [mono g] : internal_image (f ≫ g) = internal_image f ≫ internal_image g :=
+lemma internal_image_map_comp {X Y Z : C} [has_power_object.{v} X] [has_power_object.{v} Y] [has_power_object.{v} Z]
+  (f : X ⟶ Y) (g : Y ⟶ Z) [mono f] [mono g] :
+  internal_image (f ≫ g) = internal_image f ≫ internal_image g :=
 begin
   erw naturalish, rw internal_image,
   congr' 1, rw prod_functorial',
   simp
 end
 
-def powerises_id (X : C) : powerises (mem X) (mem X) (𝟙 (P X)) :=
+def powerises_id (A : C) [has_power_object.{v} A] : powerises (mem A) (mem A) (𝟙 (P A)) :=
 { top := 𝟙 _,
   commutes := begin apply prod.hom_ext; simp, erw comp_id, erw comp_id end,
-  forms_pullback' := begin convert pullback.with_id_l' (mem X), all_goals {apply prod.hom_ext; simp, erw comp_id, erw comp_id },  end
+  forms_pullback' := begin convert pullback.with_id_l' (mem A), all_goals {apply prod.hom_ext; simp, erw comp_id, erw comp_id },  end
 }
-lemma internal_image_map_id {X : C} : internal_image (𝟙 X) = 𝟙 (P X) :=
+lemma internal_image_map_id {X : C} [has_power_object.{v} X] : internal_image (𝟙 X) = 𝟙 (P X) :=
 begin
   symmetry, apply unique_hat,
   convert powerises_id X,
   apply prod.hom_ext; simp, erw comp_id, erw comp_id
 end
 
-theorem beck_chevalley {A B C' D : C} (h : D ⟶ A) (f : A ⟶ C') (k : D ⟶ B) (g : B ⟶ C') (comm : h ≫ f = k ≫ g) [mono f] [mono k] (t : is_limit (pullback_cone.mk h k comm)) :
+theorem beck_chevalley {A B C' D : C}
+  [has_power_object.{v} A] [has_power_object.{v} B]
+  [has_power_object.{v} C'] [has_power_object.{v} D]
+  (h : D ⟶ A) (f : A ⟶ C') (k : D ⟶ B) (g : B ⟶ C') (comm : h ≫ f = k ≫ g) [mono f] [mono k]
+  (t : is_limit (pullback_cone.mk h k comm)) :
   internal_image f ≫ P_map g = P_map h ≫ internal_image k :=
 begin
   erw naturalish,
@@ -643,7 +661,7 @@ begin
   { erw limit.lift_π, refl }
 end
 
-def classifying_powers {U X : C} (f : U ⟶ X) [hf : mono f] :
+def classifying_powers [has_power_object.{v} (⊤_ C)] {U X : C} (f : U ⟶ X) [mono f] :
   classifying (mem (⊤_ C) ≫ limits.prod.fst) f (hat (f ≫ prod.lift (𝟙 X) (terminal.from X))) :=
 { k := square.top (f ≫ prod.lift (𝟙 X) (terminal.from X)),
   commutes :=
@@ -691,7 +709,8 @@ def classifying_powers {U X : C} (f : U ⟶ X) [hf : mono f] :
   }
 }
 
-def classifying_powers' {U X : C} (f : U ⟶ X) [hf : mono f] (χ₁ : X ⟶ P (⊤_ C)) (k : classifying (mem (⊤_ C) ≫ (prod.right_unitor (P (⊤_ C))).hom) f χ₁) :
+def classifying_powers' [has_power_object.{v} (⊤_ C)] {U X : C} (f : U ⟶ X) [mono f]
+  (χ₁ : X ⟶ P (⊤_ C)) (k : classifying (mem (⊤_ C) ≫ (prod.right_unitor (P (⊤_ C))).hom) f χ₁) :
   powerises (mem (⊤_ C)) (f ≫ prod.lift (𝟙 X) (terminal.from X)) χ₁ :=
 begin
   set top := k.k,
@@ -725,7 +744,7 @@ begin
   }
 end
 
-instance weak_topos_has_subobj : has_subobject_classifier.{v} C :=
+instance weak_topos_has_subobj [has_power_object.{v} (⊤_ C)] : has_subobject_classifier.{v} C :=
 { Ω := P (⊤_ C),
   Ω₀ := ni (⊤_ C),
   truth := mem (⊤_ C) ≫ (prod.right_unitor _).hom,
@@ -735,11 +754,7 @@ instance weak_topos_has_subobj : has_subobject_classifier.{v} C :=
     haveI := hf,
     apply hat (f ≫ limits.prod.lift (𝟙 _) (terminal.from _))
   end,
-  classifies' := λ U X f hf,
-  begin
-    haveI := hf,
-    apply classifying_powers f
-  end,
+  classifies' := λ U X f hf, @classifying_powers _ _ _ _ _ _ _ hf,
   uniquely' := λ U X f hf χ₁ k,
   begin
     haveI := hf,
@@ -749,7 +764,7 @@ instance weak_topos_has_subobj : has_subobject_classifier.{v} C :=
   end
 }
 
-instance p_conservative (f : A ⟶ B) [is_iso (P_map f)] : is_iso f :=
+instance p_conservative [has_power_objects.{v} C] {A B : C} (f : A ⟶ B) [is_iso (P_map f)] : is_iso f :=
 begin
   apply @balanced _ 𝒞 _ _ _ _ _ _,
   { split,
@@ -764,7 +779,7 @@ end
 
 namespace intersect
 
-variable (A)
+variables (A : C) [has_power_object.{v} A]
 
 @[reducible]
 def π₁₃ : (P A ⨯ P A) ⨯ A ⟶ P A ⨯ A := limits.prod.map limits.prod.fst (𝟙 A)
