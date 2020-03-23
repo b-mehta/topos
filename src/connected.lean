@@ -162,8 +162,6 @@ def prod_preserves_connected_limits [𝒞 : category.{v₂} C] [has_binary_produ
         simp
       end } } }
 
-#check forget
-
 namespace over
 
 namespace creates
@@ -183,25 +181,62 @@ def raise_cone [conn : connected.{v₂} J] {B : C} {F : J ⥤ over B} (c : cone 
   π :=
   { app := λ j, over.hom_mk (c.π.app j) (@nat_trans_from_connected _ _ _ _ conn _ _ j (c.π ≫ nat_trans_in_over F)) } }
 
+lemma raised_cone_lowers_to_original [conn : connected.{v₂} J] {B : C} {F : J ⥤ over B} (c : cone (F ⋙ forget)) (t : is_limit c) :
+  forget.map_cone (@raise_cone _ _ _ _ conn _ _ c) = c :=
+by tidy
+
+omit 𝒥'
+instance forget_reflects_iso {B : C} {X Y : over B} (f : X ⟶ Y) [t : is_iso (forget.map f)] : is_iso f :=
+{ inv := over.hom_mk t.inv (by { dsimp, erw [(as_iso (forget.map f)).inv_comp_eq, over.w f] }) }
+include 𝒥'
+
+def raised_cone_is_limit [conn : connected.{v₂} J] {B : C} {F : J ⥤ over B} {c : cone (F ⋙ forget)} (t : is_limit c) :
+  is_limit (@raise_cone _ _ _ _ conn _ _ c) :=
+{ lift := λ s, over.hom_mk (t.lift (forget.map_cone s))
+               (by { dsimp, slice_lhs 1 2 {rw t.fac}, exact over.w (s.π.app (default J)) }),
+  uniq' :=
+  begin
+    intros s m K,
+    ext1,
+    dsimp at K ⊢,
+    apply t.hom_ext,
+    intro j,
+    rw t.fac,
+    dsimp,
+    rw ← K j,
+    refl,
+  end }
+
+@[simps]
+def iso_apex_of_iso_cone {F : J ⥤ C} {c₁ c₂ : cone F} (h : c₁ ≅ c₂) : c₁.X ≅ c₂.X :=
+{ hom := h.hom.hom,
+  inv := h.inv.hom }
+
+def any_cone_works [conn : connected.{v₂} J] {B : C} {F : J ⥤ over B} (c : cone (F ⋙ forget)) (t : is_limit c) (d : cone F) (h : forget.map_cone d ≅ c) :
+  is_limit d :=
+begin
+  apply is_limit.of_iso_limit (@raised_cone_is_limit _ _ _ _ conn _ _ _ t),
+  have comm: h.inv.hom ≫ d.X.hom = c.π.app (default J) ≫ (F.obj (default J)).hom,
+    rw ← h.inv.w (default J),
+    erw ← over.w (d.π.app (default J)),
+    rw assoc, refl,
+
+  set f: (raise_cone c).X ⟶ d.X := over.hom_mk (iso_apex_of_iso_cone h).inv comm,
+  have that: is_iso (forget.map f),
+    rw forget_map, rw hom_mk_left, apply_instance,
+  haveI f_iso: is_iso f := @creates.forget_reflects_iso _ _ _ _ _ f that,
+  apply cones.ext (as_iso f),
+  intro j,
+  ext1,
+  exact (h.inv.w j).symm
+end
+
 end creates
 
 def forgetful_creates_connected_limits [small_category J] [conn : connected.{v₂} J] [𝒞 : category.{v₂} C] {B : C} (F : J ⥤ over B) [has_limit.{v₂} (F ⋙ forget)] :
   has_limit.{v₂} F :=
 { cone := @creates.raise_cone _ _ _ _ conn _ _ (limit.cone (F ⋙ forget)),
-  is_limit :=
-  { lift := λ s, over.hom_mk (limit.lift (F ⋙ forget) (forget.map_cone _)),
-    uniq' :=
-    begin
-      intros s m K,
-      ext1,
-      dsimp at K ⊢,
-      apply limit.hom_ext,
-      intro j,
-      rw limit.lift_π,
-      dsimp,
-      rw ← K j,
-      refl,
-    end } }
+  is_limit := creates.raised_cone_is_limit (limit.is_limit _) }
 
 end over
 
