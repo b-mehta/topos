@@ -33,14 +33,15 @@ We instead are interested in categories with exactly one 'connected
 component'.
 
 This allows us to show that the functor X ⨯ - preserves connected limits,
-and further that a category has finite connected limits iff it has pullbacks
-and equalizers (the latter is not yet done).
+that forget: over B ⥤ C creates connected limits, and further that a category
+has finite connected limits iff it has pullbacks and equalizers (the latter
+is not yet done).
 -/
 class connected (J : Type v₂) [𝒥 : category.{v₁} J] extends inhabited J :=
-(iso_constant : Π {α : Type*} (F : J ⥤ discrete α), F ≅ (functor.const J).obj (F.obj default))
+(iso_constant : Π {α : Type v₂} (F : J ⥤ discrete α), F ≅ (functor.const J).obj (F.obj default))
 
 section J
-variables  {J : Type v₂} [𝒥 : category.{v₁} J]
+variables {J : Type v₂} [𝒥 : category.{v₁} J]
 include 𝒥
 
 def any_functor_eq_constant [conn : connected J] {α : Type*} (F : J ⥤ discrete α) :
@@ -54,7 +55,7 @@ begin
 end
 
 def connected.of_any_functor_const_on_obj [inhabited J]
-  (h : ∀ {α : Type u₂} (F : J ⥤ discrete α), ∀ (B : J), F.obj B = F.obj (default J)) :
+  (h : ∀ {α : Type v₂} (F : J ⥤ discrete α), ∀ (B : J), F.obj B = F.obj (default J)) :
   connected J :=
 begin
   split,
@@ -92,14 +93,14 @@ end
 end examples
 
 section C
-variables  {J : Type v₂} [𝒥 : category.{v₁} J]
+variables {J : Type v₂} [𝒥 : category.{v₁} J]
 include 𝒥
 variables {C : Type u₂} [𝒞 : category.{v₂} C]
 include 𝒞
 @[simps]
 def functor_from_nat_trans {X Y : C} (α : (functor.const J).obj X ⟶ (functor.const J).obj Y) : J ⥤ discrete (X ⟶ Y) :=
 { obj := α.app,
-  map := λ A B f, eq_to_hom (begin have := α.naturality f, erw [id_comp, comp_id] at this, exact this.symm end),
+  map := λ A B f, eq_to_hom (by { have := α.naturality f, erw [id_comp, comp_id] at this, exact this.symm }),
   map_id' := λ A, rfl,
   map_comp' := λ A₁ A₂ A₃ f g, (eq_to_hom_trans _ _).symm
 }
@@ -107,7 +108,7 @@ def functor_from_nat_trans {X Y : C} (α : (functor.const J).obj X ⟶ (functor.
 def nat_trans_from_connected [conn : connected J] {X Y : C} (j : J) (α : (functor.const J).obj X ⟶ (functor.const J).obj Y) :
   α.app j = (α.app (default J) : X ⟶ Y) :=
 @congr_arg _ _ _ _
-  (λ t : _ ⥤ _, t.obj j)
+  (λ t : J ⥤ _, t.obj j)
   (any_functor_eq_constant (functor_from_nat_trans α))
 end C
 
@@ -121,26 +122,26 @@ section products
 variables [has_binary_products.{v₂} C]
 
 @[simps]
-def prod_functor  : C ⥤ C ⥤ C :=
+def prod_functor : C ⥤ C ⥤ C :=
 { obj := λ X, { obj := λ Y, X ⨯ Y, map := λ Y Z, limits.prod.map (𝟙 X) },
   map := λ Y Z f, { app := λ T, limits.prod.map f (𝟙 T) }}
 
-variables  {J : Type v₂} [small_category J]
+variables {J : Type v₂} [small_category J]
 
 @[simps]
 def γ₂ {K : J ⥤ C} (X : C) : K ⋙ prod_functor.obj X ⟶ K :=
 { app := λ Y, limits.prod.snd }
 
 @[simps]
-def γ₁  {K : J ⥤ C} (X : C) : K ⋙ prod_functor.obj X ⟶ (functor.const J).obj X :=
+def γ₁ {K : J ⥤ C} (X : C) : K ⋙ prod_functor.obj X ⟶ (functor.const J).obj X :=
 { app := λ Y, limits.prod.fst }
 
 @[simps]
-def forget_cone  {X : C} {K : J ⥤ C} (s : cone (K ⋙ prod_functor.obj X)) : cone K :=
+def forget_cone {X : C} {K : J ⥤ C} (s : cone (K ⋙ prod_functor.obj X)) : cone K :=
 { X := s.X,
   π := s.π ≫ γ₂ X }
 
-def prod_preserves_connected_limits [conn : connected J] (X : C) :
+def prod_preserves_connected_limits [connected J] (X : C) :
   preserves_limits_of_shape J (prod_functor.obj X) :=
 { preserves_limit := λ K,
   { preserves := λ c l,
@@ -149,11 +150,10 @@ def prod_preserves_connected_limits [conn : connected J] (X : C) :
       begin
         apply prod.hom_ext,
         { rw assoc,
-          rw functor.map_cone_π,
           erw limit.map_π,
           erw comp_id,
           rw limit.lift_π,
-          exact (@nat_trans_from_connected _ _ _ _ conn _ _ j (s.π ≫ γ₁ X)).symm },
+          exact (nat_trans_from_connected j (s.π ≫ γ₁ X)).symm },
         { have: l.lift (forget_cone s) ≫ c.π.app j = s.π.app j ≫ limits.prod.snd := l.fac (forget_cone s) j,
           rw ← this,
           simp }
@@ -161,24 +161,24 @@ def prod_preserves_connected_limits [conn : connected J] (X : C) :
       uniq' := λ s m L,
       begin
         apply prod.hom_ext,
-          rw limit.lift_π,
+        { rw limit.lift_π,
           rw ← L (default J),
           dsimp,
           rw assoc,
           rw limit.map_π,
-          erw comp_id,
-        rw limit.lift_π,
-        apply l.uniq (forget_cone s),
-        intro j,
-        dsimp,
-        rw ← L j,
-        simp
+          erw comp_id },
+        { rw limit.lift_π,
+          apply l.uniq (forget_cone s),
+          intro j,
+          dsimp,
+          rw ← L j,
+          simp }
       end } } }
 
 end products
 
-variables  {J : Type v₂} [𝒥' : small_category J]
-include 𝒥'
+variables {J : Type v₂} [𝒥 : small_category J]
+include 𝒥
 
 namespace over
 
@@ -194,19 +194,19 @@ def raise_cone [conn : connected J] {B : C} {F : J ⥤ over B} (c : cone (F ⋙ 
   cone F :=
 { X := @over.mk _ _ B c.X (c.π.app (default J) ≫ (F.obj (default J)).hom),
   π :=
-  { app := λ j, over.hom_mk (c.π.app j) (@nat_trans_from_connected _ _ _ _ conn _ _ j (c.π ≫ nat_trans_in_over F)) } }
+  { app := λ j, over.hom_mk (c.π.app j) (nat_trans_from_connected j (c.π ≫ nat_trans_in_over F)) } }
 
 lemma raised_cone_lowers_to_original [conn : connected J] {B : C} {F : J ⥤ over B} (c : cone (F ⋙ forget)) (t : is_limit c) :
-  forget.map_cone (@raise_cone _ _ _ _ conn _ _ c) = c :=
+  forget.map_cone (raise_cone c) = c :=
 by tidy
 
-omit 𝒥'
+omit 𝒥
 instance forget_reflects_iso {B : C} {X Y : over B} (f : X ⟶ Y) [t : is_iso (forget.map f)] : is_iso f :=
 { inv := over.hom_mk t.inv (by { dsimp, erw [(as_iso (forget.map f)).inv_comp_eq, over.w f] }) }
-include 𝒥'
+include 𝒥
 
 def raised_cone_is_limit [conn : connected J] {B : C} {F : J ⥤ over B} {c : cone (F ⋙ forget)} (t : is_limit c) :
-  is_limit (@raise_cone _ _ _ _ conn _ _ c) :=
+  is_limit (raise_cone c) :=
 { lift := λ s, over.hom_mk (t.lift (forget.map_cone s))
                (by { dsimp, slice_lhs 1 2 {rw t.fac}, exact over.w (s.π.app (default J)) }),
   uniq' :=
@@ -230,7 +230,7 @@ def iso_apex_of_iso_cone {F : J ⥤ C} {c₁ c₂ : cone F} (h : c₁ ≅ c₂) 
 def any_cone_works [conn : connected J] {B : C} {F : J ⥤ over B} (c : cone (F ⋙ forget)) (t : is_limit c) (d : cone F) (h : forget.map_cone d ≅ c) :
   is_limit d :=
 begin
-  apply is_limit.of_iso_limit (@raised_cone_is_limit _ _ _ _ conn _ _ _ t),
+  apply is_limit.of_iso_limit (raised_cone_is_limit t),
   have comm: h.inv.hom ≫ d.X.hom = c.π.app (default J) ≫ (F.obj (default J)).hom,
     rw ← h.inv.w (default J),
     erw ← over.w (d.π.app (default J)),
@@ -250,7 +250,7 @@ end creates
 
 def forgetful_creates_connected_limits [conn : connected J] {B : C} (F : J ⥤ over B) [has_limit (F ⋙ forget)] :
   has_limit F :=
-{ cone := @creates.raise_cone _ _ _ _ conn _ _ (limit.cone (F ⋙ forget)),
+{ cone := creates.raise_cone (limit.cone (F ⋙ forget)),
   is_limit := creates.raised_cone_is_limit (limit.is_limit _) }
 
 end over

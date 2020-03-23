@@ -113,7 +113,7 @@ include 𝒟
 /-- Take a G-split coequaliser `cf` for `f,g : A ⟶ B`, then we have a coequaliser for `f,g` and `G` of this coequaliser is still a colimit.  -/
 def creates_split_coequalisers (G : D ⥤ C) :=
 Π {A B : D} (f g : A ⟶ B) (cf : split_coequaliser (G.map f) (G.map g)),
-  Σ (hcl : has_colimit (parallel_pair f g)), is_colimit $ (limits.cocones.functoriality G).obj hcl.cocone
+  Σ (hcl : has_colimit (parallel_pair f g)), is_colimit $ G.map_cocone hcl.cocone
 
 variables {J : Type v} [𝒥 : small_category J]
 include 𝒥
@@ -122,11 +122,18 @@ include 𝒥
 
 def creates_limits (d : J ⥤ C) (F : C ⥤ D) :=
 Π [fl : has_limit (d ⋙ F)], Σ (l : has_limit d),
-  is_limit $ (limits.cones.functoriality F).obj l.cone
+  is_limit $ F.map_cone l.cone
+
+structure creates_limit (K : J ⥤ C) (F : C ⥤ D) (c : cone (K ⋙ F)) (t : is_limit c) :=
+(upstairs : cone K)
+(up_hits : F.map_cone upstairs ≅ c)
+(any_up_is_lim : Π (up' : cone K) (iso : F.map_cone up' ≅ c), is_limit up')
+
+-- Π (c : cone (d ⋙ F)) (t : is_limit c), (Σ (t : cone d), F.map_cone t ≅ c)
 
 def creates_colimits (d : J ⥤ C) (F : C ⥤ D) :=
 Π [fl : has_colimit (d ⋙ F)], Σ (l : has_colimit d),
-  is_colimit $ (limits.cocones.functoriality F).obj l.cocone
+  is_colimit $ F.map_cocone l.cocone
 
 open category_theory.monad
 open category_theory.monad.algebra
