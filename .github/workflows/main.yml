@@ -4,10 +4,10 @@ jobs:
   build_job:
     runs-on: ubuntu-latest
     container: edayers/lean:3.6.1
-    name: Run leanproject build
+    name: Build
     steps:
     - uses: actions/checkout@v1
     - run: leanpkg configure
     - run: leanproject get-cache
       working-directory: _target/deps/mathlib/
-    - run: leanproject build
+    - run: leanpkg build
