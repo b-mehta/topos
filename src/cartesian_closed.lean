@@ -9,6 +9,7 @@ import category_theory.adjunction
 import adjunction
 import tactic
 import to_mathlib
+import binary_products
 
 /-!
 # Cartesian closed categories
@@ -22,14 +23,10 @@ namespace category_theory
 
 open limits category
 section
-variables {C : Type u} [𝒞 : category.{v} C] [@has_binary_products.{v} C 𝒞] {A U V W X Y Z : C}
+variables {C : Type u} [𝒞 : category.{v} C] [has_binary_products.{v} C] {A U V W X Y Z : C}
 include 𝒞
 
 local attribute [tidy] tactic.case_bash
-
-def prod_functor : C ⥤ C ⥤ C :=
-{ obj := λ X, { obj := λ Y, X ⨯ Y, map := λ Y Z, limits.prod.map (𝟙 X) },
-  map := λ Y Z f, { app := λ T, limits.prod.map f (𝟙 T) }}
 
 def prodinl (X : C) : C ⥤ C := prod_functor.obj X
 

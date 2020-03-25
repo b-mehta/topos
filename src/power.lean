@@ -86,7 +86,6 @@ instance has_power_object_of_has_all [has_power_objects.{v} C] {A : C} :
   has_power_object.{v} A := has_power_objects.has_power_object A
 
 section convenience
-<<<<<<< HEAD
 
 variables (A : C) [has_power_object.{v} A]
 
@@ -95,16 +94,6 @@ def ni : C := @has_power_object.niA _ 𝒞 _ A _
 def mem : ni A ⟶ P A ⨯ A := has_power_object.memA A
 instance mem_mono : mono (mem A) := has_power_object.mem_mono' A
 
-=======
-
-variables (A : C) [has_power_object.{v} A]
-
-def P : C := @has_power_object.PA _ 𝒞 _ A _
-def ni : C := @has_power_object.niA _ 𝒞 _ A _
-def mem : ni A ⟶ P A ⨯ A := has_power_object.memA A
-instance mem_mono : mono (mem A) := has_power_object.mem_mono' A
-
->>>>>>> master
 variables {A} {B R : C} (m : R ⟶ B ⨯ A) [mono m]
 
 def hat : B ⟶ P A := has_power_object.hat m
@@ -231,21 +220,6 @@ quotient.lift (λ (f : sub' (B ⨯ A)), @hat _ _ _ _ _ _ _ f.1.hom f.2) liftable
 def hat_sub' {A B : C} [has_power_object.{v} A] (k : B ⟶ P A) : sub (B ⨯ A) :=
 quotient.mk ⟨over.mk (pullback.snd : pullback (mem A) (limits.prod.map k (𝟙 _)) ⟶ B ⨯ A), pullback.snd_of_mono⟩
 
-<<<<<<< HEAD
-=======
-lemma prod_functorial {X Y Z W : C} (f : X ⟶ Y) (g : Y ⟶ Z) :
-  limits.prod.map (f ≫ g) (𝟙 W) = limits.prod.map f (𝟙 W) ≫ limits.prod.map g (𝟙 W) :=
-begin
-  apply prod.hom_ext,
-  simp, simp, dsimp, simp
-end
-lemma prod_functorial' {X Y Z W : C} (f : X ⟶ Y) (g : Y ⟶ Z) :
-  limits.prod.map (𝟙 W) (f ≫ g) = limits.prod.map (𝟙 W) f ≫ limits.prod.map (𝟙 W) g :=
-begin
-  apply prod.hom_ext,
-  simp, dsimp, simp, simp
-end
->>>>>>> master
 def hat_natural_right {A A' B R : C} [has_power_object.{v} A] [has_power_object.{v} A'] (k : R ⟶ B ⨯ A) [mono k] (g : A' ⟶ A) :
   hat k ≫ P_map g = hat (pullback.snd : pullback k (limits.prod.map (𝟙 B) g) ⟶ B ⨯ A') :=
 begin
