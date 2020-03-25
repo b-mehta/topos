@@ -50,6 +50,6 @@ run
 ``` sh
 # topos/
 leanpkg configure
-update-mathlib
+leanproject get-mathlib-cache
 leanpkg build
 ```
