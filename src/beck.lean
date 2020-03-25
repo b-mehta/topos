@@ -93,64 +93,97 @@ lemma algebra_pair_reflexive (α : CT) : reflexive_pair (((F).map) α.a) (ε ((F
   back_g := begin simp end
 }
 
+omit 𝒞 𝒟
+def restrict_equivalence {A B : Type v} (h : A ≃ B) (p : A → Prop) (q : B → Prop) (sound : ∀ a, p a ↔ q (h a)) : {a // p a} ≃ {b // q b} :=
+{ to_fun := λ a, ⟨h.to_fun a.1, (sound a.1).1 a.2⟩,
+  inv_fun := λ b, ⟨h.inv_fun b.1, begin apply (sound (h.inv_fun b.1)).2, convert b.2, apply h.right_inv end⟩,
+  left_inv := begin rintro ⟨a, _⟩, dsimp, congr, rw h.left_inv end,
+  right_inv := begin rintro ⟨b, _⟩, dsimp, congr, rw h.right_inv end }
+include 𝒞
+def coeq_equiv {X Y Z : C} {f g : X ⟶ Y} [has_colimit (parallel_pair f g)] : (coequalizer f g ⟶ Z) ≃ {h : Y ⟶ Z // f ≫ h = g ≫ h} :=
+{ to_fun := λ i, ⟨coequalizer.π _ _ ≫ i, begin rw ← assoc, rw coequalizer.condition, simp end⟩,
+  inv_fun := λ h, coequalizer.desc f g h.1 h.2,
+  left_inv := λ i, begin dsimp, ext1, rw colimit.ι_desc, refl end,
+  right_inv := λ ⟨h, t⟩, begin dsimp, congr, rw colimit.ι_desc, refl end }
+
+include 𝒟
+
+def e2 (α : CT) (B : D) : {f : (F).obj α.A ⟶ B // (F).map α.a ≫ f = ε ((F).obj α.A) ≫ f} ≃ {fcheck : α.A ⟶ G.obj B // α.a ≫ fcheck = G.map ((F).map fcheck) ≫ G.map (ε B)} :=
+restrict_equivalence ((adjj).hom_equiv _ _) _ _ $ λ f,
+begin
+  change (F).map α.a ≫ f = ε ((F).obj α.A) ≫ f ↔
+         α.a ≫ ((adjj).hom_equiv α.A B).to_fun f = G.map ((F).map (((adjj).hom_equiv α.A B).to_fun f)) ≫ G.map (ε B),
+  rw ← G.map_comp,
+  change (F).map α.a ≫ f = ε ((F).obj α.A) ≫ f ↔
+         α.a ≫ ((adjj).hom_equiv α.A B).to_fun f = G.map ((F).map (((adjj).hom_equiv α.A B).to_fun f) ≫ ε B),
+  have: (F).map (((adjj).hom_equiv α.A B).to_fun f) ≫ ε B = f,
+    erw ← (adjj).hom_equiv_counit, apply ((adjj).hom_equiv α.A B).left_inv f,
+  rw this, clear this,
+  change (F).map α.a ≫ f = ε ((F).obj α.A) ≫ f ↔ α.a ≫ ((adjj).hom_equiv α.A B).to_fun f = G.map f,
+  have: ((adjj).hom_equiv _ B).to_fun ((F).map α.a ≫ f) = α.a ≫ ((adjj).hom_equiv α.A B).to_fun f := (adjj).hom_equiv_naturality_left α.a f,
+  rw ← this, clear this,
+  split,
+  { have: ((adjj).hom_equiv _ B).to_fun ((F).map α.a ≫ f) = _ := (adjj).hom_equiv_unit,
+    rw this, clear this,
+    intro t,
+    rw t,
+    rw G.map_comp,
+    rw ← assoc,
+    change ((adjj).unit.app (G.obj _) ≫ _) ≫ _ = _,
+    rw (adjj).right_triangle_components, erw id_comp },
+  { intro t,
+    apply function.injective_of_left_inverse ((adjj).hom_equiv _ _).left_inv,
+    rw t,
+    have: ((adjj).hom_equiv _ B).to_fun (ε ((F).obj α.A) ≫ f) = ((adjj).hom_equiv _ ((F).obj α.A)).to_fun (ε ((F).obj α.A)) ≫
+      G.map f := (adjj).hom_equiv_naturality_right (ε ((F).obj α.A)) f,
+    erw this, clear this,
+    symmetry,
+    convert id_comp _ _,
+    have: ((adjj).hom_equiv (G.obj ((F).obj α.A)) ((F).obj α.A)).to_fun (ε ((F).obj α.A)) = _ := (adjj).hom_equiv_unit,
+    rw this,
+    rw (adjj).right_triangle_components, refl }
+
+end
+
+def e3 (α : CT) (B : D) : {fcheck : α.A ⟶ G.obj B // α.a ≫ fcheck = G.map ((F).map fcheck) ≫ G.map (ε B)} ≃ (α ⟶ (monad.comparison G).obj B) :=
+{ to_fun := λ f, { f := f.1, h' := f.2.symm },
+  inv_fun := λ g, ⟨g.f, g.h.symm⟩,
+  left_inv := λ ⟨f, _⟩, by {dsimp, congr},
+  right_inv := λ ⟨g, _⟩, by {dsimp, ext1, refl} }
+
 /- Assume we have coequalisers for (F a) and (ε F A) for all algebras (A,a). -/
 variables (hce : ∀ (α : CT), has_colimit (parallel_pair (((F).map) α.a) (ε ((F).obj α.A))))
 
+def L_obj : CT → D :=
+λ α, @colimit _ _ _ _ _ (hce α)
+
+def e1 (α : CT) (B : D) : (L_obj hce α ⟶ B) ≃ {f : (F).obj α.A ⟶ B // (F).map α.a ≫ f = ε ((F).obj α.A) ≫ f} :=
+coeq_equiv
+
+@[reducible]
+def Le (α : CT) (B : D) : (L_obj hce α ⟶ B) ≃ (α ⟶ (monad.comparison G).obj B) :=
+equiv.trans (e1 _ _ _) (equiv.trans (e2 _ _) (e3 _ _))
+
+lemma Lhe (α : CT) (B B' : D) (g : B ⟶ B') (h : L_obj hce α ⟶ B) : (Le hce α B') (h ≫ g) = (Le hce α B) h ≫ (monad.comparison G).map g :=
+begin
+  ext, dunfold Le e1 e2 e3 coeq_equiv restrict_equivalence, dsimp,
+  show ((adjj).hom_equiv α.A B').to_fun (coequalizer.π ((F).map α.a) (ε ((F).obj α.A)) ≫ h ≫ g) =
+       ((adjj).hom_equiv α.A B ).to_fun (coequalizer.π ((F).map α.a) (ε ((F).obj α.A)) ≫ h) ≫ G.map g,
+  conv_lhs {congr, skip, rw ← assoc},
+  apply (adjj).hom_equiv_naturality_right
+end
+
+#check adjunction.left_adjoint_of_equiv (Le hce) (Lhe hce)
+
 /-- The left adjoint to the comparison functor. -/
-private def L : CT ⥤ D :=
-{   obj := λ α, @colimit _ _ _ _ _ (hce α),
-    map := λ α β f, begin
-      refine limits.coequalizer.desc _ _ (((F).map f.f) ≫ @limits.coequalizer.π _ _ _ _ _ _ (hce β)) _,
-      erw [← assoc, ← functor.map_comp F, ← f.h, functor.map_comp F, assoc, limits.coequalizer.condition],
-      suffices : (F).map ((F ⋙ G).map f.f) ≫ ε ((F).obj β.A) = ε ((F).obj α.A) ≫ (F).map f.f,
-        erw [← assoc, this, assoc],
-      simp
-      end,
-    map_id' := begin intros, simp, apply limits.coequalizer.hom_ext, simp, end,
-    map_comp' := begin intros, simp, apply limits.coequalizer.hom_ext, simp end
-}
+private def L : CT ⥤ D := adjunction.left_adjoint_of_equiv (Le hce) (Lhe hce)
 
 /-- Suppose we have coequalisers for (F a) and (ε F A) for all algebras (A,a), then the comparison functor has a left adjoint.
     This is then shown to be an equivalence adjunction in the monadicity theorems.
   -/
-lemma left_adjoint_of_comparison : is_right_adjoint (monad.comparison G) :=
-{ left := L hce,
-  adj := adjunction.mk_of_unit_counit
-    { unit := {
-        app :=
-        begin
-          intro X,
-          refine {f := _, h' := _},
-          refine ((adjj).unit.app X.A ≫ G.map _),
-          apply limits.coequalizer.π,
-          /- [todo]
-          G (F (η A ≫ G π)) ≫ G (ε (L A))
-          = G F η A ≫ G (F G π ≫ ε L A)
-          = G F η A ≫ G (ε F A ≫ π)
-          = G (F η A ≫ G ε F A) ≫ G π
-          = G π
-          = η G F A ≫ G ε F A ≫ G π
-          = η G F A  ≫ G F α ≫ G π
-          = α ≫ η A ≫ G π
-          -/
-          sorry,
-        end,
-        naturality' := sorry
-      },
-    counit := {
-      app :=
-      begin
-        intro X,
-        refine limits.coequalizer.desc _ _ _ _,
-        refine (adjj).counit.app _,
-        /- F G ε X ≫ ε X = ε F G X ≫ ε X -/
-        simp,
-      end,
-      naturality' := sorry},
-    left_triangle' := sorry,
-    right_triangle' := sorry
-    }
-}
+def forms_adjoint : L hce ⊣ monad.comparison G := adjunction.adjunction_of_equiv_left (Le hce) (Lhe hce)
+def left_adjoint_of_comparison : is_right_adjoint (monad.comparison G) :=
+{ left := L hce, adj := forms_adjoint hce }
 
 end algebra
 
