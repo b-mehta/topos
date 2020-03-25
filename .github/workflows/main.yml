@@ -8,6 +8,5 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - run: leanpkg configure
-    - run: leanproject get-cache
-      working-directory: _target/deps/mathlib/
+    - run: leanproject get-mathlib-cache
     - run: leanpkg build
