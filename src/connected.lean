@@ -101,10 +101,10 @@ connected.of_any_functor_const_on_obj (λ _ F, h F.obj (λ _ _ f, (F.map f).down
 
 def rec [connected J] (p : set J) (h0 : default J ∈ p) (h1 : ∀ {j₁ j₂ : J} (f : j₁ ⟶ j₂), j₁ ∈ p ↔ j₂ ∈ p) (j : J) : j ∈ p :=
 begin
-  have := constant_function_of_preserves_morphisms (λ k, ulift.up (k ∈ p)) _ j,
+  have := constant_function_of_preserves_morphisms (λ k, ulift.up (k ∈ p)) (λ j₁ j₂ f, _) j,
     swap,
-    intros, dsimp, congr' 1, apply propext, apply h1 f,
-  dsimp at this, injection this with i, rwa i,
+    dsimp, exact congr_arg ulift.up (propext (h1 f)),
+  injection this with i, rwa i,
 end
 
 /--
@@ -119,14 +119,7 @@ def zag (j₁ j₂ : J) : Prop := nonempty (j₁ ⟶ j₂) ∨ nonempty (j₂ �
 @[reducible]
 def zigzag : J → J → Prop := relation.refl_trans_gen zag
 
--- def has_arrow (j₁ j₂ : J) : Prop := nonempty (j₁ ⟶ j₂)
-
--- inductive eqv_gen : α → α → Prop
--- | rel {} : Π x y, r x y → eqv_gen x y
--- | refl {} : Π x, eqv_gen x x
--- | symm {} : Π x y, eqv_gen x y → eqv_gen y x
--- | trans {} : Π x y z, eqv_gen x y → eqv_gen y z → eqv_gen x z
-
+/-- Any equivalence relation containing (⟶) holds for all pairs. -/
 lemma equiv_relation [connected J] (r : J → J → Prop) (hr : _root_.equivalence r)
   (h : ∀ {j₁ j₂ : J} (f : j₁ ⟶ j₂), r j₁ j₂) :
   ∀ (j₁ j₂ : J), r j₁ j₂ :=
@@ -145,18 +138,11 @@ equiv_relation _
     relation.transitive_refl_trans_gen)
   (λ _ _ f, relation.refl_trans_gen.single (or.inl (nonempty.intro f))) _ _
 
--- @[simp] def last : Π l : list α, l ≠ [] → α
--- | []        h := absurd rfl h
--- | [a]       h := a
--- | (a::b::l) h := last (b::l) (λ h, list.no_confusion h)
-
 omit 𝒥
 
 def head' {α : Type v₂} : Π l : list α, l ≠ list.nil → α
 | [] t := absurd rfl t
 | (a :: l) _ := a
-
-#check head'
 
 lemma exists_zigzag {α : Type v₂} {r : α → α → Prop} {a b : α} (h : relation.refl_trans_gen r a b) :
   ∃ (l : list α), list.chain' r l ∧ ∃ (hl : l ≠ list.nil), head' l hl = a ∧ list.last l hl = b :=
@@ -248,11 +234,13 @@ def functor_from_nat_trans {X Y : C} (α : (functor.const J).obj X ⟶ (functor.
   map_comp' := λ A₁ A₂ A₃ f g, (eq_to_hom_trans _ _).symm
 }
 
-def nat_trans_from_connected [conn : connected J] {X Y : C} (j : J) (α : (functor.const J).obj X ⟶ (functor.const J).obj Y) :
-  α.app j = (α.app (default J) : X ⟶ Y) :=
-@congr_arg _ _ _ _
-  (λ t : J ⥤ _, t.obj j)
-  (any_functor_eq_constant (functor_from_nat_trans α))
+def nat_trans_from_connected [conn : connected J] {X Y : C} (α : (functor.const J).obj X ⟶ (functor.const J).obj Y) :
+  ∀ (j : J), α.app j = (α.app (default J) : X ⟶ Y) :=
+@constant_function_of_preserves_morphisms _ _ _
+  (X ⟶ Y)
+  (λ j, α.app j)
+  (λ _ _ f, (by { have := α.naturality f, erw [id_comp, comp_id] at this, exact this.symm }))
+
 end C
 
 local attribute [tidy] tactic.case_bash
@@ -291,7 +279,7 @@ def prod_preserves_connected_limits [connected J] (X : C) :
           erw limit.map_π,
           erw comp_id,
           rw limit.lift_π,
-          exact (nat_trans_from_connected j (s.π ≫ γ₁ X)).symm },
+          exact (nat_trans_from_connected (s.π ≫ γ₁ X) j).symm },
         { have: l.lift (forget_cone s) ≫ c.π.app j = s.π.app j ≫ limits.prod.snd := l.fac (forget_cone s) j,
           rw ← this,
           simp }
@@ -332,7 +320,7 @@ def raise_cone [conn : connected J] {B : C} {F : J ⥤ over B} (c : cone (F ⋙ 
   cone F :=
 { X := @over.mk _ _ B c.X (c.π.app (default J) ≫ (F.obj (default J)).hom),
   π :=
-  { app := λ j, over.hom_mk (c.π.app j) (nat_trans_from_connected j (c.π ≫ nat_trans_in_over F)) } }
+  { app := λ j, over.hom_mk (c.π.app j) (nat_trans_from_connected (c.π ≫ nat_trans_in_over F) j) } }
 
 lemma raised_cone_lowers_to_original [conn : connected J] {B : C} {F : J ⥤ over B} (c : cone (F ⋙ forget)) (t : is_limit c) :
   forget.map_cone (raise_cone c) = c :=
@@ -340,7 +328,7 @@ by tidy
 
 omit 𝒥
 instance forget_reflects_iso {B : C} : reflects_isomorphisms (forget : over B ⥤ C) :=
-{reflects := λ X Y f t, { inv := over.hom_mk t.inv (begin { exact (@as_iso _ _ _ _ (forget.map f) t).inv_comp_eq.2 (over.w f).symm } end) } }
+{reflects := λ X Y f t, { inv := over.hom_mk t.inv (by { exact (@as_iso _ _ _ _ (forget.map f) t).inv_comp_eq.2 (over.w f).symm }) } }
 include 𝒥
 
 def raised_cone_is_limit [conn : connected J] {B : C} {F : J ⥤ over B} {c : cone (F ⋙ forget)} (t : is_limit c) :
