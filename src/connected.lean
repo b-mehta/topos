@@ -11,6 +11,8 @@ import category_theory.limits.preserves
 import category_theory.limits.over
 import category_theory.comma
 import to_mathlib
+import binary_products
+import creates
 
 /-!
 # Connected category
@@ -18,11 +20,10 @@ import to_mathlib
 Define a connected category
 -/
 
-universes v₁ v₂ u₂
+universes v₁ v₂ u₁ u₂
 
 open category_theory category_theory.category category_theory.limits
 namespace category_theory
-
 
 /--
 We define a connected category as a _nonempty_ category for which every
@@ -55,7 +56,7 @@ begin
 end
 
 def connected.of_any_functor_const_on_obj [inhabited J]
-  (h : ∀ {α : Type v₂} (F : J ⥤ discrete α), ∀ (B : J), F.obj B = F.obj (default J)) :
+  (h : ∀ {α : Type v₂} (F : J ⥤ discrete α), ∀ (j : J), F.obj j = F.obj (default J)) :
   connected J :=
 begin
   split,
@@ -65,6 +66,148 @@ begin
   intro B, apply eq_to_iso (h B),
   intros, apply subsingleton.elim
 end
+
+@[simps]
+def functor_to_discrete_of_preserves_morphisms {α : Type v₂} (F : J → α) (h : ∀ (j₁ j₂ : J) (f : j₁ ⟶ j₂), F j₁ = F j₂) : J ⥤ discrete α :=
+{ obj := F,
+  map := λ _ _ f, eq_to_hom (h _ _ f),
+  map_id' := λ _, rfl,
+  map_comp' := λ _ _ _ _ _, (eq_to_hom_trans _ _).symm }
+
+/--
+If J is connected, then for any function `F` such that the presence of a
+morphism `j₁ ⟶ j₂` implies `F j₁ = F j₂`, `F` is constant.
+This can be thought of as a local-to-global property.
+
+The converse is shown in `connected.of_constant_of_preserves_morphisms`
+-/
+def constant_function_of_preserves_morphisms [connected J] {α : Type v₂} (F : J → α) (h : ∀ (j₁ j₂ : J) (f : j₁ ⟶ j₂), F j₁ = F j₂) (j : J) :
+  F j = F (default J) :=
+begin
+  have := congr_arg (λ (t : J ⥤ discrete α), t.obj j) (any_functor_eq_constant (functor_to_discrete_of_preserves_morphisms F h)),
+  exact this
+end
+
+/--
+J is connected if: given any function F : J → α which is constant for any
+j₁ j₂ for which there is a morphism j₁ ⟶ j₂, then F is constant.
+This can be thought of as a local-to-global property.
+
+The converse of `constant_function_of_preserves_morphisms`.
+-/
+def connected.of_constant_of_preserves_morphisms [inhabited J] (h : ∀ {α : Type v₂} (F : J → α), (∀ {j₁ j₂ : J} (f : j₁ ⟶ j₂), F j₁ = F j₂) → (∀ j : J, F j = F (default J))) :
+  connected J :=
+connected.of_any_functor_const_on_obj (λ _ F, h F.obj (λ _ _ f, (F.map f).down.1))
+
+def rec [connected J] (p : set J) (h0 : default J ∈ p) (h1 : ∀ {j₁ j₂ : J} (f : j₁ ⟶ j₂), j₁ ∈ p ↔ j₂ ∈ p) (j : J) : j ∈ p :=
+begin
+  have := constant_function_of_preserves_morphisms (λ k, ulift.up (k ∈ p)) _ j,
+    swap,
+    intros, dsimp, congr' 1, apply propext, apply h1 f,
+  dsimp at this, injection this with i, rwa i,
+end
+
+/--
+In other words, this says that any maximal connected component of J containing the default must be all of J.
+-/
+def connected.of_rec [inhabited J] (h : ∀ (p : set J), default J ∈ p → (∀ {j₁ j₂ : J} (f : j₁ ⟶ j₂), j₁ ∈ p ↔ j₂ ∈ p) → ∀ (j : J), j ∈ p) :
+  connected J :=
+connected.of_constant_of_preserves_morphisms (λ α F a, h {j | F j = F (default J)} rfl (λ _ _ f, by simp [a f] ))
+
+@[reducible]
+def zag (j₁ j₂ : J) : Prop := nonempty (j₁ ⟶ j₂) ∨ nonempty (j₂ ⟶ j₁)
+@[reducible]
+def zigzag : J → J → Prop := relation.refl_trans_gen zag
+
+-- def has_arrow (j₁ j₂ : J) : Prop := nonempty (j₁ ⟶ j₂)
+
+-- inductive eqv_gen : α → α → Prop
+-- | rel {} : Π x y, r x y → eqv_gen x y
+-- | refl {} : Π x, eqv_gen x x
+-- | symm {} : Π x y, eqv_gen x y → eqv_gen y x
+-- | trans {} : Π x y z, eqv_gen x y → eqv_gen y z → eqv_gen x z
+
+lemma equiv_relation [connected J] (r : J → J → Prop) (hr : _root_.equivalence r)
+  (h : ∀ {j₁ j₂ : J} (f : j₁ ⟶ j₂), r j₁ j₂) :
+  ∀ (j₁ j₂ : J), r j₁ j₂ :=
+begin
+  have z: ∀ (j : J), r (default J) j :=
+    rec (λ k, r (default J) k)
+        (hr.1 (default J)) (λ j₁ j₂ f, ⟨λ t, hr.2.2 t (h f), λ t, hr.2.2 t (hr.2.1 (h f))⟩),
+  intros, apply hr.2.2 (hr.2.1 (z _)) (z _)
+end
+
+lemma connected_zigzag [connected J] (j₁ j₂ : J) : zigzag j₁ j₂ :=
+equiv_relation _
+  (mk_equivalence _
+    relation.reflexive_refl_trans_gen
+    (relation.refl_trans_gen.symmetric (λ _ _ _, by rwa [zag, or_comm]))
+    relation.transitive_refl_trans_gen)
+  (λ _ _ f, relation.refl_trans_gen.single (or.inl (nonempty.intro f))) _ _
+
+-- @[simp] def last : Π l : list α, l ≠ [] → α
+-- | []        h := absurd rfl h
+-- | [a]       h := a
+-- | (a::b::l) h := last (b::l) (λ h, list.no_confusion h)
+
+omit 𝒥
+
+def head' {α : Type v₂} : Π l : list α, l ≠ list.nil → α
+| [] t := absurd rfl t
+| (a :: l) _ := a
+
+#check head'
+
+lemma exists_zigzag {α : Type v₂} {r : α → α → Prop} {a b : α} (h : relation.refl_trans_gen r a b) :
+  ∃ (l : list α), list.chain' r l ∧ ∃ (hl : l ≠ list.nil), head' l hl = a ∧ list.last l hl = b :=
+begin
+  apply relation.refl_trans_gen.head_induction_on h,
+  refine ⟨[b], list.chain.nil, list.cons_ne_nil _ _, rfl, rfl⟩,
+  clear h a,
+  intros c d e t ih,
+  obtain ⟨l, hl₁, hl₂, hl₃, hl₄⟩ := ih,
+  refine ⟨c :: l, _, _, _, _⟩,
+  cases l,
+    apply list.chain'_singleton,
+    rw list.chain'_cons, split,
+      rw head' at hl₃, rwa hl₃,
+      assumption,
+  apply list.cons_ne_nil,
+  refl,
+  rwa list.last_cons _ hl₂,
+end
+
+lemma prop_up_chain' {α : Type v₂} {r : α → α → Prop} (p : α → Prop) {a b : α}
+  (l : list α) (hl : l ≠ []) (h : list.chain' r l)
+  (ha : head' l hl = a) (hb : list.last l hl = b)
+  (carries : ∀ {x y : α}, r x y → (p x ↔ p y)) (final : p b) : p a :=
+begin
+  induction l generalizing a,
+    exfalso, apply hl, refl,
+  rw head' at ha, cases ha,
+  cases l_tl,
+  rw list.last_singleton at hb, rw hb, assumption,
+  rw list.chain'_cons at h,
+  rw carries h.1,
+  apply l_ih _ h.2, rwa list.last_cons at hb, apply list.cons_ne_nil,
+  refl
+end
+
+include 𝒥
+lemma exists_zigzag' [connected J] (j₁ j₂ : J) : ∃ (l : list J), list.chain' zag l ∧ ∃ (hl : l ≠ []), head' l hl = j₁ ∧ list.last l hl = j₂ :=
+exists_zigzag (connected_zigzag _ _)
+
+def connected_of_zigzag [inhabited J] (h : ∀ (j₁ j₂ : J), ∃ (l : list J), list.chain' zag l ∧ ∃ (hl : l ≠ []), head' l hl = j₁ ∧ list.last l hl = j₂) :
+  connected J :=
+begin
+  apply connected.of_rec,
+  intros p d k j,
+  obtain ⟨l, zags, nemp, hd, tl⟩ := h j (default J),
+  apply prop_up_chain' p l nemp zags hd tl _ d,
+  rintros _ _ (⟨⟨_⟩⟩ | ⟨⟨_⟩⟩),
+  apply k a, symmetry, apply k a
+end
+
 end J
 
 section examples
@@ -72,31 +215,31 @@ instance cospan_inhabited : inhabited walking_cospan := ⟨walking_cospan.one⟩
 
 def cospan_connected : connected (walking_cospan) :=
 begin
-  apply connected.of_any_functor_const_on_obj,
-  intros,
-  cases B,
-  exact (F.map walking_cospan.hom.inl).down.1,
-  exact (F.map walking_cospan.hom.inr).down.1,
-  refl
+  apply connected.of_rec,
+  introv _ t, cases j,
+  { rwa t walking_cospan.hom.inl },
+  { rwa t walking_cospan.hom.inr },
+  { assumption }
 end
 
 instance parallel_pair_inhabited : inhabited walking_parallel_pair := ⟨walking_parallel_pair.one⟩
 
 def parallel_pair_connected : connected (walking_parallel_pair) :=
 begin
-  apply connected.of_any_functor_const_on_obj,
-  intros,
-  cases B,
-  exact (F.map walking_parallel_pair_hom.left).down.1,
-  refl
+  apply connected.of_rec,
+  introv _ t, cases j,
+  { rwa t walking_parallel_pair_hom.left },
+  { assumption }
 end
 end examples
 
 section C
 variables {J : Type v₂} [𝒥 : category.{v₁} J]
 include 𝒥
+
 variables {C : Type u₂} [𝒞 : category.{v₂} C]
 include 𝒞
+
 @[simps]
 def functor_from_nat_trans {X Y : C} (α : (functor.const J).obj X ⟶ (functor.const J).obj Y) : J ⥤ discrete (X ⟶ Y) :=
 { obj := α.app,
@@ -120,11 +263,6 @@ include 𝒞
 section products
 
 variables [has_binary_products.{v₂} C]
-
-@[simps]
-def prod_functor : C ⥤ C ⥤ C :=
-{ obj := λ X, { obj := λ Y, X ⨯ Y, map := λ Y Z, limits.prod.map (𝟙 X) },
-  map := λ Y Z f, { app := λ T, limits.prod.map f (𝟙 T) }}
 
 variables {J : Type v₂} [small_category J]
 
@@ -201,8 +339,8 @@ lemma raised_cone_lowers_to_original [conn : connected J] {B : C} {F : J ⥤ ove
 by tidy
 
 omit 𝒥
-instance forget_reflects_iso {B : C} {X Y : over B} (f : X ⟶ Y) [t : is_iso (forget.map f)] : is_iso f :=
-{ inv := over.hom_mk t.inv (by { dsimp, erw [(as_iso (forget.map f)).inv_comp_eq, over.w f] }) }
+instance forget_reflects_iso {B : C} : reflects_isomorphisms (forget : over B ⥤ C) :=
+{reflects := λ X Y f t, { inv := over.hom_mk t.inv (begin { exact (@as_iso _ _ _ _ (forget.map f) t).inv_comp_eq.2 (over.w f).symm } end) } }
 include 𝒥
 
 def raised_cone_is_limit [conn : connected J] {B : C} {F : J ⥤ over B} {c : cone (F ⋙ forget)} (t : is_limit c) :
@@ -222,36 +360,15 @@ def raised_cone_is_limit [conn : connected J] {B : C} {F : J ⥤ over B} {c : co
     refl,
   end }
 
-@[simps]
-def iso_apex_of_iso_cone {F : J ⥤ C} {c₁ c₂ : cone F} (h : c₁ ≅ c₂) : c₁.X ≅ c₂.X :=
-{ hom := h.hom.hom,
-  inv := h.inv.hom }
-
-def any_cone_works [conn : connected J] {B : C} {F : J ⥤ over B} (c : cone (F ⋙ forget)) (t : is_limit c) (d : cone F) (h : forget.map_cone d ≅ c) :
-  is_limit d :=
-begin
-  apply is_limit.of_iso_limit (raised_cone_is_limit t),
-  have comm: h.inv.hom ≫ d.X.hom = c.π.app (default J) ≫ (F.obj (default J)).hom,
-    rw ← h.inv.w (default J),
-    erw ← over.w (d.π.app (default J)),
-    rw assoc, refl,
-
-  set f: (raise_cone c).X ⟶ d.X := over.hom_mk (iso_apex_of_iso_cone h).inv comm,
-  have that: is_iso (forget.map f),
-    rw forget_map, rw hom_mk_left, apply_instance,
-  haveI f_iso: is_iso f := @creates.forget_reflects_iso _ _ _ _ _ f that,
-  apply cones.ext (as_iso f),
-  intro j,
-  ext1,
-  exact (h.inv.w j).symm
-end
-
 end creates
 
-def forgetful_creates_connected_limits [conn : connected J] {B : C} (F : J ⥤ over B) [has_limit (F ⋙ forget)] :
-  has_limit F :=
-{ cone := creates.raise_cone (limit.cone (F ⋙ forget)),
-  is_limit := creates.raised_cone_is_limit (limit.is_limit _) }
+def forget_creates_connected_limits [conn : connected J] {B : C} : creates_limits_of_shape J (forget : over B ⥤ C) :=
+{ creates_limit := λ K,
+    creates_limit_of_reflects_iso (λ c t,
+      { lifted :=
+        { above_cone := creates.raise_cone c,
+          above_hits_original := eq_to_iso (creates.raised_cone_lowers_to_original c t) },
+        makes_limit := creates.raised_cone_is_limit t } ) }
 
 end over
 
