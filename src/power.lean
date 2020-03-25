@@ -21,6 +21,8 @@ universes v u v₂ u₂
 
 open category_theory category_theory.category category_theory.limits
 
+attribute [instance] has_pullbacks_of_has_finite_limits
+
 variables {C : Type u} [𝒞 : category.{v} C]
 include 𝒞
 
