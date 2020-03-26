@@ -14,15 +14,14 @@ This is a WIP project to define some topos theory within the Lean theorem prover
 - Subobject category
 - Subobject classifier
 - Power objects
-- (Internal) Beck-Chevalley
+- Beck's monadicity theorem [in branch beck](https://github.com/b-mehta/topos/tree/beck)
+- (Internal) Beck-Chevalley and Pare's theorem [in branch beck](https://github.com/b-mehta/topos/tree/beck)
 
 ## What's coming soon?
 - Definition of a topos
+- Every topos is finitely cocomplete
 - Proof that category of coalgebras for a comonad form a topos
 - Every topos is locally cartesian closed, Fundamental theorem of Topos Theory
-- Pare's theorem
-- Beck's monadicity theorem [unless someone else does it sooner]
-- Every topos is finitely cocomplete
 - Lawvere-Tierney topologies, sheaves
 - Logical functors
 
