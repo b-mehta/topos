@@ -11,6 +11,8 @@ This is a WIP project to define some topos theory within the Lean theorem prover
 - Locally cartesian closed categories and epi-mono factorisations
 - Many lemmas about pullbacks (for instance the pasting lemma)
 - Skeleton of a category (assuming choice)
+- Connected categories
+- Creation of limits
 - Subobject category
 - Subobject classifier
 - Power objects
