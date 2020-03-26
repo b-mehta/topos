@@ -10,6 +10,10 @@ import pullbacks
 import sub
 import subobject_classifier
 import binary_products
+import creates
+import beck
+import category_theory.limits.opposites
+import category_theory.limits.shapes.equalizers
 
 /-!
 # Power objects
@@ -754,18 +758,142 @@ instance weak_topos_has_subobj [has_power_object.{v} (⊤_ C)] : has_subobject_c
   end
 }
 
-instance p_conservative [has_power_objects.{v} C] {A B : C} (f : A ⟶ B) [is_iso (P_map f)] : is_iso f :=
+def is_iso_of_unop {X Y : Cᵒᵖ} (f : X ⟶ Y) [is_iso f.unop] : is_iso f :=
+{ inv := (inv (f.unop)).op,
+  hom_inv_id' := has_hom.hom.unop_inj (by simp),
+  inv_hom_id' := has_hom.hom.unop_inj (by simp) }
+-- #check is_iso_of_unop
+
+instance p_reflects_iso [has_power_objects.{v} C] : reflects_isomorphisms (P_functor : Cᵒᵖ ⥤ C) :=
+{ reflects := λ A B f i,
+  begin
+    haveI := i,
+    suffices: is_iso f.unop,
+      refine ⟨this.inv.op, _, _⟩,
+      dsimp, apply has_hom.hom.unop_inj, simp,
+      dsimp, apply has_hom.hom.unop_inj, simp,
+    apply @balanced _ 𝒞 _ _ _ _ _ _,
+    { split,
+      intros,
+      apply p_faithful g h,
+      erw [← cancel_mono (P_functor.map f), ← P_map_comp, w, P_map_comp],
+      refl },
+    { split,
+      intros,
+      apply p_faithful g h,
+      erw [← cancel_epi (P_functor.map f), ← P_map_comp, w, P_map_comp],
+      refl }
+  end }
+
+def exists_power {A B : C} [has_power_object.{v} A] [has_power_object.{v} B] (f : A ⟶ B) [mono f] :
+  internal_image f ≫ P_map f = 𝟙 (P A) :=
 begin
-  apply @balanced _ 𝒞 _ _ _ _ _ _,
-  { split,
-    intros,
-    apply p_faithful g h,
-    rw [← cancel_mono (P_map f), ← P_map_comp, w, P_map_comp] },
-  { split,
-    intros,
-    apply p_faithful g h,
-    rw [← cancel_epi (P_map f), ← P_map_comp, w, P_map_comp] }
+  suffices: internal_image f ≫ P_map f = P_map (𝟙 _) ≫ internal_image (𝟙 _),
+    rwa [P_map_id, internal_image_map_id, id_comp] at this,
+  apply beck_chevalley _ _ _ _ _ _,
+  simp,
+  refine ⟨λ s, s.π.app walking_cospan.left, λ s, _, λ s m J, _⟩,
+  apply pi_app_left (pullback_cone.mk (𝟙 A) (𝟙 A) _) s, erw comp_id,
+  have := pullback_cone.condition s,
+  rw cancel_mono f at this,
+  rw ← this, erw comp_id,
+  erw ← J walking_cospan.left,
+  erw comp_id
 end
+
+instance fin_category_op (J : Type v) [small_category J] [fcj : fin_category J] : fin_category Jᵒᵖ :=
+{ decidable_eq_obj := by { intros x y, rw ← opposite.unop_inj_iff x y, apply_instance },
+  fintype_obj :=
+    { elems := finset.map ⟨opposite.op, opposite.op_inj⟩ fcj.fintype_obj.elems,
+      complete :=
+      begin
+        intro x,
+        rw finset.mem_map,
+        use x.unop,
+        split,
+        apply fcj.fintype_obj.complete,
+        refl
+      end },
+  decidable_eq_hom :=
+  begin
+    intros x y f g,
+    have: f.unop = g.unop ↔ f = g := ⟨@has_hom.hom.unop_inj _ _ _ _ f g, λ t, _⟩,
+    rw ← this, apply_instance,
+    congr, assumption
+  end,
+  fintype_hom := λ X Y,
+  { elems := begin have f: (opposite.unop Y ⟶ opposite.unop X) ↪ (X ⟶ Y) := ⟨has_hom.hom.op, has_hom.hom.op_inj⟩, have q := (@fin_category.fintype_hom J _ fcj Y.unop X.unop).elems, exact finset.map f q, end,
+    complete := begin intro f, simp, use f.unop, split, apply (@fin_category.fintype_hom J _ fcj Y.unop X.unop).complete, refl end } }
+
+def pare [has_power_objects.{v} C] : monadic_right_adjoint (P_functor : Cᵒᵖ ⥤ C) :=
+{ to_is_right_adjoint := self_adj,
+  eqv :=
+  begin
+    apply reflexive_monadicity_theorem _ _ p_reflects_iso,
+    { intros _ _ _ _ _, apply_instance },
+    { rintros B' A' f' g' ⟨r', rf, rg⟩,
+      refine { preserves := λ c t, _ },
+      let A := A'.unop,
+      let B := B'.unop,
+      let E := c.X.unop,
+      let f : A ⟶ B := f'.unop,
+      let g : A ⟶ B := g'.unop,
+      let r : B ⟶ A := r'.unop,
+      let e : E ⟶ A := (cofork.π c).unop,
+      have comm: e ≫ f = e ≫ g,
+        rw ← unop_comp, rw cofork.condition c, refl,
+      have fr: f ≫ r = 𝟙 A,
+        rw ← unop_comp, rw rf, refl,
+      have gr: g ≫ r = 𝟙 A,
+        rw ← unop_comp, rw rg, refl,
+      have: mono f,
+        refine ⟨λ Z p q pfqf, _⟩, rw [← comp_id _ p, ← fr, ← assoc, ← comp_id _ q, ← fr, ← assoc], congr' 1, assumption,
+      haveI: mono f := this, clear this,
+      have: mono g,
+        refine ⟨λ Z p q pfqf, _⟩, rw [← comp_id _ p, ← gr, ← assoc, ← comp_id _ q, ← gr, ← assoc], congr' 1, assumption,
+      haveI: mono g := this, clear this,
+      have: mono e,
+      { refine ⟨λ Z p q peqe, _⟩, apply has_hom.hom.op_inj,
+        apply is_colimit.hom_ext t, apply cocone_parallel_pair_ext,
+        apply has_hom.hom.unop_inj,
+        rw unop_comp, exact peqe },
+      haveI: mono e := this, clear this,
+
+      have equal_legs: Π (s : pullback_cone g f), pullback_cone.fst s = pullback_cone.snd s,
+        intro s,
+        rw [← comp_id _ (pullback_cone.fst s), ← gr, ← assoc, pullback_cone.condition s, assoc, fr, comp_id],
+      have make_w: Π (s : pullback_cone g f), f' ≫ has_hom.hom.op (pullback_cone.fst s) = g' ≫ has_hom.hom.op (pullback_cone.fst s),
+        intro s,
+        apply has_hom.hom.unop_inj, dsimp, rw pullback_cone.condition s, rw equal_legs s,
+      let make_cofork: pullback_cone g f → cofork f' g' := λ s, cofork.of_π (pullback_cone.fst s).op (make_w s),
+      have fac: Π (s : pullback_cone g f), (t.desc (make_cofork s)).unop ≫ e = pullback_cone.fst s,
+        intro s,
+        rw ← unop_comp, erw t.fac (make_cofork s) walking_parallel_pair.one, refl,
+      have: is_limit (pullback_cone.mk e e comm.symm),
+        refine {lift := λ s, _, fac' := λ s, _, uniq' := λ s m J, _},
+        { apply has_hom.hom.unop, exact t.desc (make_cofork s) },
+        { apply pi_app_left, apply fac, rw ← equal_legs s, apply fac },
+        { apply has_hom.hom.op_inj, dsimp, apply t.uniq (make_cofork s),
+          rintro ⟨j⟩,
+          show (c.ι.app walking_parallel_pair.zero) ≫ m.op = f' ≫ (pullback_cone.fst s).op,
+          rw ← c.w walking_parallel_pair_hom.left,
+          show (f' ≫ cofork.π c) ≫ m.op = f' ≫ (s.π.app walking_cospan.left).op,
+          rw assoc, congr' 1, erw ← J walking_cospan.left, refl,
+          erw ← J walking_cospan.left, refl },
+      have := beck_chevalley _ _ _ _ _ this,
+      apply colimit_of_splits (functor.map_cocone P_functor c) (internal_image e) (internal_image g) (exists_power e) (exists_power g) this }
+  end }
+
+@[simps]
+def unop_unop : C ⥤ Cᵒᵖᵒᵖ :=
+{ obj := λ X, opposite.op (opposite.op X),
+  map := λ X Y f, f.op.op }
+
+def op_op_equivalence : Cᵒᵖᵒᵖ ≌ C :=
+{ functor := op_op,
+  inverse := unop_unop,
+  unit_iso := iso.refl (𝟭 Cᵒᵖᵒᵖ),
+  counit_iso := iso.refl (unop_unop ⋙ op_op) }
 
 namespace intersect
 

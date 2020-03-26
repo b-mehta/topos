@@ -85,6 +85,27 @@ begin
   rw [p, ← category.assoc, sc.p1], dsimp, simp }
 end
 
+-- open category_theory.limits
+open category_theory.limits.walking_parallel_pair category_theory.limits.walking_parallel_pair_hom
+
+def colimit_of_splits {F : walking_parallel_pair.{v} ⥤ C} (c : cocone F) (s : c.X ⟶ F.obj one) (t : F.obj one ⟶ F.obj zero) (hs : s ≫ c.ι.app _ = 𝟙 (c.X)) (gt : t ≫ F.map right = 𝟙 (F.obj one)) (ftsh : t ≫ F.map left = c.ι.app one ≫ s) : is_colimit c :=
+{ desc := λ s', s ≫ s'.ι.app one,
+  fac' := λ s',
+  begin
+    have: c.ι.app one ≫ s ≫ s'.ι.app one = s'.ι.app one,
+      slice_lhs 1 2 {rw ← ftsh},
+      slice_lhs 2 3 {rw s'.ι.naturality left, erw ← s'.ι.naturality right},
+      slice_lhs 1 2 {rw gt},
+      simp,
+    rintro ⟨j⟩, rw ← c.w left, slice_lhs 2 4 {rw this}, apply s'.w,
+    assumption
+  end,
+  uniq' := λ s' m J,
+  begin
+    rw ← J one, slice_rhs 1 2 {rw hs}, simp
+  end
+}
+
 variable (C)
 def has_reflexive_coequalizers := Π {A B : C} {f g : A ⟶ B}, reflexive_pair f g → has_colimit (parallel_pair f g)
 variable {C}
@@ -454,7 +475,7 @@ begin
   rw this, rw functor.map_id, rw category.id_comp
 end
 
-theorem reflexive_monadicity_theorem
+def reflexive_monadicity_theorem
   (hrc : has_reflexive_coequalizers D)
   (prc : preserves_reflexive_coequalizers G)
   (ri : reflects_isomorphisms G) :
