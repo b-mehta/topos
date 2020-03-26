@@ -5,6 +5,7 @@ Authors: Bhavik Mehta
 -/
 import category_theory.limits.limits
 import category_theory.limits.preserves
+import category_theory.monad.adjunction
 
 open category_theory category_theory.limits
 
@@ -28,6 +29,16 @@ def cone_iso_of_hom_iso {K : J ⥤ C} {c d : cone K} (f : c ⟶ d) [i : is_iso f
 { inv :=
   { hom := i.inv,
     w' := λ j, (as_iso f.hom).inv_comp_eq.2 (f.w j).symm } }
+
+/--
+Given a cocone morphism whose object part is an isomorphism, produce an
+isomorphism of cocones.
+-/
+def cocone_iso_of_hom_iso {K : J ⥤ C} {c d : cocone K} (f : c ⟶ d) [i : is_iso f.hom] :
+  is_iso f :=
+{ inv :=
+  { hom := i.inv,
+    w' := λ j, (as_iso f.hom).comp_inv_eq.2 (f.w j).symm } }
 
 variables {D : Type u₂} [𝒟 : category.{v} D]
 include 𝒟
@@ -54,6 +65,19 @@ begin
   haveI := reflects_isomorphisms.reflects F f.hom,
   apply cone_iso_of_hom_iso
 end
+/--
+If `F` reflects isomorphisms, then `cocones.functoriality F` reflects isomorphisms
+as well.
+-/
+instance reflects_cocone_isomorphism (F : C ⥤ D) [reflects_isomorphisms F] (K : J ⥤ C) :
+  reflects_isomorphisms (@cocones.functoriality _ _ _ _ K _ _ F) :=
+begin
+  constructor,
+  introsI,
+  haveI : is_iso (F.map f.hom) := (cocones.forget (K ⋙ F)).map_is_iso ((cocones.functoriality F).map f),
+  haveI := reflects_isomorphisms.reflects F f.hom,
+  apply cocone_iso_of_hom_iso
+end
 
 -- Having this as an instance seems to break resolution, so let's not.
 /-- If `F` reflects isos and `F.map f` is an iso, then `f` is an iso. -/
@@ -64,6 +88,7 @@ reflects_isomorphisms.reflects F f
 
 end isomorphisms
 
+section creates
 variables {D : Type u₂} [𝒟 : category.{v} D]
 include 𝒟
 
@@ -77,6 +102,10 @@ i.e. the image of it under `F` is (iso) to `c`.
 structure lift_cone (K : J ⥤ C) (F : C ⥤ D) (c : cone (K ⋙ F)) :=
 (above_cone : cone K)
 (above_hits_original : F.map_cone above_cone ≅ c)
+
+structure lift_cocone (K : J ⥤ C) (F : C ⥤ D) (c : cocone (K ⋙ F)) :=
+(above_cocone : cocone K)
+(above_hits_original : F.map_cocone above_cocone ≅ c)
 
 /--
 Definition 3.3.1 of [Riehl].
@@ -99,6 +128,16 @@ class creates_limits_of_shape (J : Type v) [small_category J] (F : C ⥤ D) : Ty
 
 class creates_limits (F : C ⥤ D) : Type (max u₁ u₂ (v+1)) :=
 (creates_limits_of_shape : Π {J : Type v} {𝒥 : small_category J}, by exactI creates_limits_of_shape J F)
+
+class creates_colimit (K : J ⥤ C) (F : C ⥤ D) : Type (max u₁ u₂ v) :=
+(lifts : Π (c : cocone (K ⋙ F)), is_colimit c → lift_cocone K F c)
+(reflects : reflects_colimit K F)
+
+class creates_colimits_of_shape (J : Type v) [small_category J] (F : C ⥤ D) : Type (max u₁ u₂ v) :=
+(creates_colimit : Π {K : J ⥤ C}, creates_colimit K F)
+
+class creates_colimits (F : C ⥤ D) : Type (max u₁ u₂ (v+1)) :=
+(creates_colimits_of_shape : Π {J : Type v} {𝒥 : small_category J}, by exactI creates_colimits_of_shape J F)
 
 -- TODO: reflects iso is equivalent to reflecting limits of shape 1
 
@@ -135,5 +174,43 @@ def creates_limit_of_reflects_iso {K : J ⥤ C} {F : C ⥤ D} [reflects_isomorph
       haveI := is_iso_of_reflects_iso f (cones.functoriality F),
       exact is_limit.of_iso_limit hd'₂ (as_iso f).symm,
     end } }
+end creates
+
+namespace monad
+
+variables {T : C ⥤ C} [monad.{v} T]
+
+def algebra_iso_of_iso {A B : algebra T} (f : A ⟶ B) [i : is_iso f.f] : is_iso f :=
+{ inv :=
+  { f := i.inv,
+    h' :=
+    begin
+      erw (as_iso f.f).eq_comp_inv,
+      slice_lhs 2 3 {erw ← f.h},
+      slice_lhs 1 2 {rw ← T.map_comp},
+      rw is_iso.inv_hom_id,
+      rw T.map_id,
+      rw category.id_comp
+    end}
+}
+
+-- variables {J : Type v} [𝒥 : small_category J]
+-- include 𝒥
+
+-- def forget_really_creates_limits : creates_limits (forget T) :=
+-- { creates_limits_of_shape := λ J 𝒥,
+--   { creates_limit := λ K,
+--     { lifts := λ c t,
+--       begin
+
+--       end,
+--       reflects := _
+--     }
+
+--   }
+
+-- }
+
+end monad
 
 end category_theory
