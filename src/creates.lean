@@ -6,6 +6,7 @@ Authors: Bhavik Mehta
 import category_theory.limits.limits
 import category_theory.limits.preserves
 import category_theory.monad.adjunction
+import category_theory.adjunction.limits
 
 open category_theory category_theory.limits
 
@@ -95,17 +96,21 @@ include 𝒟
 variables {J : Type v} [small_category J] {K : J ⥤ C}
 
 /--
-Note this definition is really only useful when `c` is a limit already.
-For a cone `c` for `K ⋙ F`, give a cone for `K` which is a lift of `c`,
-i.e. the image of it under `F` is (iso) to `c`.
--/
-structure lift_cone (K : J ⥤ C) (F : C ⥤ D) (c : cone (K ⋙ F)) :=
-(above_cone : cone K)
-(above_hits_original : F.map_cone above_cone ≅ c)
+Define the lift of a cone: For a cone `c` for `K ⋙ F`, give a cone for `K`
+which is a lift of `c`, i.e. the image of it under `F` is (iso) to `c`.
 
-structure lift_cocone (K : J ⥤ C) (F : C ⥤ D) (c : cocone (K ⋙ F)) :=
-(above_cocone : cocone K)
-(above_hits_original : F.map_cocone above_cocone ≅ c)
+We will then use this as part of the definition of creation of limits:
+every limit cone has a lift.
+
+Note this definition is really only useful when `c` is a limit already.
+-/
+structure liftable_cone (K : J ⥤ C) (F : C ⥤ D) (c : cone (K ⋙ F)) :=
+(lifted_cone : cone K)
+(valid_lift : F.map_cone lifted_cone ≅ c)
+
+structure liftable_cocone (K : J ⥤ C) (F : C ⥤ D) (c : cocone (K ⋙ F)) :=
+(lifted_cocone : cocone K)
+(valid_lift : F.map_cocone lifted_cocone ≅ c)
 
 /--
 Definition 3.3.1 of [Riehl].
@@ -113,14 +118,16 @@ We say that `F` creates limits of `K` if, given any limit cone `c` for `K ⋙ F`
 (i.e. below) we can lift it to a cone above, and further that `F` reflects
 limits for `K`.
 
-Note this is equivalent to Riehl's definition - the missing part here appears to
-be that the lifted cone is not a limit, but `reflects` guarantees that it is.
+Note this is equivalent to Riehl's definition - the missing part here appears
+to be that the lifted cone is not a limit, but `reflects` guarantees that it
+is (proved in `lifted_limit_is_limit`).
 
 If `F` reflects isomorphisms, it suffices to show only that the lifted cone is
-a limit - see `creates_limit_of_reflects_iso`
+a limit - see `creates_limit_of_reflects_iso`.
+For this reason, we do not define this using `extends`.
 -/
 class creates_limit (K : J ⥤ C) (F : C ⥤ D) : Type (max u₁ u₂ v) :=
-(lifts : Π (c : cone (K ⋙ F)), is_limit c → lift_cone K F c)
+(lifts : Π (c : cone (K ⋙ F)), is_limit c → liftable_cone K F c)
 (reflects : reflects_limit K F)
 
 class creates_limits_of_shape (J : Type v) [small_category J] (F : C ⥤ D) : Type (max u₁ u₂ v) :=
@@ -130,7 +137,7 @@ class creates_limits (F : C ⥤ D) : Type (max u₁ u₂ (v+1)) :=
 (creates_limits_of_shape : Π {J : Type v} {𝒥 : small_category J}, by exactI creates_limits_of_shape J F)
 
 class creates_colimit (K : J ⥤ C) (F : C ⥤ D) : Type (max u₁ u₂ v) :=
-(lifts : Π (c : cocone (K ⋙ F)), is_colimit c → lift_cocone K F c)
+(lifts : Π (c : cocone (K ⋙ F)), is_colimit c → liftable_cocone K F c)
 (reflects : reflects_colimit K F)
 
 class creates_colimits_of_shape (J : Type v) [small_category J] (F : C ⥤ D) : Type (max u₁ u₂ v) :=
@@ -139,7 +146,56 @@ class creates_colimits_of_shape (J : Type v) [small_category J] (F : C ⥤ D) : 
 class creates_colimits (F : C ⥤ D) : Type (max u₁ u₂ (v+1)) :=
 (creates_colimits_of_shape : Π {J : Type v} {𝒥 : small_category J}, by exactI creates_colimits_of_shape J F)
 
+def lift_limit {K : J ⥤ C} {F : C ⥤ D} [i : creates_limit K F] {c : cone (K ⋙ F)} (t : is_limit c) : cone K :=
+(creates_limit.lifts c t).lifted_cone
+
+def lifted_limit_maps_to_original {K : J ⥤ C} (F : C ⥤ D) [i : creates_limit K F] {c : cone (K ⋙ F)} (t : is_limit c) :
+  F.map_cone (lift_limit t) ≅ c := (creates_limit.lifts c t).valid_lift
+
+def lifted_limit_is_limit {K : J ⥤ C} {F : C ⥤ D} [i : creates_limit K F] {c : cone (K ⋙ F)} (t : is_limit c) : is_limit (lift_limit t) :=
+begin
+  apply @reflects_limit.reflects _ _ _ _ _ _ _ _ i.reflects (lift_limit t),
+  apply is_limit.of_iso_limit t (lifted_limit_maps_to_original F t).symm,
+end
+
 -- TODO: reflects iso is equivalent to reflecting limits of shape 1
+
+def map_cone_equiv {F G : C ⥤ D} (h : F ≅ G) {c : cone K} (t : is_limit (F.map_cone c)) : is_limit (G.map_cone c) :=
+{ lift := λ s, t.lift ((cones.postcompose (iso_whisker_left K h).inv).obj s) ≫ h.hom.app c.X,
+  fac' := λ s j,
+  begin
+    slice_lhs 2 3 {erw ← h.hom.naturality (c.π.app j)},
+    slice_lhs 1 2 {erw t.fac ((cones.postcompose (iso_whisker_left K h).inv).obj s) j},
+    dsimp,
+    slice_lhs 2 3 {rw nat_iso.inv_hom_id_app},
+    rw category.comp_id,
+  end,
+  uniq' := λ s m J,
+  begin
+    rw ← cancel_mono (h.inv.app c.X),
+    apply t.hom_ext,
+    intro j,
+    dsimp,
+    slice_lhs 2 3 {erw ← h.inv.naturality (c.π.app j)},
+    slice_lhs 1 2 {erw J j},
+    conv_rhs {congr, rw category.assoc, rw nat_iso.hom_inv_id_app},
+    rw category.comp_id,
+    erw t.fac ((cones.postcompose (iso_whisker_left K h).inv).obj s) j,
+    refl
+  end }
+
+@[priority 100] -- see Note [lower instance priority]
+instance is_equivalence_reflects_limits (H : D ⥤ C) [is_equivalence H] : reflects_limits H :=
+{ reflects_limits_of_shape := λ J 𝒥, by exactI
+  { reflects_limit := λ K,
+    { reflects := λ c t,
+      begin
+        have l: is_limit (H.inv.map_cone (H.map_cone c)) := preserves_limit.preserves H.inv t,
+        convert map_cone_equiv H.fun_inv_id l,
+        rw functor.comp_id,
+        cases c, cases c_π, dsimp [functor.map_cone, cones.functoriality],
+        congr; rw functor.comp_id
+      end } } }
 
 /--
 A helper to show a functor creates limits. In particular, if we can show
@@ -149,8 +205,8 @@ Usually, `F` creating limits says that _any_ lift of `c` is a limit, but
 here we only need to show that our particular lift of `c` is a limit.
 -/
 structure lifts_to_limit (K : J ⥤ C) (F : C ⥤ D) (c : cone (K ⋙ F)) (t : is_limit c) :=
-(lifted : lift_cone K F c)
-(makes_limit : is_limit lifted.above_cone)
+(lifted : liftable_cone K F c)
+(makes_limit : is_limit lifted.lifted_cone)
 
 /--
 If `F` reflects isomorphisms and we can lift any limit cone to a limit cone,
@@ -163,8 +219,8 @@ def creates_limit_of_reflects_iso {K : J ⥤ C} {F : C ⥤ D} [reflects_isomorph
   reflects :=
   { reflects := λ (d : cone K) (hd : is_limit (F.map_cone d)),
     begin
-      let d' : cone K := (h (F.map_cone d) hd).lifted.above_cone,
-      let hd'₁ : F.map_cone d' ≅ F.map_cone d := (h (F.map_cone d) hd).lifted.above_hits_original,
+      let d' : cone K := (h (F.map_cone d) hd).lifted.lifted_cone,
+      let hd'₁ : F.map_cone d' ≅ F.map_cone d := (h (F.map_cone d) hd).lifted.valid_lift,
       let hd'₂ : is_limit d' := (h (F.map_cone d) hd).makes_limit,
       let f : d ⟶ d' := hd'₂.lift_cone_morphism d,
       have: F.map_cone_morphism f = hd'₁.inv := (hd.of_iso_limit hd'₁.symm).uniq_cone_morphism,
@@ -174,6 +230,59 @@ def creates_limit_of_reflects_iso {K : J ⥤ C} {F : C ⥤ D} [reflects_isomorph
       haveI := is_iso_of_reflects_iso f (cones.functoriality F),
       exact is_limit.of_iso_limit hd'₂ (as_iso f).symm,
     end } }
+
+def map_cone_map_cone_inv (F : J ⥤ D) (H : D ⥤ C) [is_equivalence H] (c : cone (F ⋙ H)) :
+  functor.map_cone H (functor.map_cone_inv H c) ≅ c :=
+begin
+  apply cones.ext _ (λ j, _),
+  exact (functor.as_equivalence H).counit_iso.app c.X,
+  dsimp [functor.map_cone_inv, functor.as_equivalence, functor.inv],
+  erw category.comp_id,
+  erw ← (is_equivalence.counit_iso H).hom.naturality (c.π.app j),
+  rw functor.comp_map, rw H.map_comp,
+  congr' 1,
+  rw ← cancel_epi ((is_equivalence.counit_iso H).inv.app (H.obj (F.obj j))),
+  erw nat_iso.inv_hom_id_app,
+  erw ← (functor.as_equivalence H).functor_unit _,
+  erw ← H.map_comp,
+  erw nat_iso.hom_inv_id_app,
+  rw H.map_id, refl
+end
+
+@[priority 100] -- see Note [lower instance priority]
+instance is_equivalence_creates_limits (H : D ⥤ C) [is_equivalence H] : creates_limits H :=
+{ creates_limits_of_shape := λ J 𝒥, by exactI
+  { creates_limit := λ F,
+    { lifts := λ c t,
+      { lifted_cone := H.map_cone_inv c,
+        valid_lift := map_cone_map_cone_inv F H c },
+      reflects := infer_instance } } }
+
+section comp
+
+variables {E : Type u₃} [ℰ : category.{v} E]
+variables (F : C ⥤ D) (G : D ⥤ E)
+
+-- def lift_limit {K : J ⥤ C} {F : C ⥤ D} [i : creates_limit K F] {c : cone (K ⋙ F)} (t : is_limit c) : cone K :=
+-- (creates_limit.lifts c t).lifted_cone
+
+-- def lifted_limit_maps_to_original {K : J ⥤ C} {F : C ⥤ D} [i : creates_limit K F] {c : cone (K ⋙ F)} (t : is_limit c) :
+--   F.map_cone (lift_limit t) ≅ c :=
+
+-- def lifted_limit_is_limit {K : J ⥤ C} {F : C ⥤ D} [i : creates_limit K F] {c : cone (K ⋙ F)} (t : is_limit c) : is_limit (lift_limit t) :=
+
+instance comp_creates_limit [i₁ : creates_limit K F] [i₂ : creates_limit (K ⋙ F) G] :
+  creates_limit K (F ⋙ G) :=
+{ lifts := λ c t,
+  { lifted_cone := lift_limit (lifted_limit_is_limit t),
+    valid_lift := (cones.functoriality G).map_iso (lifted_limit_maps_to_original F (lifted_limit_is_limit t)) ≪≫ (lifted_limit_maps_to_original G t),
+  },
+  reflects :=
+  @limits.comp_reflects_limit _ _ _ _ _ _ _ _ _ F G (creates_limit.reflects K F) (creates_limit.reflects (K ⋙ F) G)
+}
+
+end comp
+
 end creates
 
 namespace monad
@@ -188,28 +297,108 @@ def algebra_iso_of_iso {A B : algebra T} (f : A ⟶ B) [i : is_iso f.f] : is_iso
       erw (as_iso f.f).eq_comp_inv,
       slice_lhs 2 3 {erw ← f.h},
       slice_lhs 1 2 {rw ← T.map_comp},
-      rw is_iso.inv_hom_id,
-      rw T.map_id,
-      rw category.id_comp
-    end}
-}
+      rw [is_iso.inv_hom_id, T.map_id, category.id_comp]
+    end } }
 
--- variables {J : Type v} [𝒥 : small_category J]
--- include 𝒥
+variables {J : Type v} [𝒥 : small_category J]
+include 𝒥
 
--- def forget_really_creates_limits : creates_limits (forget T) :=
--- { creates_limits_of_shape := λ J 𝒥,
---   { creates_limit := λ K,
---     { lifts := λ c t,
---       begin
+variables (D : J ⥤ algebra T) (c : cone (D ⋙ forget T)) (t : is_limit c)
 
---       end,
---       reflects := _
---     }
+@[simps] def γ : (D ⋙ forget T ⋙ T) ⟶ (D ⋙ forget T) := { app := λ j, (D.obj j).a }
 
---   }
+@[simps] def new_cone : cone (D ⋙ forget T) :=
+{ X := T.obj c.X,
+  π := (functor.const_comp _ _ T).inv ≫ whisker_right c.π T ≫ (γ D) }
 
--- }
+@[simps] def cone_point : algebra T :=
+{ A := c.X,
+  a := t.lift (new_cone D c),
+  unit' :=
+  begin
+    apply t.hom_ext,
+    intro j,
+    rw [category.assoc], rw t.fac (new_cone D c),
+    dsimp, rw category.id_comp, rw ← category.assoc,
+    rw ← (η_ T).naturality, rw category.id_comp, rw functor.id_map,
+    rw category.assoc, rw (D.obj j).unit, erw category.comp_id
+  end,
+  assoc' :=
+  begin
+    apply t.hom_ext,
+    intro j,
+    rw category.assoc,
+    rw category.assoc,
+
+    rw t.fac (new_cone D c),
+    dsimp,
+    erw [category.id_comp],
+    slice_lhs 1 2 {rw ← (μ_ T).naturality},
+    slice_lhs 2 3 {rw (D.obj j).assoc},
+    slice_rhs 1 2 {rw ← T.map_comp},
+    rw t.fac (new_cone D c),
+    dsimp,
+    erw category.id_comp,
+    rw T.map_comp,
+    simp
+  end }
+
+@[simps] def lifted_cone : cone D :=
+{ X := cone_point D c t,
+  π :=
+  { app := λ j, { f := c.π.app j },
+    naturality' := λ X Y f, by { ext1, dsimp, erw c.w f, simp } } }
+
+@[simps]
+def lifted_cone_is_limit : is_limit (lifted_cone D c t) :=
+{ lift := λ s,
+  { f := t.lift ((forget T).map_cone s),
+    h' :=
+    begin
+      apply t.hom_ext, intro j,
+      have := t.fac ((forget T).map_cone s),
+      slice_rhs 2 3 {rw t.fac ((forget T).map_cone s) j},
+      dsimp,
+      slice_lhs 2 3 {rw t.fac (new_cone D c) j},
+      dsimp,
+      rw category.id_comp,
+      slice_lhs 1 2 {rw ← T.map_comp},
+      rw t.fac ((forget T).map_cone s) j,
+      exact (s.π.app j).h
+    end },
+  uniq' := λ s m J,
+  begin
+    ext1,
+    apply t.hom_ext,
+    intro j,
+    simpa [t.fac (functor.map_cone (forget T) s) j] using congr_arg algebra.hom.f (J j),
+  end }
+
+def lifted_cone_hits_original : (forget T).map_cone (lifted_cone D c t) = c :=
+begin
+  cases c,
+  cases c_π,
+  dsimp [functor.map_cone, cones.functoriality],
+  congr
+end
+
+omit 𝒥
+
+def forget_reflects_iso : reflects_isomorphisms (forget T) :=
+{ reflects := λ A B, algebra_iso_of_iso }
+
+def forget_really_creates_limits : creates_limits (forget T) :=
+{ creates_limits_of_shape := λ J 𝒥,
+  { creates_limit := λ D,
+    begin
+      letI := 𝒥,
+      apply creates_limit_of_reflects_iso _,
+      exact forget_reflects_iso,
+      intros c t,
+      refine {lifted := _, makes_limit := _},
+      refine {lifted_cone := lifted_cone D c t, valid_lift := eq_to_iso (lifted_cone_hits_original _ _ _)},
+      apply lifted_cone_is_limit
+    end } }
 
 end monad
 

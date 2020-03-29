@@ -353,8 +353,8 @@ def forget_creates_connected_limits [conn : connected J] {B : C} : creates_limit
 { creates_limit := λ K,
     creates_limit_of_reflects_iso (λ c t,
       { lifted :=
-        { above_cone := creates.raise_cone c,
-          above_hits_original := eq_to_iso (creates.raised_cone_lowers_to_original c t) },
+        { lifted_cone := creates.raise_cone c,
+          valid_lift := eq_to_iso (creates.raised_cone_lowers_to_original c t) },
         makes_limit := creates.raised_cone_is_limit t } ) }
 
 end over

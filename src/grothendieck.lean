@@ -18,7 +18,7 @@ def arrow_set (C : Type u) [𝒞 : category.{v} C] :=  Π (X : C), set (set (ove
 def sieve_set.trivial (C : Type u) [𝒞 : category.{v} C] : sieve_set C := λ X, {⊤}
 
 def sieve_set.dense (C : Type u) [𝒞 : category.{v} C] : sieve_set C :=
-λ X, {S| ∀ {Y : C} (f : Y ⟶ X), ∃ (Z) (g : Z ⟶ Y), (over.mk (g ≫ f)) ∈ S }
+λ X, {S | ∀ {Y : C} (f : Y ⟶ X), ∃ (Z) (g : Z ⟶ Y), (over.mk (g ≫ f)) ∈ S }
 
 /-- The atomic sieve_set just contains all of the non-empty sieves. -/
 def sieve_set.atomic (C : Type u) [𝒞 : category.{v} C] : sieve_set C :=

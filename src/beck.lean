@@ -182,7 +182,7 @@ def restrict_equivalence {A B : Type v} (h : A ≃ B) (p : A → Prop) (q : B �
 include 𝒞
 def coeq_equiv {X Y Z : C} {f g : X ⟶ Y} [has_colimit (parallel_pair f g)] : (coequalizer f g ⟶ Z) ≃ {h : Y ⟶ Z // f ≫ h = g ≫ h} :=
 { to_fun := λ i, ⟨coequalizer.π _ _ ≫ i, begin rw ← assoc, rw coequalizer.condition, simp end⟩,
-  inv_fun := λ h, coequalizer.desc f g h.1 h.2,
+  inv_fun := λ h, coequalizer.desc h.1 h.2,
   left_inv := λ i, begin dsimp, ext1, rw colimit.ι_desc, refl end,
   right_inv := λ ⟨h, t⟩, begin dsimp, congr, rw colimit.ι_desc, refl end }
 
@@ -281,21 +281,6 @@ section creates
 variables {J : Type v} [𝒥 : small_category J]
 include 𝒥
 
--- def creates_limits (d : J ⥤ C) (F : C ⥤ D) :=
--- Π [fl : has_limit (d ⋙ F)], Σ (l : has_limit d),
---   is_limit $ F.map_cone l.cone
-
--- structure creates_limit (K : J ⥤ C) (F : C ⥤ D) (c : cone (K ⋙ F)) (t : is_limit c) :=
--- (upstairs : cone K)
--- (up_hits : F.map_cone upstairs ≅ c)
--- (any_up_is_lim : Π (up' : cone K) (iso : F.map_cone up' ≅ c), is_limit up')
-
--- -- Π (c : cone (d ⋙ F)) (t : is_limit c), (Σ (t : cone d), F.map_cone t ≅ c)
-
--- def creates_colimits (d : J ⥤ C) (F : C ⥤ D) :=
--- Π [fl : has_colimit (d ⋙ F)], Σ (l : has_colimit d),
---   is_colimit $ F.map_cocone l.cocone
-
 variables {G : D ⥤ C} [monadic_right_adjoint G]
 
 -- omit 𝒥
@@ -312,7 +297,9 @@ end creates
 
 variables {G : D ⥤ C} [is_right_adjoint G]
 
-def adjoint_to_equivalence {F : C ⥤ D} {G : D ⥤ C} (adj : F ⊣ G) [unit_iso : is_iso adj.unit] [counit_iso : is_iso adj.counit] : C ≌ D :=
+def adjoint_to_equivalence {F : C ⥤ D} {G : D ⥤ C} (adj : F ⊣ G)
+  [unit_iso : is_iso adj.unit] [counit_iso : is_iso adj.counit] :
+C ≌ D :=
 { functor := F,
   inverse := G,
   unit_iso := as_iso adj.unit,

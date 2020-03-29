@@ -91,10 +91,14 @@ instance type_exponentiable (A : Type u) : exponentiable A :=
 { exponentiable :=
   { right := adjunction.right_adjoint_of_equiv (currying_equiv _) (
     begin
+<<<<<<< HEAD
       intros X X' Y f g,
       dsimp [currying_equiv],
       ext,
       congr,
+=======
+      intros X X' Y f g, ext, dsimp [currying_equiv], congr,
+>>>>>>> update mathlib and make creates limits easier to use
       dunfold limits.prod.map,
       rw types.types_limit_map,
       congr, ext ⟨j⟩,
