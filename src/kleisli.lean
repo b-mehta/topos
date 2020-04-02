@@ -78,6 +78,15 @@ adjunction.mk_of_hom_equiv
   end,
   hom_equiv_naturality_right' := λ X Y Z f g, rfl }
 
+theorem F_T_U_T_eq_T : F_T T ⋙ U_T T = T :=
+functor.ext
+  (λ X, by simp only [F_T_obj, U_T_obj, functor.comp_obj])
+  (λ X Y f, begin
+    simp,
+    slice_lhs 2 3 { erw [monad.right_unit T], },
+    exact category.comp_id _ _,
+  end)
+
 end adjunction
 end kleisli
 end category_theory

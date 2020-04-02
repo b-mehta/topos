@@ -6,9 +6,8 @@ Authors: Bhavik Mehta, Edward Ayers
 
 import category_theory.limits.shapes.binary_products
 import category_theory.adjunction
-import adjunction
 import tactic
-import to_mathlib
+import adjunction
 import binary_products
 
 /-!
@@ -108,6 +107,7 @@ lemma coev_nat (f : X ⟶ Y) : f ≫ coev = coev ≫ post _ (limits.prod.map (�
 lemma ev_nat {f : X ⟶ Y} : limits.prod.map (𝟙 A) (post _ f) ≫ ev = ev ≫ f :=
 (ev.nat_trans A).naturality f
 
+/- aka curry -/
 def exp_transpose : (A ⨯ Y ⟶ X) ≃ (Y ⟶ A⟹X) :=
 exp.adjunction.hom_equiv _ _
 
@@ -148,23 +148,17 @@ def terminal_exponentiable : exponentiable ⊤_C :=
 attribute [instance] terminal_exponentiable
 
 def exp_terminal_iso : (⊤_C ⟹ X) ≅ X :=
-begin
-  apply yoneda.ext (⊤_ C ⟹ X) X _ _ _ _ _,
-  intros Y f, exact (prod.left_unitor Y).inv ≫ exp_transpose.inv_fun f,
-  intros Y f, exact exp_transpose.to_fun ((prod.left_unitor Y).hom ≫ f),
-  { intros Z g, dsimp,
-    rw ← assoc, erw iso.hom_inv_id (prod.left_unitor Z),
-    simp [exp_transpose.right_inv g] },
-  { intros Z g, dsimp,
-    rw exp_transpose.left_inv,
-    rw ← assoc,
-    erw iso.inv_hom_id (prod.left_unitor Z),
-    simp },
-  { intros Z W f g, dsimp,
-    rw exp_transpose_natural_left_symm,
-    rw ← assoc, rw ← assoc,
-    erw prod_left_unitor_naturality _, refl },
-end
+yoneda.ext (⊤_ C ⟹ X) X
+  (λ Y f, (prod.left_unitor Y).inv ≫ exp_transpose.inv_fun f)
+  (λ Y f, exp_transpose.to_fun ((prod.left_unitor Y).hom ≫ f))
+  (λ Z g, begin
+    dsimp, rw ← assoc, erw iso.hom_inv_id (prod.left_unitor Z),
+    simp [exp_transpose.right_inv g] end)
+  (λ Z g, by { dsimp, simp, erw [id_comp] })
+  (λ Z W f g, begin
+    rw [exp_transpose_natural_left_symm],
+    slice_lhs 1 2 { erw prod_left_unitor_naturality f },
+    rw assoc end)
 
 @[reducible]
 def point_at_hom (f : A ⟶ Y) : ⊤_C ⟶ (A ⟹ Y) :=

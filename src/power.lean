@@ -7,7 +7,6 @@ Authors: Bhavik Mehta
 import category_theory.limits.shapes
 import category_theory.limits.types
 import pullbacks
-import to_mathlib
 import sub
 import subobject_classifier
 import binary_products

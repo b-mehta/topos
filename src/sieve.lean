@@ -191,17 +191,17 @@ lemma comp_le_comps
   (f : over X)
   (H : f ∈ S) :
   comp (R f) f.hom ≤ comps R S  :=
-calc comp (R f) f.hom ≤  ⨆ (_ : f ∈ S), comp (R f) f.hom : lattice.le_supr _ H
-                  ... ≤  comps R S                        : lattice.le_supr _ f
+calc comp (R f) f.hom ≤  ⨆ (_ : f ∈ S), comp (R f) f.hom : le_supr _ H
+                  ... ≤  comps R S                       : le_supr _ f
 
 lemma comps_le
   (R : Π (f : over X), sieve f.left)
   (S : sieve X) :
   comps R S ≤ S :=
 begin
-  apply lattice.supr_le _,
+  apply supr_le _,
   rintros f,
-  apply lattice.supr_le _,
+  apply supr_le _,
   rintros H g ⟨a,b,e⟩,
   suffices : over.mk (g.hom) ∈ S, simp at this, apply this,
   rw e,
@@ -212,7 +212,7 @@ end
 def as_functor (S : sieve X) : Cᵒᵖ ⥤ Type v :=
 { obj := λ Y, {g : Y.unop ⟶ X // over.mk g ∈ S},
   map := λ Y Z f g, subtype.mk (f.unop ≫ g.1) (begin
-    cases g with g gS, 
+    cases g with g gS,
     apply sieve.subs S (over.mk g) gS _ f.unop,
   end)
 }
@@ -222,11 +222,11 @@ def functor_inclusion (S : sieve X) : S.as_functor ⟶ yoneda.obj X :=
 nat_trans.mk (λ Y f, f.1) (λ Y Z g, rfl)
 
 def functor_inclusion_is_mono : mono (functor_inclusion S) :=
-begin 
+begin
     refine ⟨_⟩,
     intros Z f g h,
     ext Y y,
-    apply subtype.ext.2, 
+    apply subtype.ext.2,
     have : (f ≫ functor_inclusion S).app Y y = (g ≫ functor_inclusion S).app Y y,
       rw h,
     apply this

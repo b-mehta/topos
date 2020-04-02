@@ -6,7 +6,6 @@ import category_theory.limits.over
 import cartesian_closed
 import pullbacks
 import comma
-import to_mathlib
 
 /-!
 # Properties of the over category.

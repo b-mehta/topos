@@ -40,7 +40,7 @@ def adjunction_of_nat_iso_left {C : Type u₁} [𝒞 : category.{v₁} C] {D : T
   G ⊣ H :=
 adjunction.mk_of_hom_equiv
 { hom_equiv := λ X Y, equiv.trans (equiv_homset_left_of_nat_iso iso.symm) (adj.hom_equiv X Y),
-  hom_equiv_naturality_left_symm' := begin intros, simp, rw ← assoc, rw ← assoc, rw ← assoc, rw ← assoc, congr' 2, simp end,
+  hom_equiv_naturality_left_symm' := begin intros, simp end,
   hom_equiv_naturality_right' := λ X Y Y' f g, by simp}
 
 def adjunction_of_nat_iso_right {C : Type u₁} [𝒞 : category.{v₁} C] {D : Type u₂} [𝒟 : category.{v₂} D]
@@ -49,7 +49,7 @@ def adjunction_of_nat_iso_right {C : Type u₁} [𝒞 : category.{v₁} C] {D : 
 adjunction.mk_of_hom_equiv
 { hom_equiv := λ X Y, equiv.trans (adj.hom_equiv X Y) (equiv_homset_right_of_nat_iso iso),
   hom_equiv_naturality_left_symm' := λ X X' Y f g, by simp,
-  hom_equiv_naturality_right' := λ X Y Y' f g, begin simp, congr' 1, rw ← assoc, rw ← assoc, congr' 1, rw [nat_trans.naturality] end}
+  hom_equiv_naturality_right' := λ X Y Y' f g, by simp}
 
 end
 
@@ -102,8 +102,8 @@ adjunction.mk_of_hom_equiv
 { hom_equiv := λ X Y,
     { to_fun := λ f, ((adj.hom_equiv (Y.unop) (X.unop)).inv_fun f.unop).op,
       inv_fun := λ g, ((adj.hom_equiv (Y.unop) (X.unop)).to_fun g.unop).op,
-      left_inv := λ f, by { dsimp, rw (adj.hom_equiv _ _).right_inv, refl },
-      right_inv := λ f, by { dsimp, rw (adj.hom_equiv _ _).left_inv, refl } },
+      left_inv := λ f, by simp,
+      right_inv := λ f, by simp},
   hom_equiv_naturality_left_symm' := λ X' X Y f g,
   begin
     dsimp,

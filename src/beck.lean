@@ -1,4 +1,4 @@
-import data.fintype
+import data.fintype.basic
 import category_theory.limits.limits
 import category_theory.monad.limits
 import category_theory.monad

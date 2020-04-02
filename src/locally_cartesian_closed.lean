@@ -6,7 +6,6 @@ import cartesian_closed
 import pullbacks
 import comma
 import over
-import to_mathlib
 
 /-!
 # Properties of the over category.
@@ -47,6 +46,12 @@ faithful_reflects_mono e.functor hef
 lemma equiv_reflects_epi {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D)
   (hef : epi (e.functor.map f)) : epi f :=
 faithful_reflects_epi e.functor hef
+
+-- TODO remove these and use mathlib's instance API
+lemma mono_comp_of_mono {X Y Z : C}
+  (m : X ⟶ Y) (m' : Y ⟶ Z) (hm : mono m) (hm' : mono m') : mono (m ≫ m') := by apply_instance
+lemma epi_comp_of_epi {X Y Z : C}
+  (e : X ⟶ Y) (e' : Y ⟶ Z) (he : epi e) (he' : epi e') : epi (e ≫ e') := by apply_instance
 
 lemma equiv_preserves_mono {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D) :
   mono f → mono (e.functor.map f) :=
@@ -171,7 +176,7 @@ variables [has_coequalizers.{v} C] {A B : C} (f : A ⟶ B)
 -- Technically the regular coimage, but in a LCCC with coequalizers it is the image
 def image : C := coequalizer (pullback.fst : pullback f f ⟶ A) (pullback.snd : pullback f f ⟶ A)
 def epi_part : A ⟶ image f := coequalizer.π pullback.fst pullback.snd
-def mono_part : image f ⟶ B := coequalizer.desc _ _ f pullback.condition
+def mono_part : image f ⟶ B := coequalizer.desc f pullback.condition
 
 lemma factorises : epi_part f ≫ mono_part f = f :=
 by simp [epi_part, mono_part]
@@ -229,7 +234,7 @@ end
 variable {f}
 def image_map {A' B' : C} {f' : A' ⟶ B'} {l : A ⟶ A'} {r : B ⟶ B'} (h : l ≫ f' = f ≫ r) : image f ⟶ image f' :=
 begin
-  apply coequalizer.desc _ _ (l ≫ epi_part f'),
+  apply coequalizer.desc (l ≫ epi_part f'),
   rw ← @cancel_mono _ _ _ _ _ (mono_part f') (mono_part_is_mono _),
   rw assoc, rw assoc, rw factorises, rw assoc, rw assoc, rw factorises,
   rw h,
@@ -287,7 +292,7 @@ def image.functor : comma (𝟭 C) (𝟭 C) ⥤ C :=
 def image_is_smallest_subobject {I : C} {q : A ⟶ I} {m : I ⟶ B} (hm : mono m) (h : q ≫ m = f) :
   image f ⟶ I :=
 begin
-  apply coequalizer.desc _ _ q, rw ← cancel_mono m, simp [h], rw pullback.condition
+  apply coequalizer.desc q, rw ← cancel_mono m, simp [h], rw pullback.condition
 end
 
 lemma smallest_subobject_factors {I : C} {q : A ⟶ I} {m : I ⟶ B} (hm : mono m) (h : q ≫ m = f) :
