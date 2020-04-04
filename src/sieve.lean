@@ -192,11 +192,7 @@ lemma comp_le_comps
   (H : f ∈ S) :
   comp (R f) f.hom ≤ comps R S  :=
 calc comp (R f) f.hom ≤  ⨆ (_ : f ∈ S), comp (R f) f.hom : le_supr _ H
-<<<<<<< HEAD
                   ... ≤  comps R S                       : le_supr _ f
-=======
-                  ... ≤  comps R S                        : le_supr _ f
->>>>>>> update mathlib and make creates limits easier to use
 
 lemma comps_le
   (R : Π (f : over X), sieve f.left)

@@ -10,7 +10,7 @@ universes v v₂ u
 /-!
 # Types
 
-Show that Type has a subobject classifier (assuming choice).
+Show that Type has a subobject classifier (assuming unique choice).
 -/
 
 open category_theory category_theory.category category_theory.limits
@@ -34,47 +34,64 @@ begin
   rintro ⟨t, rfl⟩, have := congr_fun la t, simp at this, exact this,
 end
 
--- -- TODO: can we make this computable?
+-- Note this is obviously implied by full choice.
+axiom unique_choice {α : Sort u} [subsingleton α] : nonempty α → α
+
+noncomputable def get_unique {α : Sort u} (p : α → Prop) (h₁ : ∃ a, p a) (h₂ : ∀ a b, p a → p b → a = b) : {a // p a} :=
+begin
+  haveI: subsingleton {a // p a} := _,
+  apply unique_choice,
+    cases h₁,
+    split, exact ⟨h₁_w, h₁_h⟩,
+  split,
+    rintros ⟨a, ha⟩ ⟨b, hb⟩,
+    congr,
+    apply h₂ a b ha hb,
+end
+
+noncomputable def get_unique_value {α : Sort u} (p : α → Prop) (h₁ : ∃ a, p a) (h₂ : ∀ a b, p a → p b → a = b) : α := (get_unique p h₁ h₂).val
+lemma get_unique_property {α : Sort u} (p : α → Prop) (h₁ : ∃ a, p a) (h₂ : ∀ a b, p a → p b → a = b) : p (get_unique_value p h₁ h₂) := (get_unique p h₁ h₂).property
+
 noncomputable instance types_has_subobj_classifier : @has_subobject_classifier Type category_theory.types :=
 { Ω := Prop,
   Ω₀ := unit,
   truth := λ _, true,
   truth_mono' := ⟨λ A f g _, begin ext i, apply subsingleton.elim end⟩,
-  classifier_of := λ A B f mon, λ b, ∃ (a : A), f a = b,
+  classifier_of := λ A B f mon b, ∃ (a : A), f a = b,
   classifies' :=
   begin
     intros A B f mon,
     refine {k := λ _, (), commutes := _, forms_pullback' := _},
     funext, simp, use x,
     refine ⟨λ c i, _, _, _⟩,
-    show A,
-    have: pullback_cone.fst c ≫ _ = pullback_cone.snd c ≫ _ := pullback_cone.condition c,
-    have: (pullback_cone.snd c ≫ (λ (b : B), ∃ (a : A), f a = b)) i,
-      rw ← this, dsimp, trivial,
-    dsimp at this,
-    exact classical.some this_1,
-    intros c, apply pi_app_left,
-    ext, apply subsingleton.elim,
-    ext, dunfold pullback_cone.snd pullback_cone.mk, simp,
-    have: (pullback_cone.snd c ≫ (λ (b : B), ∃ (a : A), f a = b)) x,
-      rw ← pullback_cone.condition c, trivial,
-    apply classical.some_spec this,
-    intros c m J,
-    resetI,
-    rw ← cancel_mono f,
-    ext, simp,
-    have: (pullback_cone.snd c ≫ (λ (b : B), ∃ (a : A), f a = b)) x,
-      rw ← pullback_cone.condition c, trivial,
-    erw classical.some_spec this,
-    simp at J, have Jl := congr_fun (J walking_cospan.right) x,
-    simp at Jl, exact Jl,
+    { show A,
+      have: pullback_cone.fst c ≫ _ = pullback_cone.snd c ≫ _ := pullback_cone.condition c,
+      have: (pullback_cone.snd c ≫ (λ (b : B), ∃ (a : A), f a = b)) i,
+        rw ← this, dsimp, trivial,
+      dsimp at this,
+      apply get_unique_value _ this_1 _,
+      intros,
+      rw ← a_2 at a_1,
+      rw mono_iff_injective at mon,
+      apply mon a_1 },
+    { intros c, apply pi_app_left,
+      ext, apply subsingleton.elim,
+      ext, dunfold pullback_cone.snd pullback_cone.mk, simp,
+      exact get_unique_property (λ (a : A), f a = c.π.app walking_cospan.right x) _ _ },
+    { intros c m J,
+      resetI,
+      rw ← cancel_mono f,
+      ext, simp,
+      have := get_unique_property (λ (a : A), f a = c.π.app walking_cospan.right x) _ _,
+      rw this,
+      erw ← congr_fun (J walking_cospan.right) x,
+      refl }
   end,
   uniquely' :=
   begin
     introv _ fst, ext x,
     rw set_classifier fst x
-  end
-}
+  end }
 
 @[simps]
 def currying_equiv (A X Y : Type u) : ((prodinl A).obj X ⟶ Y) ≃ (X ⟶ A → Y) :=
@@ -89,7 +106,7 @@ def currying_equiv (A X Y : Type u) : ((prodinl A).obj X ⟶ Y) ≃ (X ⟶ A →
 
 instance type_exponentiable (A : Type u) : exponentiable A :=
 { exponentiable :=
-  { right := adjunction.right_adjoint_of_equiv (currying_equiv _) (
+  { right := adjunction.right_adjoint_of_equiv (currying_equiv A) (
     begin
 <<<<<<< HEAD
       intros X X' Y f g,

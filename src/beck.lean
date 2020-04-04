@@ -1,9 +1,9 @@
-/- Author: E.W.Ayers.
-   Monadicity theorems. Following chapter 5 of
-   http://pi.math.cornell.edu/~dmehrle/notes/partiii/cattheory_partiii_notes.pdf
- -/
+/-
+Copyright (c) 2020 E.W.Ayers, Bhavik Mehta. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: E.W.Ayers, Bhavik Mehta
+-/
 
-import data.fintype.basic
 import category_theory.limits.limits
 import category_theory.limits.preserves
 import category_theory.monad.limits
@@ -107,7 +107,7 @@ def colimit_of_splits {F : walking_parallel_pair.{v} ⥤ C} (c : cocone F) (s : 
 }
 
 variable (C)
-def has_reflexive_coequalizers := Π {A B : C} {f g : A ⟶ B}, reflexive_pair f g → has_colimit (parallel_pair f g)
+def has_reflexive_coequalizers := Π ⦃A B : C⦄ ⦃f g : A ⟶ B⦄, reflexive_pair f g → has_colimit (parallel_pair f g)
 variable {C}
 
 -- [NOTE] homs are in the same universe as C's homs. I'm doing it this way because that's how it's done in cones.lean
@@ -174,13 +174,13 @@ def adjunctive_coequalizer_split (B : D) : split_coequalizer (G.map ((F).map (G.
   --           (η.naturality _).symm ⟩ },
 
 omit 𝒞 𝒟
-def restrict_equivalence {A B : Type v} (h : A ≃ B) (p : A → Prop) (q : B → Prop) (sound : ∀ a, p a ↔ q (h a)) : {a // p a} ≃ {b // q b} :=
+def restrict_equivalence {A : Type uc} {B : Type ud} (h : A ≃ B) (p : A → Prop) (q : B → Prop) (sound : ∀ a, p a ↔ q (h a)) : {a // p a} ≃ {b // q b} :=
 { to_fun := λ a, ⟨h.to_fun a.1, (sound a.1).1 a.2⟩,
   inv_fun := λ b, ⟨h.inv_fun b.1, begin apply (sound (h.inv_fun b.1)).2, convert b.2, apply h.right_inv end⟩,
-  left_inv := begin rintro ⟨a, _⟩, dsimp, congr, rw h.left_inv end,
-  right_inv := begin rintro ⟨b, _⟩, dsimp, congr, rw h.right_inv end }
+  left_inv := begin rintro ⟨a, _⟩, dsimp, congr, apply h.left_inv end,
+  right_inv := begin rintro ⟨b, _⟩, dsimp, congr, apply h.right_inv end }
 include 𝒞
-def coeq_equiv {X Y Z : C} {f g : X ⟶ Y} [has_colimit (parallel_pair f g)] : (coequalizer f g ⟶ Z) ≃ {h : Y ⟶ Z // f ≫ h = g ≫ h} :=
+def coeq_equiv {X Y : C} (Z : C) (f g : X ⟶ Y) [has_colimit (parallel_pair f g)] : (coequalizer f g ⟶ Z) ≃ {h : Y ⟶ Z // f ≫ h = g ≫ h} :=
 { to_fun := λ i, ⟨coequalizer.π _ _ ≫ i, begin rw ← assoc, rw coequalizer.condition, simp end⟩,
   inv_fun := λ h, coequalizer.desc h.1 h.2,
   left_inv := λ i, begin dsimp, ext1, rw colimit.ι_desc, refl end,
@@ -238,7 +238,7 @@ def L_obj : CT → D :=
 λ α, @colimit _ _ _ _ _ (hce α)
 
 def e1 (α : CT) (B : D) : (L_obj hce α ⟶ B) ≃ {f : (F).obj α.A ⟶ B // (F).map α.a ≫ f = ε ((F).obj α.A) ≫ f} :=
-coeq_equiv
+coeq_equiv _ _ _
 
 def Le (α : CT) (B : D) : (L_obj hce α ⟶ B) ≃ (α ⟶ (monad.comparison G).obj B) :=
 equiv.trans (e1 _ _ _) (equiv.trans (e2 _ _) (e3 _ _))
@@ -457,7 +457,8 @@ begin
   set ε := (is_right_adjoint.adj G).counit,
   dsimp [forms_adjoint, adjunction.adjunction_of_equiv_left, adjunction.mk_of_hom_equiv, Le, equiv.trans, e1, e2, e3, coeq_equiv, restrict_equivalence, monad.comparison],
   apply coequalizer_desc_is_iso,
-  convert ε_B_is_coequalizer B (λ _ _ _ _, hrc) (λ _ _ _ _, prc) ri,
+  convert ε_B_is_coequalizer B hrc (λ _ _ _ _, prc) ri,
+  change ((is_right_adjoint.adj G).hom_equiv (G.obj B) B).inv_fun (𝟙 (G.obj B)) = _,
   have: ((is_right_adjoint.adj G).hom_equiv (G.obj B) B).inv_fun (𝟙 (G.obj B)) = _ := (is_right_adjoint.adj G).hom_equiv_counit,
   rw this, rw functor.map_id, rw category.id_comp
 end

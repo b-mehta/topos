@@ -125,6 +125,7 @@ is (proved in `lifted_limit_is_limit`).
 If `F` reflects isomorphisms, it suffices to show only that the lifted cone is
 a limit - see `creates_limit_of_reflects_iso`.
 For this reason, we do not define this using `extends`.
+TODO (BM): it might be sensible to define it using `extends` though.
 -/
 class creates_limit (K : J ⥤ C) (F : C ⥤ D) : Type (max u₁ u₂ v) :=
 (lifts : Π (c : cone (K ⋙ F)), is_limit c → liftable_cone K F c)
@@ -300,6 +301,7 @@ def algebra_iso_of_iso {A B : algebra T} (f : A ⟶ B) [i : is_iso f.f] : is_iso
       rw [is_iso.inv_hom_id, T.map_id, category.id_comp]
     end } }
 
+namespace impl
 variables {J : Type v} [𝒥 : small_category J]
 include 𝒥
 
@@ -382,23 +384,19 @@ begin
   congr
 end
 
-omit 𝒥
+end impl
 
-def forget_reflects_iso : reflects_isomorphisms (forget T) :=
+instance forget_reflects_iso : reflects_isomorphisms (forget T) :=
 { reflects := λ A B, algebra_iso_of_iso }
 
 def forget_really_creates_limits : creates_limits (forget T) :=
-{ creates_limits_of_shape := λ J 𝒥,
+{ creates_limits_of_shape := λ J 𝒥, by exactI
   { creates_limit := λ D,
-    begin
-      letI := 𝒥,
-      apply creates_limit_of_reflects_iso _,
-      exact forget_reflects_iso,
-      intros c t,
-      refine {lifted := _, makes_limit := _},
-      refine {lifted_cone := lifted_cone D c t, valid_lift := eq_to_iso (lifted_cone_hits_original _ _ _)},
-      apply lifted_cone_is_limit
-    end } }
+    creates_limit_of_reflects_iso (λ c t,
+    { lifted :=
+      { lifted_cone := impl.lifted_cone D c t,
+        valid_lift := eq_to_iso (impl.lifted_cone_hits_original _ _ _) },
+      makes_limit := impl.lifted_cone_is_limit _ _ _} ) } }
 
 end monad
 

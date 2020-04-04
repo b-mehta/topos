@@ -39,25 +39,13 @@ def adjunction_of_nat_iso_left {C : Type u₁} [𝒞 : category.{v₁} C] {D : T
   {F G : C ⥤ D} {H : D ⥤ C} (adj : F ⊣ H) (iso : F ≅ G) :
   G ⊣ H :=
 adjunction.mk_of_hom_equiv
-<<<<<<< HEAD
-{ hom_equiv := λ X Y, equiv.trans (equiv_homset_left_of_nat_iso iso.symm) (adj.hom_equiv X Y),
-  hom_equiv_naturality_left_symm' := begin intros, simp end,
-  hom_equiv_naturality_right' := λ X Y Y' f g, by simp}
-=======
 { hom_equiv := λ X Y, (equiv_homset_left_of_nat_iso iso.symm).trans (adj.hom_equiv X Y) }
->>>>>>> update mathlib and make creates limits easier to use
 
 def adjunction_of_nat_iso_right {C : Type u₁} [𝒞 : category.{v₁} C] {D : Type u₂} [𝒟 : category.{v₂} D]
   {F : C ⥤ D} {G H : D ⥤ C} (adj : F ⊣ G) (iso : G ≅ H) :
   F ⊣ H :=
 adjunction.mk_of_hom_equiv
-<<<<<<< HEAD
-{ hom_equiv := λ X Y, equiv.trans (adj.hom_equiv X Y) (equiv_homset_right_of_nat_iso iso),
-  hom_equiv_naturality_left_symm' := λ X X' Y f g, by simp,
-  hom_equiv_naturality_right' := λ X Y Y' f g, by simp}
-=======
 { hom_equiv := λ X Y, (adj.hom_equiv X Y).trans (equiv_homset_right_of_nat_iso iso) }
->>>>>>> update mathlib and make creates limits easier to use
 
 end
 
