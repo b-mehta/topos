@@ -502,6 +502,7 @@ def internal_image {A B : C} [has_power_object.{v} A] [has_power_object.{v} B] (
 hat (mem A ≫ limits.prod.map (𝟙 (P A)) f)
 
 -- TODO: this doesn't use pasting so it's super long. can we make it nicer by using pasting?
+-- TODO: if not, it's still a horribly long proof which desperately needs a cleanup
 lemma naturalish {A B : C} [has_power_object.{v} A] [has_power_object.{v} B] (f : A ⟶ B) [mono f] {R D : C} (m : R ⟶ D ⨯ A) [mono m] :
   hat m ≫ internal_image f = hat (m ≫ limits.prod.map (𝟙 D) f) :=
 begin

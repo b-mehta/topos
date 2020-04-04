@@ -11,7 +11,7 @@ universes v v₂ u
 /-!
 # Types
 
-Show that Type has a subobject classifier (assuming choice).
+Show that Type has a subobject classifier (assuming unique choice).
 -/
 
 open category_theory category_theory.category category_theory.limits
