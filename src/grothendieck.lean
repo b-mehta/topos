@@ -51,8 +51,8 @@ structure Site :=
 
 namespace grothendieck
 
-variables {C : Type u} [𝒞 : category.{v} C] 
-variables {X Y : C} {S R : sieve X} 
+variables {C : Type u} [𝒞 : category.{v} C]
+variables {X Y : C} {S R : sieve X}
 variables {J : sieve_set C} [grothendieck J]
 include 𝒞
 
@@ -88,7 +88,7 @@ instance of_basis [@category_theory.limits.has_pullbacks C 𝒞] {K : arrow_set 
     refine ⟨_,basis.trans h₁ _ _,_⟩,
     { intros f hf, apply (classical.some (h₄ f (h₂ hf)))},
     { intros f hf, rcases classical.some_spec (h₄ f (h₂ hf)) with ⟨h10,h11⟩, apply h10 },
-    { 
+    {
       rintros f ⟨g,h₅,h,h₆,rfl⟩,
       rcases classical.some_spec (h₄ g (h₂ h₅)) with ⟨h11,h12⟩,
       apply h12,
@@ -131,7 +131,7 @@ def trans2
     apply Hf,
   end
 
-def covers (J : sieve_set C) (S : sieve X) (f : Y ⟶ X) := 
+def covers (J : sieve_set C) (S : sieve X) (f : Y ⟶ X) :=
 sieve.pullback S f ∈ J(Y)
 
 lemma intersection_covers (rj : R ∈ J(X)) (sj : S ∈ J(X)) : R ⊓ S ∈ J(X) :=
@@ -149,17 +149,17 @@ end
 open sieve_set
 
 instance trivial.grothendieck : grothendieck (sieve_set.trivial C) :=
-{ max := λ X, set.mem_singleton _, 
-  stab := λ X Y S HS h , begin 
-    have : S = ⊤, 
-      apply set.eq_of_mem_singleton, assumption, 
-    rw [this, sieve.pullback_top], 
-    apply set.mem_singleton 
-  end, 
+{ max := λ X, set.mem_singleton _,
+  stab := λ X Y S HS h , begin
+    have : S = ⊤,
+      apply set.eq_of_mem_singleton, assumption,
+    rw [this, sieve.pullback_top],
+    apply set.mem_singleton
+  end,
   trans := λ X S HS R HR, begin
     have : S = ⊤, apply set.eq_of_mem_singleton, assumption, subst this,
     apply set.mem_singleton_of_eq,
-    apply lattice.top_unique,
+    apply top_unique,
     rintros g Hg,
     have : sieve.pullback R (g.hom) ≥ ⊤, refine (ge_of_eq (set.eq_of_mem_singleton (HR g Hg))),
     have : over.mk (𝟙 g.left) ∈ sieve.pullback R (g.hom), refine this _, trivial,
@@ -196,7 +196,7 @@ instance atomic.grothendieck
     ∃ (W : C)     (wy : W ⟶ Y) (wz : W ⟶ Z),
       wy ≫ yx = wz ≫ zx)
   : grothendieck (atomic C) :=
-{ max := λ X, ⟨over.mk (𝟙 _),⟨⟩⟩, 
+{ max := λ X, ⟨over.mk (𝟙 _),⟨⟩⟩,
   stab := begin
     rintros X Y S HS h,
     cases HS with f HS,
@@ -204,7 +204,7 @@ instance atomic.grothendieck
     refine ⟨over.mk b,_⟩,
     simp, rw d,
     apply sieve.subs, assumption
-   end, 
+   end,
    trans := begin
      rintros _ _ ⟨f,fS⟩ _ Ra,
      rcases Ra f fS with ⟨g,h₁⟩,
@@ -214,7 +214,7 @@ instance atomic.grothendieck
 
 open opposite
 
-def matching_family (P : Cᵒᵖ ⥤ Type v) (S : sieve X) := 
+def matching_family (P : Cᵒᵖ ⥤ Type v) (S : sieve X) :=
 S.as_functor ⟶ P
 
 def amalgamation {P : Cᵒᵖ ⥤ Type v} {S : sieve X} (γ : matching_family P S) :=

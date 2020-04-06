@@ -6,5 +6,5 @@ RUN pip3 install mathlibtools
 ENV PATH $PATH:/root/.elan/bin
 ENV LC_ALL C.UTF-8
 ENV LANG C.UTF-8
-RUN elan toolchain install leanprover-community/lean:3.6.1
+RUN elan toolchain install leanprover-community/lean:3.7.2
 CMD ["bash"]

@@ -10,7 +10,6 @@ import category_theory.limits.shapes.equalizers
 import category_theory.limits.preserves
 import category_theory.limits.over
 import category_theory.comma
-import to_mathlib
 import binary_products
 import creates
 

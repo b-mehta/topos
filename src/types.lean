@@ -87,14 +87,19 @@ def currying_equiv (A X Y : Type u) : ((prodinl A).obj X ⟶ Y) ≃ (X ⟶ A →
   left_inv := λ f, by { ext ⟨ba⟩, dsimp, congr, ext ⟨j⟩, simp },
   right_inv := λ _, rfl }
 
-instance type_exponentials (A : Type u) : exponentiable A :=
+instance type_exponentiable (A : Type u) : exponentiable A :=
 { exponentiable :=
   { right := adjunction.right_adjoint_of_equiv (currying_equiv _) (
     begin
-      intros X X' Y f g, ext, dsimp [currying_equiv], congr,
-      show lim.map (@map_pair (Type u) _ _ _ _ _ id f) _ = _,
+      intros X X' Y f g,
+      dsimp [currying_equiv],
+      ext,
+      congr,
+      dunfold limits.prod.map,
       rw types.types_limit_map,
-      congr, ext ⟨j⟩, simp, simp
+      congr, ext ⟨j⟩,
+      simp,
+      simp,
     end),
     adj := adjunction.adjunction_of_equiv_right _ _ } }
 

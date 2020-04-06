@@ -2,8 +2,8 @@
    Skeleton category.
    This should probably live in full_subcategory.lean
    -/
-import .pullbacks
 import category_theory.full_subcategory
+import .pullbacks
 
 def logic.equivalence := @equivalence
 
@@ -28,7 +28,7 @@ lemma are_iso.symm : are_iso X Y → are_iso Y X
 lemma are_iso.trans : are_iso X Y → are_iso Y Z → are_iso X Z
 | ⟨a⟩ ⟨b⟩ := ⟨iso.trans a b⟩
 
-lemma are_iso.equiv : logic.equivalence (@are_iso C 𝒞) := 
+lemma are_iso.equiv : logic.equivalence (@are_iso C 𝒞) :=
 ⟨λ _, are_iso.refl, λ _ _, are_iso.symm, λ _ _ _, are_iso.trans⟩
 
 instance : category (arrows C) := show category (comma _ _), by apply_instance

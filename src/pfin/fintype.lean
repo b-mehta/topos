@@ -1,4 +1,4 @@
-import data.fintype
+import data.fintype.basic
 import pfin.lemmas
 
 universe u
