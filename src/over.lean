@@ -61,20 +61,35 @@ private def pi_obj.equiv [exponentiable B] (X : C) (Y : over B) :
     begin
       apply over.hom_mk _ _, apply (exp_transpose.inv_fun (g ≫ pullback.fst)),
       dsimp, apply function.injective_of_left_inverse exp_transpose.left_inv,
-      rw exp_transpose_natural_right, rw exp_transpose.right_inv, rw assoc,
-      rw pullback.condition, have : g ≫ pullback.snd = terminal.from X,
-      apply subsingleton.elim, rw ← assoc, rw this, erw ← exp_transpose_natural_left,
+      rw exp_transpose_natural_right,
+      erw exp_transpose.right_inv,
+      rw assoc,
+      rw pullback.condition,
+      have : g ≫ pullback.snd = terminal.from X,
+      apply subsingleton.elim,
+      rw ← assoc,
+      rw this,
+      erw ← exp_transpose_natural_left,
       apply function.injective_of_left_inverse exp_transpose.right_inv,
-      rw exp_transpose.left_inv, rw exp_transpose.left_inv, simp
+      rw exp_transpose.left_inv,
+      rw exp_transpose.left_inv,
+      simp
     end,
-  left_inv := λ f, begin apply over.over_morphism.ext, simp, rw exp_transpose.left_inv end,
-  right_inv := λ g, begin apply pullback.hom_ext, simp, rw exp_transpose.right_inv, apply subsingleton.elim end
+  left_inv := λ f, begin apply over.over_morphism.ext, simp end,
+  right_inv := λ g,
+  begin
+    apply pullback.hom_ext,
+    simp,
+    apply subsingleton.elim,
+  end
   }
 
 private lemma pi_obj.natural_equiv [exponentiable B] (X' X : C) (Y : over B) (f : X' ⟶ X) (g : (star B).obj X ⟶ Y) :
   (pi_obj.equiv B X' Y).to_fun ((star B).map f ≫ g) = f ≫ (pi_obj.equiv B X Y).to_fun g :=
 begin
-  apply pullback.hom_ext, simp [pi_obj.equiv], rw ← exp_transpose_natural_left,
+  apply pullback.hom_ext,
+  simp [pi_obj.equiv],
+  apply exp_transpose_natural_left,
   apply subsingleton.elim
 end
 
