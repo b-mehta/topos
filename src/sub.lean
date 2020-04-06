@@ -225,6 +225,5 @@ begin
   rw ← category.assoc,
   rw limit.lift_π, dsimp,
   erw t.fac _ walking_cospan.right, refl,
-
 end
 end category_theory

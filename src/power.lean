@@ -29,7 +29,7 @@ attribute [instance] has_pullbacks_of_has_finite_limits
 variables {C : Type u} [𝒞 : category.{v} C]
 include 𝒞
 
-lemma cone_is_pullback {X Y Z : C} (f : X ⟶ Z) (g : Y ⟶ Z) [has_limit (cospan f g)] :
+def cone_is_pullback {X Y Z : C} (f : X ⟶ Z) (g : Y ⟶ Z) [has_limit (cospan f g)] :
   is_limit (pullback_cone.mk _ _ pullback.condition : pullback_cone f g) :=
 begin
   apply is_limit.of_iso_limit,
