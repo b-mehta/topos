@@ -15,6 +15,7 @@ import creates
 import beck2
 import category_theory.limits.opposites
 import category_theory.limits.shapes.equalizers
+import category_theory.limits.shapes.constructions.limits_of_products_and_equalizers
 
 /-!
 # Power objects
@@ -224,7 +225,8 @@ def hat_natural_right {A A' B R : C} [has_power_object.{v} A] [has_power_object.
 begin
   rw easy_lemma
 end
-def hat_natural_left {A B B' R : C} [has_power_object.{v} A] (k : R ⟶ B ⨯ A) [mono k] (g : B' ⟶ B) : g ≫ hat k = hat (pullback.snd : pullback k (limits.prod.map g (𝟙 A)) ⟶ B' ⨯ A) := -- hat_sub (sub_map (limits.prod.map g (𝟙 A)) k) :=
+def hat_natural_left {A B B' R : C} [has_power_object.{v} A] (k : R ⟶ B ⨯ A) [mono k] (g : B' ⟶ B) :
+  g ≫ hat k = hat (pullback.snd : pullback k (limits.prod.map g (𝟙 A)) ⟶ B' ⨯ A) :=
 begin
   apply unique_hat,
   refine ⟨pullback.fst ≫ square.top k, _, _⟩,
@@ -244,8 +246,6 @@ begin
   dsimp [hat_sub, sub_map], intro a,
   rw hat_natural_left
 end
-
-
 
 def hat_sub_natural_right {A A' B : C} [has_power_object.{v} A] [has_power_object.{v} A'] (k : sub (B ⨯ A)) (g : A' ⟶ A) : hat_sub k ≫ P_map g = hat_sub (sub_map (limits.prod.map (𝟙 B) g) k) :=
 begin
@@ -533,7 +533,7 @@ begin
     dsimp, simp, erw category.comp_id,
     simp,
     have: (pullback.fst ≫ mem A ≫ limits.prod.map (𝟙 _) f) ≫ limits.prod.snd = (pullback.snd ≫ limits.prod.map (hat m) (𝟙 _)) ≫ limits.prod.snd := pullback.condition =≫ limits.prod.snd,
-    rw [assoc] at this, simp at this,
+    simp at this,
     rw this,
     erw comp_id },
   { rw limit.lift_π, refl }
@@ -842,67 +842,664 @@ instance has_colim [has_power_objects.{v} C] : has_finite_colimits.{v} C :=
 
 namespace intersect
 
-variables (A : C) [has_power_object.{v} A]
-
-@[reducible]
-def π₁₃ : (P A ⨯ P A) ⨯ A ⟶ P A ⨯ A := limits.prod.map limits.prod.fst (𝟙 A)
-@[reducible]
-def π₂₃ : (P A ⨯ P A) ⨯ A ⟶ P A ⨯ A := limits.prod.map limits.prod.snd (𝟙 A)
-
-def L1 : C := pullback (mem A) (π₁₃ A)
-def R1 : C := pullback (mem A) (π₂₃ A)
-
-@[reducible]
-def left : L1 A ⟶ (P A ⨯ P A) ⨯ A := pullback.snd
-def right : R1 A ⟶ (P A ⨯ P A) ⨯ A := pullback.snd
-
-instance mono_right: mono (right A) :=
+def intersection {A : C} : sub A → sub A → sub A :=
 begin
-  dunfold right,
-  apply_instance
+  refine quotient.lift (λ (f : sub' A), _) _,
+  { exact (@postcompose _ _ _ _ f.1.hom f.2 ∘ sub_map f.1.hom) },
+  { rintros a b ⟨⟨ab, hab⟩, ⟨ba, hba⟩⟩,
+    ext x,
+    apply quotient.induction_on x,
+    intro y,
+    dsimp [postcompose, sub_map],
+    apply quotient.sound,
+    split,
+    { refine ⟨pullback.lift pullback.fst (pullback.snd ≫ ab) _, _⟩,
+      { slice_rhs 2 3 {rw ← hab},
+        apply pullback.condition },
+      { dsimp,
+        slice_rhs 1 2 {rw limit.lift_π},
+        simp [hab] } },
+    { refine ⟨pullback.lift pullback.fst (pullback.snd ≫ ba) (by simp [pullback.condition, hba]), _⟩,
+      { dsimp,
+        slice_rhs 1 2 {rw limit.lift_π},
+        simp [hba] } } }
 end
 
-@[reducible]
-def both : pullback (left A) (right A) ⟶ (P A ⨯ P A) ⨯ A := pullback.fst ≫ left A
+def is_le {A : C} : ∀ (m n : sub A), intersection m n ≤ m :=
+begin
+  apply quotient.ind₂,
+  intros m n,
+  exact ⟨pullback.snd, rfl⟩,
+end
 
-def intersect : P A ⨯ P A ⟶ P A := hat (both A)
+def is_le_other {A : C} : ∀ (m n : sub A), intersection m n ≤ n :=
+begin
+  apply quotient.ind₂,
+  intros m n,
+  exact ⟨pullback.fst, pullback.condition.symm⟩,
+end
+
+def universal {A : C} : ∀ (k m n : sub A), k ≤ m → k ≤ n → k ≤ intersection m n :=
+begin
+  intros k m n,
+  apply quotient.induction_on₃ k m n,
+  clear k m n,
+  intros k m n,
+  rintros ⟨km, hkm⟩ ⟨kn, hkn⟩,
+  refine ⟨pullback.lift kn km (eq.trans hkn.symm hkm), _⟩,
+  dsimp,
+  simp [hkm]
+end
+
+def commutes {A : C} (m n : sub A) : intersection m n = intersection n m :=
+begin
+  apply le_antisymm,
+  apply universal,
+  apply is_le_other,
+  apply is_le,
+  apply universal,
+  apply is_le_other,
+  apply is_le
+end
+
+variables {A : C} [has_power_object.{v} A]
+
+def intersect_names {B : C} (mn : B ⟶ P A ⨯ P A) : B ⟶ P A :=
+hat_sub $ intersection (hat_sub' (mn ≫ limits.prod.fst)) (hat_sub' (mn ≫ limits.prod.snd))
+
+def intersect_prop {X Y : C} (g : X ⟶ Y) (f1 f2 : sub Y) :
+  sub_map g (intersection f1 f2) = intersection (sub_map g f1) (sub_map g f2) :=
+begin
+  revert f1 f2,
+  apply quotient.ind₂,
+  intros f1 f2,
+  dsimp [sub_map, intersection, postcompose, pullback_sub', postcompose_sub'],
+  apply quotient.sound,
+  refine ⟨_, _⟩,
+  { refine ⟨_, _⟩,
+    { apply pullback.lift (pullback.lift (pullback.fst ≫ pullback.fst) pullback.snd _) _ _,
+      { slice_lhs 2 3 {rw pullback.condition},
+        conv_rhs {rw ← pullback.condition} },
+      { apply pullback.lift (pullback.fst ≫ pullback.snd) pullback.snd _,
+        conv_rhs {rw ← pullback.condition},
+        simp },
+    { rw limit.lift_π, rw limit.lift_π, refl } },
+    { dsimp,
+      slice_rhs 1 2 {rw limit.lift_π},
+      dsimp,
+      rw limit.lift_π,
+      refl }
+  },
+  { refine ⟨_, _⟩,
+    { apply pullback.lift (pullback.lift (pullback.fst ≫ pullback.fst) (pullback.snd ≫ pullback.fst) _) _ _,
+      { slice_lhs 2 3 {rw pullback.condition},
+        slice_rhs 2 3 {rw pullback.condition},
+        slice_lhs 1 2 {rw pullback.condition},
+        simp },
+      { apply pullback.snd ≫ pullback.snd },
+      { slice_lhs 1 2 {rw limit.lift_π},
+        dsimp,
+        slice_lhs 2 3 {rw pullback.condition},
+        simp } },
+    { erw limit.lift_π,
+      refl } }
+end
+
+def intersect_names_natural {B B' : C} (f : B' ⟶ B) (mn : B ⟶ P A ⨯ P A) :
+  f ≫ intersect_names mn = intersect_names (f ≫ mn) :=
+begin
+  dunfold intersect_names,
+  rw hat_sub_natural_left,
+  congr' 1,
+  rw category.assoc _ f mn _,
+  rw category.assoc _ f mn _,
+  rw hat_sub'_natural_left (mn ≫ limits.prod.fst),
+  rw hat_sub'_natural_left (mn ≫ limits.prod.snd),
+  apply intersect_prop
+end
+
+def intersect (A : C) [has_power_object.{v} A] : P A ⨯ P A ⟶ P A := intersect_names (𝟙 _)
 
 end intersect
 
--- lemma intersect_prop (R₁ R₂ : C) (f₁ : R₁ ⟶ B ⨯ A) (f₂ : R₂ ⟶ B ⨯ A) [mono f₁] [mono f₂] :
---   hat ((pullback.fst : pullback f₁ f₂ ⟶ R₁) ≫ f₁) = limits.prod.lift (hat f₁) (hat f₂) ≫ intersect.intersect A :=
+-- def hat_sub_natural_left (A B B' : C) [has_power_object.{v} A] (k : sub (B ⨯ A)) (g : B' ⟶ B) : g ≫ hat_sub k = hat_sub (sub_map (limits.prod.map g (𝟙 A)) k) :=
 -- begin
---   symmetry,
---   apply unique_hat,
---   refine ⟨_ ≫ square.top (intersect.both A), _, _⟩,
---   { apply pullback.lift _ _ _,
---     { apply pullback.lift _ _ _,
---       { apply pullback.fst ≫ square.top f₁ },
---       { apply pullback.fst ≫ f₁ ≫ limits.prod.map (limits.prod.lift (hat f₁) (hat f₂)) (𝟙 A) },
---       { slice_lhs 2 3 {rw square.commutes f₁},
---         rw [assoc, assoc, ← prod_functorial, limit.lift_π], refl } },
---     { apply pullback.lift _ _ _,
---       { apply pullback.snd ≫ square.top f₂ },
---       { apply pullback.fst ≫ f₁ ≫ limits.prod.map (limits.prod.lift (hat f₁) (hat f₂)) (𝟙 A) },
---       { slice_lhs 2 3 {rw square.commutes f₂},
---         slice_lhs 1 2 {rw ← pullback.condition},
---         rw [assoc, assoc, assoc, ← prod_functorial, limit.lift_π], refl } },
---     { rw [limit.lift_π], dsimp, erw [limit.lift_π], dsimp, refl } },
---   { slice_lhs 2 3 {rw square.commutes (intersect.both A)},
---     dunfold intersect.both,
---     slice_lhs 1 2 {rw limit.lift_π},
---     dsimp,
---     slice_lhs 1 2 {rw limit.lift_π},
---     dsimp,
---     rw [assoc, assoc, assoc],
---     rw prod_functorial,
---     refl },
---   { refine ⟨_, _, _⟩,
---     { intro s,
---       set toB' : s.X ⟶ pullback (intersect.left A) (intersect.right A) := (square.is_pullback (intersect.both A)).lift (pullback_cone.mk (pullback_cone.fst s) (pullback_cone.snd s ≫ limits.prod.map (limits.prod.lift (hat f₁) (hat f₂)) (𝟙 A)) _),
-
-
---     }
-
---   }
+--   apply quotient.induction_on k,
+--   dsimp [hat_sub, sub_map], intro a,
+--   rw hat_natural_left
 -- end
+
+-- def power_obj_of_biject (A : C) (PA : C) (bij : Π B, sub (B ⨯ A) ≃ (B ⟶ PA))
+--   (nat : ∀ B B' f k, f ≫ bij B k = bij B' (sub_map (limits.prod.map f (𝟙 A)) k)) :
+--   has_power_object.{v} A :=
+-- begin
+--   refine ⟨PA, _, _, _, _, _, _⟩,
+--   let r := ((bij PA).symm (𝟙 PA)),
+--   have := nat _ _ (𝟙 PA) r,
+--   rw id_comp at this,
+
+-- end
+
+section augment_terminal
+omit 𝒞
+
+local attribute [tidy] tactic.case_bash
+
+def augment_terminal (J : Type v) := option J
+
+instance (J : Type v) [fintype J] : fintype (augment_terminal J) :=
+begin
+  rw augment_terminal, apply_instance
+end
+
+@[derive decidable_eq]
+inductive augment_terminal_hom {J : Type v} : augment_terminal J → augment_terminal J → Type v
+| id : Π X, augment_terminal_hom X X
+| term : Π (j : J), augment_terminal_hom (some j) none
+
+instance fintype_hom (J : Type v) [fintype J] [decidable_eq J] (j j' : augment_terminal J) : fintype (augment_terminal_hom j j') :=
+{ elems :=
+  begin
+    cases j',
+    cases j,
+    exact finset.singleton (augment_terminal_hom.id none),
+    exact finset.singleton (augment_terminal_hom.term j),
+    by_cases some j' = j,
+    rw h,
+    exact finset.singleton (augment_terminal_hom.id j),
+    exact ∅
+  end,
+  complete := by tidy}
+
+instance {J : Type v} (j j' : augment_terminal J) : subsingleton (augment_terminal_hom j j') :=
+⟨by tidy⟩
+
+instance {J : Type v} : category_struct (augment_terminal J) :=
+{ hom := augment_terminal_hom,
+  id := λ j, augment_terminal_hom.id j,
+  comp := λ j₁ j₂ j₃ f g,
+  begin
+    cases f,
+      exact g,
+    cases g,
+    apply augment_terminal_hom.term _
+  end }
+
+instance {J : Type v} : category (augment_terminal J) := sparse_category
+
+instance {J : Type v} [fintype J] [decidable_eq J] : fin_category (augment_terminal J) :=
+{ fintype_hom := fintype_hom J }
+
+end augment_terminal
+
+local attribute [tidy] tactic.case_bash
+@[simps]
+def grow_diagram (B : C) {J : Type v} (F : discrete J ⥤ over B) : augment_terminal J ⥤ C :=
+{ obj := λ j, option.cases_on j B (λ (j : J), (F.obj j).left),
+  map :=
+  begin
+    intros X Y f, cases f with _ j,
+    exact category_struct.id _,
+    exact (F.obj j).hom,
+  end }
+
+
+omit 𝒞
+
+def get_element_finset (J : Type v) (α : Type u) (s : finset J) (hs : s.nonempty) (f : J → α) (hf : ∀ (j₁ ∈ s) (j₂ ∈ s), f j₁ = f j₂) :
+  {a : α // ∀ (j ∈ s), f j = a} :=
+begin
+  revert hs hf,
+  cases s with s hs,
+  rw finset.nonempty,
+  change (∃ (x : J), x ∈ s) →
+  (∀ (j₁ : J),
+     j₁ ∈ s →
+     ∀ (j₂ : J), j₂ ∈ s → f j₁ = f j₂) →
+  {a // ∀ (j : J), j ∈ s → f j = a},
+  apply quotient.rec_on_subsingleton s,
+  clear hs s,
+  intros l hl hf,
+  cases l,
+  exfalso,
+  cases hl,
+  simp at hl_h,
+  assumption,
+  refine ⟨f l_hd, _⟩,
+  intros j hj,
+  apply hf,
+  assumption,
+  left, refl,
+  intro l, split, intros a b,
+  ext i j,
+  cases a i j,
+  cases b i j,
+  congr,
+  cases i with i hi,
+  rw ← property i hi,
+  apply property_1 i hi
+end
+
+def get_element (J : Type v) (α : Type u) [ft : fintype J] [ne : nonempty J] (f : J → α) (hf : ∀ j₁ j₂, f j₁ = f j₂) : {a : α // ∀ j, f j = a} :=
+begin
+  resetI,
+  have ene: ft.elems.nonempty,
+    cases ne,
+    use ne, apply ft.complete,
+  obtain ⟨a, ha⟩ := get_element_finset J α ft.elems ene f (λ j₁ _ j₂ _, hf j₁ j₂),
+  refine ⟨a, λ j, _⟩,
+  apply ha,
+  apply ft.complete
+end
+
+include 𝒞
+
+@[simps]
+def make_cone (B : C) {J : Type v} (F : discrete J ⥤ over B) : cone F ⥤ cone (grow_diagram B F) :=
+{ obj := λ c,
+  { X := c.X.left,
+    π := { app := λ X, option.cases_on X c.X.hom (λ (j : J), (c.π.app j).left) } },
+  map := λ c₁ c₂ f,
+  { hom := f.hom.left,
+    w' :=
+    begin
+      intro j,
+      cases j,
+      { simp },
+      { dsimp,
+        rw ← f.w j,
+        refl }
+    end } }
+
+@[simps]
+def make_other_cone (B : C) {J : Type v} (F : discrete J ⥤ over B) : cone (grow_diagram B F) ⥤ cone F :=
+{ obj := λ c,
+  { X := over.mk (c.π.app none),
+    π := { app := (λ j, over.hom_mk (c.π.app (some j)) (begin apply c.w (augment_terminal_hom.term j) end)) } },
+  map := λ c₁ c₂ f,
+  { hom := over.hom_mk f.hom } }
+
+@[simps]
+def cones_equiv (B : C) {J : Type v} (F : discrete J ⥤ over B) : cone (grow_diagram B F) ≌ cone F :=
+{ functor := make_other_cone B F,
+  inverse := make_cone B F,
+  counit_iso := nat_iso.of_components (λ t, cones.ext {hom := over.hom_mk (𝟙 _), inv := over.hom_mk (𝟙 _)} (by tidy)) (by tidy),
+  unit_iso := nat_iso.of_components (λ _, cones.ext {hom := 𝟙 _, inv := 𝟙 _} (by tidy)) (by tidy) }
+
+def over_finite_products_of_finite_limits [has_finite_limits.{v} C] {B : C} : has_finite_products.{v} (over B) :=
+{ has_limits_of_shape := λ J 𝒥₁ 𝒥₂, by exactI
+  { has_limit := λ F,
+    { cone := (make_other_cone B F).obj (limit.cone (grow_diagram B F)),
+      is_limit := is_limit.mk_cone_morphism
+      (λ s, (cones_equiv B F).counit_iso.inv.app s ≫ (make_other_cone B F).map (limit.cone_morphism ((make_cone B F).obj s)))
+      (λ s m,
+      begin
+        apply (cones_equiv B F).inverse.injectivity,
+        rw ← cancel_mono ((cones_equiv B F).unit_iso.app (limit.cone _)).inv,
+        apply is_limit.uniq_cone_morphism (limit.is_limit _),
+      end)
+      } } }
+
+instance [has_finite_limits.{v} C] {B : C} : has_finite_limits.{v} (over B) :=
+sorry
+
+def P1 (A : C) [has_power_object.{v} A] : C := equalizer (intersect.intersect A) limits.prod.fst
+def P1sub (A : C) [has_power_object.{v} A] : P1 A ⟶ P A ⨯ P A := equalizer.ι (intersect.intersect A) limits.prod.fst
+
+lemma leq_prop4 (A B : C) (m n : sub (B ⨯ A)) [has_power_object.{v} A] :
+  m ≤ n ↔ limits.prod.lift (hat_sub m) (hat_sub n) ≫ intersect.intersect A = limits.prod.lift (hat_sub m) (hat_sub n) ≫ limits.prod.fst :=
+begin
+  have: m ≤ n ↔ intersect.intersection m n = m,
+    refine ⟨λ k, _, λ k, _⟩,
+    apply le_antisymm,
+    apply intersect.is_le,
+    apply intersect.universal,
+    exact le_refl _,
+    apply k,
+    convert intersect.is_le_other m n,
+    exact k.symm,
+  rw this,
+  refine ⟨_, _⟩,
+  { intro k,
+    rw limit.lift_π,
+    dsimp,
+    erw intersect.intersect_names_natural,
+    rw comp_id,
+    conv_rhs {rw ← k},
+    dsimp [intersect.intersect_names],
+    rw [limit.lift_π, limit.lift_π],
+    dsimp,
+    congr' 2,
+    apply hat_sub''.right_inv,
+    apply hat_sub''.right_inv },
+  intro z,
+  erw [limit.lift_π, intersect.intersect_names_natural, intersect.intersect_names] at z,
+  simp only [limit.lift_π, binary_fan.mk_π_app_left, binary_fan.mk_π_app_right, comp_id] at z,
+  apply function.injective_of_left_inverse hat_sub''.right_inv,
+  dsimp [hat_sub''],
+  convert z,
+  symmetry,
+  apply hat_sub''.right_inv,
+  symmetry,
+  apply hat_sub''.right_inv,
+end
+
+lemma leq_prop5 (A B R₁ R₂ : C) [has_power_object.{v} A] (m : R₁ ⟶ B ⨯ A) (n : R₂ ⟶ B ⨯ A) [mono m] [mono n] [has_power_object.{v} A] :
+  (∃ (k : R₁ ⟶ R₂), m = k ≫ n) ↔ limits.prod.lift (hat m) (hat n) ≫ intersect.intersect A = limits.prod.lift (hat m) (hat n) ≫ limits.prod.fst :=
+leq_prop4 _ _ ⟦⟨over.mk m, _inst_3⟩⟧ ⟦⟨over.mk n, _inst_4⟩⟧
+
+lemma leq_prop (A B : C) (m n : sub (B ⨯ A)) [has_power_object.{v} A] :
+  m ≤ n ↔ ∃ (r : B ⟶ P1 A), r ≫ P1sub A = limits.prod.lift (hat_sub m) (hat_sub n) :=
+begin
+  rw leq_prop4,
+  refine ⟨_, _⟩,
+  intro k,
+  refine ⟨equalizer.lift (limits.prod.lift (hat_sub m) (hat_sub n)) k, limit.lift_π _ _⟩,
+  rintro ⟨r, hr⟩,
+  rw ← hr,
+  slice_lhs 2 3 {erw equalizer.condition},
+  rw assoc,
+  refl
+end
+
+lemma leq_prop2 (A B R₁ R₂ : C) [has_power_object.{v} A] (m : R₁ ⟶ B ⨯ A) (n : R₂ ⟶ B ⨯ A) [mono m] [mono n] :
+  (∃ (k : R₁ ⟶ R₂), m = k ≫ n) ↔ ∃ (r : B ⟶ P1 A), r ≫ P1sub A = limits.prod.lift (hat m) (hat n) :=
+leq_prop _ _ ⟦⟨over.mk m, _inst_3⟩⟧ ⟦⟨over.mk n, _inst_4⟩⟧
+
+lemma leq_prop3 (A B R₁ R₂ : C) [has_power_object.{v} A] (m : R₁ ⟶ B ⨯ A) (n : R₂ ⟶ B ⨯ A) [mono m] [mono n] (r : B ⟶ P1 A) (hr : r ≫ P1sub A = limits.prod.lift (hat m) (hat n)) :
+  ∃ (k : R₁ ⟶ R₂), m = k ≫ n :=
+begin
+  rw leq_prop2,
+  refine ⟨r, hr⟩,
+end
+
+section slicing
+variables {B : C} (f : over B) [has_power_object.{v} B] [has_power_object.{v} f.left]
+
+def bottom : P f.left ⨯ B ⟶ P f.left ⨯ P f.left := limits.prod.map (𝟙 _) (singleton_arrow B ≫ P_map f.hom)
+
+def Q : C := pullback (P1sub f.left) (bottom f)
+def hk : Q f ⟶ P f.left ⨯ B := pullback.snd
+def over_pow : over B := over.mk (hk f ≫ limits.prod.snd)
+
+variable {f}
+def lh {g : over B} (l : g ⟶ over_pow f) : g.left ⟶ P f.left := l.left ≫ hk f ≫ limits.prod.fst
+
+@[reducible]
+def R {g : over B} (l : g ⟶ over_pow f) : C := pullback (mem f.left) (limits.prod.map (lh l) (𝟙 _))
+
+@[reducible]
+def the_subobj {g : over B} (l : g ⟶ over_pow f) : R l ⟶ g.left ⨯ f.left := pullback.snd
+
+instance {g : over B} (l : g ⟶ over_pow f) : mono (the_subobj l) :=
+begin
+  rw the_subobj,
+  apply_instance
+end
+
+lemma hat_the_subobj {g : over B} (l : g ⟶ over_pow f) : hat (the_subobj l) = lh l :=
+begin
+  symmetry,
+  apply unique_hat,
+  exact ⟨pullback.fst, pullback.condition, cone_is_pullback _ _⟩,
+end
+
+def produce_subobj {g : over B} (l : g ⟶ over_pow f) : over B :=
+over.mk (the_subobj l ≫ limits.prod.fst ≫ g.hom : R l ⟶ B)
+
+lemma useful {g : over B} (l : g ⟶ over_pow f) : the_subobj l ≫ limits.prod.fst ≫ g.hom = the_subobj l ≫ limits.prod.snd ≫ f.hom :=
+begin
+  have: _ ≫ (P1sub f.left) = hk f ≫ bottom f := pullback.condition,
+  have geq: l.left ≫ hk f ≫ limits.prod.snd = g.hom,
+    exact over.w l,
+  have q: l.left ≫ hk f ≫ bottom f = limits.prod.lift (lh l) ((l.left ≫ hk f ≫ limits.prod.snd) ≫ singleton_arrow B ≫ P_map f.hom),
+    apply prod.hom_ext,
+    { rw bottom,
+      slice_lhs 3 4 {rw [limit.map_π]},
+      dsimp,
+      simpa },
+    { simp [bottom] },
+  conv_rhs at q {congr, skip, rw ← seven_six_two, rw geq, rw hat_natural_left},
+  rw [← this, ← assoc, ← hat_the_subobj] at q,
+  obtain ⟨m, hm⟩ := leq_prop3 _ _ _ _ _ _ _ q,
+  have t: pullback.fst ≫ limits.prod.lift f.hom (𝟙 f.left) = pullback.snd ≫ limits.prod.map g.hom (𝟙 f.left) := pullback.condition,
+  have t1 := t =≫ limits.prod.fst,
+    simp at t1,
+  have t2 := t =≫ limits.prod.snd,
+    rw [assoc, assoc, limit.lift_π, limit.map_π] at t2,
+    erw [comp_id, comp_id] at t2,
+    dsimp at t2,
+  rw hm,
+  slice_lhs 2 5 {rw ← t1},
+  rw t2,
+  simp
+end
+
+def subobj_arrow {g : over B} (l : g ⟶ over_pow f) : produce_subobj l ⟶ g ⨯ f :=
+begin
+  apply limits.prod.lift,
+  exact over.hom_mk (the_subobj l ≫ limits.prod.fst),
+  apply over.hom_mk _ _,
+  apply the_subobj l ≫ limits.prod.snd,
+  dsimp [produce_subobj],
+  rw assoc,
+  symmetry,
+  apply useful
+end
+
+instance {g : over B} (l : g ⟶ over_pow f) : mono (subobj_arrow l) :=
+begin
+  refine ⟨λ Z i j h, _⟩,
+  ext1,
+  rw ← cancel_mono (the_subobj l),
+  apply prod.hom_ext,
+  rw [assoc, assoc],
+  have h1 := h =≫ limits.prod.fst,
+  simp [subobj_arrow] at h1,
+  have h2 := congr_arg comma_morphism.left h1,
+  simp at h2,
+  assumption,
+  rw [assoc, assoc],
+  have h3 := h =≫ limits.prod.snd,
+  simp [subobj_arrow] at h3,
+  have h4 := congr_arg comma_morphism.left h3,
+  simp at h4,
+  assumption,
+end
+
+end slicing
+
+def over_mono {B : C} {f g : over B} (m : f ⟶ g) [mono m] : mono m.left :=
+begin
+  refine ⟨λ A h k e, _⟩,
+  let A' : over B := over.mk (h ≫ f.hom),
+  let h' : A' ⟶ f := over.hom_mk h,
+  let k' : A' ⟶ f := over.hom_mk k (by { dsimp, rw ← over.w m, slice_rhs 1 2 {rw e}, rw assoc }),
+  have: h' ≫ m = k' ≫ m,
+    ext, dsimp, exact e,
+  rw cancel_mono m at this,
+  injection this
+end
+
+def CAarrow {B : C} (f g : over B) : (g ⨯ f).left ⟶ g.left ⨯ f.left := limits.prod.lift ((limits.prod.fst : g ⨯ f ⟶ g).left) ((limits.prod.snd : g ⨯ f ⟶ f).left)
+
+def pullback_is_equalizer_cone {B : C} (f g : over B) : fork (limits.prod.snd ≫ f.hom) (limits.prod.fst ≫ g.hom) :=
+fork.of_ι (CAarrow f g) $
+begin
+  slice_lhs 1 2 {erw limit.lift_π},
+  slice_rhs 1 2 {erw limit.lift_π},
+  dsimp,
+  rw over.w (limits.prod.fst : g ⨯ f ⟶ g),
+  rw over.w (limits.prod.snd : g ⨯ f ⟶ f)
+end
+
+def pullback_is_limit_cone {B : C} (f g : over B) : is_limit (pullback_is_equalizer_cone f g) :=
+begin
+  apply fork.is_limit.mk _ _ _ _,
+  intro s,
+  have := s.condition,
+  let s' : over B := over.mk (s.ι ≫ limits.prod.fst ≫ g.hom),
+  let f' : s' ⟶ f := over.hom_mk (s.ι ≫ limits.prod.snd) (begin rw assoc, apply s.condition end),
+  let cross : s' ⟶ g ⨯ f := limits.prod.lift (over.hom_mk (s.ι ≫ limits.prod.fst)) f',
+  exact cross.left,
+  intro s,
+  dsimp,
+  apply prod.hom_ext,
+  dsimp [pullback_is_equalizer_cone, fork.of_ι, fork.ι],
+  slice_lhs 2 3 {erw limit.lift_π},
+  dsimp,
+  change (limits.prod.lift _ _ ≫ (limits.prod.fst : g ⨯ f ⟶ g)).left = _,
+  erw limit.lift_π,
+  refl,
+  dsimp [pullback_is_equalizer_cone, fork.of_ι, fork.ι],
+  slice_lhs 2 3 {erw limit.lift_π},
+  dsimp,
+  change (limits.prod.lift _ _ ≫ (limits.prod.snd : g ⨯ f ⟶ f)).left = _,
+  rw limit.lift_π,
+  refl,
+  intros s m J,
+  dsimp,
+  let s' : over B := over.mk (s.ι ≫ limits.prod.fst ≫ g.hom),
+  let m' : s' ⟶ g ⨯ f := over.hom_mk m (begin dsimp, rw ← (show _ = s.ι, from J walking_parallel_pair.zero), dsimp [pullback_is_equalizer_cone], slice_rhs 2 3 {erw limit.lift_π}, dsimp, rw over.w (limits.prod.fst : g ⨯ f ⟶ g) end),
+  let f' : s' ⟶ f := over.hom_mk (s.ι ≫ limits.prod.snd) (begin rw assoc, apply s.condition end),
+  let cross : s' ⟶ g ⨯ f := limits.prod.lift (over.hom_mk (s.ι ≫ limits.prod.fst)) f',
+  change m'.left = cross.left,
+  suffices: m' = cross,
+    rw this,
+  apply prod.hom_ext,
+  change m' ≫ limits.prod.fst = limits.prod.lift (over.hom_mk (s.ι ≫ limits.prod.fst)) f' ≫ limits.prod.fst,
+  erw limit.lift_π,
+  dsimp,
+  ext,
+  dsimp,
+  rw ← (show _ = s.ι, from J walking_parallel_pair.zero),
+  dsimp [pullback_is_equalizer_cone],
+  slice_rhs 2 3 {erw limit.lift_π},
+  refl,
+  change m' ≫ limits.prod.snd = limits.prod.lift (over.hom_mk (s.ι ≫ limits.prod.fst)) f' ≫ limits.prod.snd,
+  rw limit.lift_π,
+  ext,
+  dsimp,
+  rw ← (show _ = s.ι, from J walking_parallel_pair.zero),
+  slice_rhs 2 3 {erw limit.lift_π},
+  refl
+end
+
+def pullback_is_subobj {B : C} (f g : over B) : mono (CAarrow f g) :=
+mono_of_is_limit_parallel_pair (pullback_is_limit_cone _ _)
+
+section over_power
+
+variables {B : C} (f : over B) [has_power_object.{v} f.left] [has_power_object.{v} B]
+
+def e1 (g : over B) : (g ⟶ over_pow f) ≃ {l : g.left ⟶ Q f // l ≫ hk f ≫ limits.prod.snd = g.hom} :=
+{ to_fun := λ l, ⟨l.left, over.w l⟩,
+  inv_fun := λ l, over.hom_mk l.1 l.2,
+  left_inv := λ l, by {ext1, refl},
+  right_inv := λ ⟨l, _⟩, by {dsimp, congr} }
+
+def e2 (g : over B) : {l : g.left ⟶ Q f // l ≫ hk f ≫ limits.prod.snd = g.hom} ≃ {pq : (g.left ⟶ P1 f.left) × (g.left ⟶ P f.left) // pq.1 ≫ P1sub f.left = limits.prod.lift pq.2 g.hom ≫ bottom f} :=
+{ to_fun := λ l,
+  begin
+    refine ⟨⟨l.1 ≫ pullback.fst, l.1 ≫ pullback.snd ≫ limits.prod.fst⟩, _⟩,
+    dsimp,
+    slice_lhs 2 3 {rw pullback.condition},
+    rw ← assoc,
+    congr' 1,
+    apply prod.hom_ext,
+    { simp },
+    { simpa using l.2 },
+  end,
+  inv_fun := λ pq,
+  begin
+    refine ⟨pullback.lift pq.1.1 (limits.prod.lift pq.1.2 g.hom) pq.2, _⟩,
+    slice_lhs 1 2 {erw limit.lift_π},
+    slice_lhs 1 2 {erw limit.lift_π},
+    refl
+  end,
+  left_inv := λ ⟨l, hl⟩,
+  begin
+    dsimp,
+    congr,
+    apply pullback.hom_ext,
+    rw limit.lift_π,
+    refl,
+    rw limit.lift_π,
+    apply prod.hom_ext,
+    { simp },
+    simpa [← hl],
+  end,
+  right_inv := λ ⟨⟨l1, l2⟩, hl⟩,
+  begin
+    dsimp,
+    congr,
+    apply limit.lift_π,
+    slice_lhs 1 2 {rw limit.lift_π},
+    apply limit.lift_π,
+  end }
+
+def prop3 (g : over B) (q : g.left ⟶ P f.left) : limits.prod.lift q g.hom ≫ bottom f = limits.prod.lift q ((g.hom : g.left ⟶ B) ≫ (singleton_arrow B : B ⟶ P B) ≫ P_map f.hom) :=
+begin
+  rw [bottom], apply prod.hom_ext,
+  simp, apply comp_id,
+  simp,
+end
+
+end over_power
+
+def over_hat {B : C} (f : over B) [has_power_object.{v} f.left] [has_power_object.{v} B] (g R : over B) (m : R ⟶ g ⨯ f) [hm : mono m] : g ⟶ over_pow f :=
+begin
+  haveI: mono m.left := over_mono m,
+  let m': R.left ⟶ g.left ⨯ f.left := m.left ≫ limits.prod.lift ((limits.prod.fst : g ⨯ f ⟶ g).left) ((limits.prod.snd : g ⨯ f ⟶ f).left),
+  haveI: mono (limits.prod.lift ((limits.prod.fst : g ⨯ f ⟶ g).left) ((limits.prod.snd : g ⨯ f ⟶ f).left)) := pullback_is_subobj f g,
+  haveI: mono m' := category_theory.mono_comp _ _,
+  let n': pullback (limits.prod.lift f.hom (𝟙 f.left)) (limits.prod.map g.hom (𝟙 f.left)) ⟶ g.left ⨯ f.left := pullback.snd,
+  haveI: mono n' := @pullback.snd_of_mono _ _ _ _ _ _ _ _ (@mono_prod_lift_of_right _ _ _ _ _ _ _ _ (category_theory.category_theory.mono _)),
+  have: ∃ k, m' = k ≫ n',
+    refine ⟨pullback.lift (m ≫ limits.prod.snd).left m' _, _⟩,
+    apply prod.hom_ext,
+    { simp },
+    { simp },
+    rw limit.lift_π, refl,
+  rw leq_prop5 at this,
+  apply over.hom_mk _ _,
+  apply pullback.lift _ _ _,
+    apply equalizer.lift (limits.prod.lift (hat m') (hat n')) this,
+
+  apply limits.prod.lift (hat m') g.hom,
+  erw limit.lift_π,
+  dsimp [bottom],
+  erw ← @seven_six_two,
+  apply prod.hom_ext,
+  simp only [limit.lift_π, cones.postcompose_obj_π, binary_fan.mk_π_app_left, map_pair_left, limit.lift_map, nat_trans.comp_app],
+  erw comp_id,
+  simp only [map_pair_right, limit.lift_π, cones.postcompose_obj_π, limit.lift_map, binary_fan.mk_π_app_right, nat_trans.comp_app],
+  erw hat_natural_left,
+  dsimp [over_pow, hk],
+  slice_lhs 1 2 {rw limit.lift_π},
+  dsimp,
+  rw limit.lift_π,
+  refl,
+end
+
+def over_powerises {B : C} (f : over B) [has_power_object.{v} f.left] [has_power_object.{v} B] (g R : over B) (m : R ⟶ g ⨯ f) [hm : mono m] :
+  powerises (subobj_arrow (𝟙 (over_pow f))) m (over_hat f g R m) :=
+{ top :=
+  begin
+    apply over.hom_mk _ _,
+    dsimp [produce_subobj, _root_.R],
+    apply pullback.lift _ _ _,
+
+  end
+}
+
+def seven_twelve {B : C} (f : over B) [has_power_object.{v} f.left] [has_power_object.{v} B] : has_power_object.{v} f :=
+{ PA := over_pow f,
+  niA := produce_subobj (𝟙 (over_pow f)),
+  memA := subobj_arrow (𝟙 (over_pow f)),
+  mem_mono' := by apply_instance,
+  hat := over_hat _,
+  powerises' := λ g R m hm,
+  begin
+
+  end }
