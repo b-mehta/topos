@@ -1039,60 +1039,9 @@ def grow_diagram (B : C) {J : Type v} (F : discrete J ⥤ over B) : augment_term
   map :=
   begin
     intros X Y f, cases f with _ j,
-    exact category_struct.id _,
+    exact (𝟙 _),
     exact (F.obj j).hom,
   end }
-
-
-omit 𝒞
-
-def get_element_finset (J : Type v) (α : Type u) (s : finset J) (hs : s.nonempty) (f : J → α) (hf : ∀ (j₁ ∈ s) (j₂ ∈ s), f j₁ = f j₂) :
-  {a : α // ∀ (j ∈ s), f j = a} :=
-begin
-  revert hs hf,
-  cases s with s hs,
-  rw finset.nonempty,
-  change (∃ (x : J), x ∈ s) →
-  (∀ (j₁ : J),
-     j₁ ∈ s →
-     ∀ (j₂ : J), j₂ ∈ s → f j₁ = f j₂) →
-  {a // ∀ (j : J), j ∈ s → f j = a},
-  apply quotient.rec_on_subsingleton s,
-  clear hs s,
-  intros l hl hf,
-  cases l,
-  exfalso,
-  cases hl,
-  simp at hl_h,
-  assumption,
-  refine ⟨f l_hd, _⟩,
-  intros j hj,
-  apply hf,
-  assumption,
-  left, refl,
-  intro l, split, intros a b,
-  ext i j,
-  cases a i j,
-  cases b i j,
-  congr,
-  cases i with i hi,
-  rw ← property i hi,
-  apply property_1 i hi
-end
-
-def get_element (J : Type v) (α : Type u) [ft : fintype J] [ne : nonempty J] (f : J → α) (hf : ∀ j₁ j₂, f j₁ = f j₂) : {a : α // ∀ j, f j = a} :=
-begin
-  resetI,
-  have ene: ft.elems.nonempty,
-    cases ne,
-    use ne, apply ft.complete,
-  obtain ⟨a, ha⟩ := get_element_finset J α ft.elems ene f (λ j₁ _ j₂ _, hf j₁ j₂),
-  refine ⟨a, λ j, _⟩,
-  apply ha,
-  apply ft.complete
-end
-
-include 𝒞
 
 @[simps]
 def make_cone (B : C) {J : Type v} (F : discrete J ⥤ over B) : cone F ⥤ cone (grow_diagram B F) :=
@@ -1178,10 +1127,8 @@ begin
   apply function.injective_of_left_inverse hat_sub''.right_inv,
   dsimp [hat_sub''],
   convert z,
-  symmetry,
-  apply hat_sub''.right_inv,
-  symmetry,
-  apply hat_sub''.right_inv,
+  exact (hat_sub''.right_inv m).symm,
+  exact (hat_sub''.right_inv n).symm
 end
 
 lemma leq_prop5 (A B R₁ R₂ : C) [has_power_object.{v} A] (m : R₁ ⟶ B ⨯ A) (n : R₂ ⟶ B ⨯ A) [mono m] [mono n] [has_power_object.{v} A] :
@@ -1385,7 +1332,7 @@ begin
   refl
 end
 
-def pullback_is_subobj {B : C} (f g : over B) : mono (CAarrow f g) :=
+instance pullback_is_subobj {B : C} (f g : over B) : mono (CAarrow f g) :=
 mono_of_is_limit_parallel_pair (pullback_is_limit_cone _ _)
 
 section over_power
@@ -1486,10 +1433,35 @@ def over_powerises {B : C} (f : over B) [has_power_object.{v} f.left] [has_power
   powerises (subobj_arrow (𝟙 (over_pow f))) m (over_hat f g R m) :=
 { top :=
   begin
+    haveI: mono m.left := over_mono m,
     apply over.hom_mk _ _,
     dsimp [produce_subobj, _root_.R],
     apply pullback.lift _ _ _,
+    apply square.top (m.left ≫ CAarrow f g),
+    let k := (limits.prod.lift (m.left ≫ (limits.prod.fst : _ ⨯ _ ⟶ g).left ≫ hat (m.left ≫ CAarrow f g)) R.hom),
+    apply limits.prod.lift (pullback.lift (equalizer.lift (k ≫ bottom f) _) k _) (m.left ≫ (limits.prod.snd : _ ⨯ _ ⟶ f).left),
+    { rw bottom,
+      slice_rhs 2 3 {rw limit.map_π},
+      erw comp_id,
+      dsimp,
+      erw limit.lift_π,
+      dsimp,
 
+    },
+    { apply limit.lift_π },
+    { rw square.commutes (m.left ≫ CAarrow f g),
+      apply prod.hom_ext,
+      { simp [lh, hk, CAarrow], dsimp, simp },
+      { simp [lh, hk, CAarrow] },
+      { dsimp [produce_subobj, the_subobj, over_pow],
+        slice_lhs 1 2 {rw limit.lift_π},
+        dsimp,
+        erw limit.lift_π,
+        dsimp [hk],
+        rw limit.lift_π,
+        dsimp,
+        rw limit.lift_π,
+        refl } }
   end
 }
 
