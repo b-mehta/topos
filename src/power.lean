@@ -83,8 +83,8 @@ class has_power_objects :=
 
 variable {C}
 
-instance has_power_object_of_has_all [has_power_objects.{v} C] {A : C} :
-  has_power_object.{v} A := has_power_objects.has_power_object A
+attribute [instance] has_power_objects.has_power_object
+attribute [simp] pullback.condition
 
 section convenience
 
@@ -129,37 +129,19 @@ lemma easy_lemma {D R : C} (m : R ⟶ D ⨯ B) [hm : mono m] :
 begin
   symmetry,
   apply unique_hat,
-  set p : pullback m (limits.prod.map (𝟙 D) f) ⟶ R := pullback.fst,
-  set q : pullback m (limits.prod.map (𝟙 D) f) ⟶ D ⨯ A := pullback.snd,
-  have := (pasting pullback.fst _ pullback.snd m _ (limits.prod.map (𝟙 D) f) _ pullback.condition (square.commutes m) (square.is_pullback m)).inv (cone_is_pullback _ _),
-  have comm'': limits.prod.map (𝟙 D) f ≫ limits.prod.map (hat m) (𝟙 B) = _ := prod_map_comm _ _,
-  set f2 : pullback m (limits.prod.map (𝟙 D) f) ⟶ P B ⨯ A := q ≫ limits.prod.map (hat m) (𝟙 A),
-  set f1 : pullback m (limits.prod.map (𝟙 D) f) ⟶ ni B := p ≫ square.top m,
-  have comm: f1 ≫ mem B = f2 ≫ limits.prod.map (𝟙 (P B)) f,
-    slice_rhs 2 3 {rw comm''.symm},
-    slice_lhs 2 3 {rw square.commutes m},
-    slice_lhs 1 2 {rw pullback.condition},
-    rw ← assoc,
-  have comm' : f1 ≫ mem B = pullback.snd ≫ limits.prod.map (hat m) (𝟙 A) ≫ limits.prod.map (𝟙 (P B)) f,
-    rw comm, rw assoc,
-  have newlim: is_limit (pullback_cone.mk f1 pullback.snd comm' : pullback_cone (mem B) (limits.prod.map (hat m) (𝟙 A) ≫ limits.prod.map (𝟙 (P B)) f)),
-    convert this using 2, exact comm''.symm, exact comm''.symm,
-  set r := pullback.lift f1 f2 comm,
-  have comm''' : r ≫ Emap f = q ≫ limits.prod.map (hat m) (𝟙 A),
-    erw limit.lift_π, refl,
-  have := (pasting r pullback.fst q (Emap f) (mem B) (limits.prod.map (hat m) (𝟙 A)) (limits.prod.map (𝟙 (P B)) f) comm''' pullback.condition (Epb f)).hom _,
-    swap, convert newlim using 2, erw limit.lift_π, refl,
-  have := (pasting r (square.top (Emap f)) q (Emap f) (mem A) (limits.prod.map (hat m) (𝟙 A)) (limits.prod.map (P_map f) (𝟙 A)) comm''' (Psquare f) (square.is_pullback _)).inv this,
-  have comm4: limits.prod.map (hat m) (𝟙 A) ≫ limits.prod.map (P_map f) (𝟙 A) = limits.prod.map (hat m ≫ P_map f) (𝟙 A),
-    apply prod.hom_ext,
-    simp, simp, erw comp_id,
-  refine ⟨r ≫ square.top (Emap f), _, _⟩,
-    slice_lhs 2 3 {rw square.commutes},
-    slice_lhs 1 2 {rw comm'''},
-    slice_lhs 2 3 {erw comm4},
+  let p : pullback m (limits.prod.map (𝟙 D) f) ⟶ R := pullback.fst,
+  let q : pullback m (limits.prod.map (𝟙 D) f) ⟶ D ⨯ A := pullback.snd,
+  have := (pasting _ _ _ _ _ _ _ pullback.condition (square.commutes m) (square.is_pullback m)).inv (cone_is_pullback _ _),
+  have comm: (p ≫ square.top m) ≫ mem B = (pullback.snd ≫ limits.prod.map (hat m) (𝟙 A)) ≫ limits.prod.map (𝟙 (P B)) f,
+  { simp [← prod_map_comm, square.commutes m, pullback.condition_assoc] },
+  have := (pasting (pullback.lift _ _ comm) pullback.fst _ (Emap f) (mem B) _ _ (limit.lift_π _ _) pullback.condition (Epb f)).hom _,
+    swap, convert this using 2, rw prod_map_comm, rw prod_map_comm, apply limit.lift_π,
+  have := (pasting (pullback.lift _ _ comm) _ _ (Emap f) _ _ _ (limit.lift_π _ _) (Psquare f) (square.is_pullback (Emap f))).inv this,
+  refine ⟨pullback.lift _ _ comm ≫ square.top (Emap f), _, _⟩,
+    simpa [square.commutes, reassoc_of (show pullback.lift _ _ comm ≫ Emap f = _, from limit.lift_π _ _), prod_functorial],
   convert this using 2,
-  exact comm4.symm,
-  exact comm4.symm
+  rw prod_functorial,
+  rw prod_functorial
 end
 
 -- We need to assume g₁ = hom ≫ g₂. From here if we know that hom,inv cancel then we get g₂ = inv ≫ g₁.
@@ -420,20 +402,30 @@ begin
   rwa cancel_mono at this,
 end
 
+@[reducible]
 def singleton_arrow (A : C) [has_power_object.{v} A] : A ⟶ P A := hat (diagonal A)
+
+set_option trace.app_builder true
 
 lemma seven_six_one {A B : C} [has_power_object.{v} B] (f : A ⟶ B) : hat (limits.prod.lift (𝟙 A) f) = f ≫ singleton_arrow B :=
 begin
-  erw hat_natural_left,
+  rw hat_natural_left,
   refine lifting (pullback.lift f (limits.prod.lift (𝟙 A) f) _) (pullback.snd ≫ limits.prod.fst) _ _,
-  apply prod.hom_ext,
-  simp, erw id_comp, simp, erw comp_id,
-  simp, apply prod.hom_ext, simp,
-  slice_rhs 3 4 {rw limit.lift_π},
-  have: (_ ≫ diagonal B) ≫ _ = (_ ≫ limits.prod.map f (𝟙 B)) ≫ _ := pullback.condition =≫ limits.prod.fst,
-  simp at this, erw ← this,
-  have: (_ ≫ diagonal B) ≫ _ = (_ ≫ limits.prod.map f (𝟙 B)) ≫ _ := pullback.condition =≫ limits.prod.snd,
-  simp at this, rw this, dsimp, rw comp_id
+  { apply prod.hom_ext,
+    { simp [id_comp f] },
+    { simp [comp_id f] } },
+  { simp },
+  { apply prod.hom_ext,
+    { simp },
+    { slice_rhs 3 4 {rw limit.lift_π},
+      have q : _ ≫ diagonal B = _ ≫ limits.prod.map f (𝟙 B) := pullback.condition,
+      have q₁ := q =≫ limits.prod.fst,
+      rw [assoc, assoc] at q₁, simp only [limit.map_π] at q₁,
+      erw ← q₁,
+      have q₂ := q =≫ limits.prod.snd,
+      rw [assoc, assoc] at q₂, simp at q₂, rw q₂, simp,
+      erw comp_id }
+    }
 end
 
 lemma seven_six_two {A B : C} [has_power_object.{v} A] [has_power_object.{v} B] (f : A ⟶ B) :
@@ -446,9 +438,9 @@ begin
   simp, apply prod.hom_ext,
   simp,
   have: (_ ≫ diagonal B) ≫ _ = (_ ≫ limits.prod.map (𝟙 B) f) ≫ _ := pullback.condition =≫ limits.prod.snd,
-  simp at this, erw ← this,
+  rw [assoc] at this, simp at this, erw ← this,
   have: (_ ≫ diagonal B) ≫ _ = (_ ≫ limits.prod.map (𝟙 B) f) ≫ _ := pullback.condition =≫ limits.prod.fst,
-  simp at this, rw this, dsimp, simp,
+  rw [assoc] at this, simp at this, rw this, dsimp, simp,
   simp
 end
 
@@ -456,7 +448,7 @@ instance singleton_mono (A : C) [has_power_object.{v} A] : mono (singleton_arrow
 begin
   split,
   intros,
-  rw ← seven_six_one at w, rw ← seven_six_one at w,
+  rw [← seven_six_one, ← seven_six_one] at w,
   have q := very_inj w =≫ limits.prod.fst,
   simp at q,
   have r := very_inj w =≫ limits.prod.snd,
@@ -533,7 +525,7 @@ begin
     dsimp, simp, erw category.comp_id,
     simp,
     have: (pullback.fst ≫ mem A ≫ limits.prod.map (𝟙 _) f) ≫ limits.prod.snd = (pullback.snd ≫ limits.prod.map (hat m) (𝟙 _)) ≫ limits.prod.snd := pullback.condition =≫ limits.prod.snd,
-    simp at this,
+    rw [assoc] at this, simp at this,
     rw this,
     erw comp_id },
   { rw limit.lift_π, refl }
@@ -589,7 +581,7 @@ begin
   set π₂ : X ⟶ P A ⨯ B := pullback.snd,
   have comm2: (π₁ ≫ mem A ≫ limits.prod.snd) ≫ f = (π₂ ≫ limits.prod.snd) ≫ g,
     have: (π₁ ≫ _) ≫ _ = (_ ≫ _) ≫ _ := pullback.condition =≫ limits.prod.snd,
-    simp at this, rwa [assoc, assoc, assoc],
+    rw [assoc] at this, simp at this, rwa [assoc, assoc, assoc],
   set l: X ⟶ D := t.lift (pullback_cone.mk (π₁ ≫ mem A ≫ limits.prod.snd) (π₂ ≫ limits.prod.snd) comm2),
   have lprop₁: l ≫ h = π₁ ≫ mem A ≫ limits.prod.snd,
     exact t.fac (pullback_cone.mk (π₁ ≫ mem A ≫ limits.prod.snd) (π₂ ≫ limits.prod.snd) comm2) walking_cospan.left,
@@ -597,7 +589,7 @@ begin
     exact t.fac (pullback_cone.mk (π₁ ≫ mem A ≫ limits.prod.snd) (π₂ ≫ limits.prod.snd) comm2) walking_cospan.right,
   have comm3: π₁ ≫ mem A ≫ limits.prod.fst = π₂ ≫ limits.prod.fst,
     have: (π₁ ≫ _) ≫ _ = (_ ≫ _) ≫ _ := pullback.condition =≫ limits.prod.fst,
-    simp at this, erw [comp_id, comp_id] at this, assumption,
+    rw [assoc] at this, simp at this, erw [comp_id, comp_id] at this, assumption,
   refine lifting _ _ _ _,
   { apply pullback.lift π₁ (limits.prod.lift (π₂ ≫ limits.prod.fst) l) _,
     apply prod.hom_ext, rw [assoc, comm3], simp, erw comp_id, rw [assoc, ← lprop₁], simp },
@@ -951,8 +943,8 @@ begin
   dunfold intersect_names,
   rw hat_sub_natural_left,
   congr' 1,
-  rw category.assoc _ f mn _,
-  rw category.assoc _ f mn _,
+  rw category.assoc f mn _,
+  rw category.assoc f mn _,
   rw hat_sub'_natural_left (mn ≫ limits.prod.fst),
   rw hat_sub'_natural_left (mn ≫ limits.prod.snd),
   apply intersect_prop

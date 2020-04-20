@@ -86,6 +86,8 @@ def iso_apex_of_iso_cone {F : J ⥤ C} {c₁ c₂ : cone F} (h : c₁ ≅ c₂) 
   end,
 }
 
+attribute [simp] is_limit.fac
+
 -- The pasting lemma for pullbacks.
 lemma pasting {C : Type u} [𝒞 : category.{v} C] {U V W X Y Z : C}
   (f : U ⟶ V) (g : V ⟶ W) (h : U ⟶ X) (k : V ⟶ Y) (l : W ⟶ Z) (m : X ⟶ Y) (n : Y ⟶ Z)
