@@ -18,7 +18,7 @@ include 𝒞
 
 def sub' (X : C) := {f : over X // mono f.hom}
 def le : sub' X → sub' X → Prop := λ f g, ∃ (h : f.1.left ⟶ g.1.left), f.1.hom = h ≫ g.1.hom
-lemma le_refl : reflexive (@le _ _ X) := λ f, ⟨𝟙 _, (category.id_comp _ _).symm⟩
+lemma le_refl : reflexive (@le _ _ X) := λ f, ⟨𝟙 _, (category.id_comp _).symm⟩
 lemma le_trans : transitive (@le _ _ X) :=
 begin
   rintros f g h ⟨k, r⟩ ⟨l, s⟩,
@@ -41,9 +41,11 @@ begin
   dsimp, simp,
 end
 
+attribute [instance] mono_comp
+
 @[simps]
 def postcompose_sub' (f : X ⟶ Y) [mono f] (g : sub' X) : sub' Y :=
-⟨over.mk (g.1.hom ≫ f), begin haveI := g.2, dsimp, apply_instance end⟩
+⟨over.mk (g.1.hom ≫ f), begin haveI := g.2, apply mono_comp end⟩
 
 lemma postcompose_preserves_le' (f : X ⟶ Y) [mono f] {g₁ g₂ : sub' X} (h : le g₁ g₂) :
   le (postcompose_sub' f g₁) (postcompose_sub' f g₂) :=

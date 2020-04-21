@@ -3,6 +3,7 @@ import category_theory.adjunction.basic
 import category_theory.limits.shapes
 import category_theory.epi_mono
 import cartesian_closed
+import category_theory.limits.over
 import pullbacks
 import comma
 import over
@@ -33,8 +34,12 @@ variable (C)
 class is_locally_cartesian_closed extends has_pullbacks.{v} C :=
 (overs_cc : Π (B : C), is_cartesian_closed (over B))
 
-instance cartesian_closed_over_of_lcc [has_binary_products.{v} C] [is_locally_cartesian_closed.{v} C] {B : C} :
-  is_cartesian_closed (over B) := @is_locally_cartesian_closed.overs_cc _ 𝒞 _ B
+attribute [instance] is_locally_cartesian_closed.overs_cc
+
+#check is_locally_cartesian_closed.overs_cc
+
+-- instance cartesian_closed_over_of_lcc [has_binary_products.{v} C] [is_locally_cartesian_closed.{v} C] {B : C} :
+--   is_cartesian_closed (over B) := @is_locally_cartesian_closed.overs_cc _ 𝒞 _ B
 
 universe u₂
 
@@ -47,51 +52,44 @@ lemma equiv_reflects_epi {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y
   (hef : epi (e.functor.map f)) : epi f :=
 faithful_reflects_epi e.functor hef
 
--- TODO remove these and use mathlib's instance API
-lemma mono_comp_of_mono {X Y Z : C}
-  (m : X ⟶ Y) (m' : Y ⟶ Z) (hm : mono m) (hm' : mono m') : mono (m ≫ m') := by apply_instance
-lemma epi_comp_of_epi {X Y Z : C}
-  (e : X ⟶ Y) (e' : Y ⟶ Z) (he : epi e) (he' : epi e') : epi (e ≫ e') := by apply_instance
-
-lemma equiv_preserves_mono {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D) :
-  mono f → mono (e.functor.map f) :=
+lemma equiv_preserves_mono {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) [mono f] (e : C ≌ D) :
+  mono (e.functor.map f) :=
 begin
-  intro hf, apply equiv_reflects_mono ((e.functor).map f) e.symm,
+  apply equiv_reflects_mono ((e.functor).map f) e.symm,
   erw equivalence.inv_fun_map,
-  apply mono_comp_of_mono,
-  apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso_inverse,
-  apply mono_comp_of_mono _ _ hf,
-  apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso,
+  apply mono_comp _ _,
+  apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
+  apply is_iso.of_iso_inverse,
+  apply mono_comp _ _,
+  apply_instance,
+  apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
+  apply is_iso.of_iso,
 end
 
-lemma equiv_preserves_epi {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D) :
-  epi f → epi (e.functor.map f) :=
+lemma equiv_preserves_epi {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) [epi f] (e : C ≌ D) :
+  epi (e.functor.map f) :=
 begin
-  intro hf, apply equiv_reflects_epi ((e.functor).map f) e.symm,
+  apply equiv_reflects_epi ((e.functor).map f) e.symm,
   erw equivalence.inv_fun_map,
-  apply epi_comp_of_epi,
-  apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso_inverse,
-  apply epi_comp_of_epi _ _ hf,
-  apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _), apply is_iso.of_iso,
+  apply epi_comp _ _,
+  apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
+  apply is_iso.of_iso_inverse,
+  apply epi_comp _ _,
+  apply_instance,
+  apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
+  apply is_iso.of_iso,
 end
-
-lemma equiv_mono_iff {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D) :
-  mono f ↔ mono (e.functor.map f) :=
-⟨equiv_preserves_mono f e, equiv_reflects_mono f e⟩
-
-lemma equiv_epi_iff {D : Type u₂} [category.{v} D] (X Y : C) (f : X ⟶ Y) (e : C ≌ D) :
-  epi f ↔ epi (e.functor.map f) :=
-⟨equiv_preserves_epi f e, equiv_reflects_epi f e⟩
 
 lemma over_epi {B : C} {f g : over B} {k : f ⟶ g} (ke : epi k.left) : epi k :=
 begin
   split, intros h l m a, ext, rw [← cancel_epi k.left, ← over.comp_left, a], refl
 end
-lemma over_epi' [has_binary_products.{v} C] (B : C) (f g : over B) (k : f ⟶ g) (ke : epi k) : epi k.left :=
+
+lemma over_epi' [has_binary_products.{v} C] (B : C) (f g : over B) (k : f ⟶ g) [ke : epi k] : epi k.left :=
 left_adjoint_preserves_epi (forget_adj_star _) ke
 
 lemma over_epi'' [has_binary_products.{v} C] (B : C) (f g : over B) (k : f ⟶ g) : epi k ↔ epi k.left :=
-⟨over_epi' _ _ _ _, over_epi⟩
+⟨λ ke, by exactI (over_epi' _ _ _ _), over_epi⟩
 
 @[reducible]
 def pullback_along [has_pullbacks.{v} C] {A B : C} (f : A ⟶ B) : over B ⥤ over A :=
@@ -101,7 +99,10 @@ def over_iso {B : C} (f g : over B) (hl : f.left ≅ g.left) (hw : hl.hom ≫ g.
 { hom := over.hom_mk hl.hom, inv := over.hom_mk hl.inv (by simp [iso.inv_comp_eq, hw]) }
 
 def over_left_iso {B : C} {f g : over B} (hf : f ≅ g) : f.left ≅ g.left :=
-{ hom := hf.hom.left, inv := hf.inv.left, hom_inv_id' := begin rw [← over.comp_left, hf.hom_inv_id], refl end, inv_hom_id' := begin rw [← over.comp_left, hf.inv_hom_id], refl end}
+{ hom := hf.hom.left,
+  inv := hf.inv.left,
+  hom_inv_id' := begin rw [← over.comp_left, hf.hom_inv_id], refl end,
+  inv_hom_id' := begin rw [← over.comp_left, hf.inv_hom_id], refl end}
 
 lemma pullback_along_obj_of_id [has_pullbacks.{v} C] {A B : C} (f : A ⟶ B) : (pullback_along f).obj (over.mk (𝟙 B)) ≅ over.mk (𝟙 A) :=
 begin
@@ -116,15 +117,16 @@ lemma pullback_of_obj [has_pullbacks.{v} C] {A B D : C} (f : A ⟶ B) (g : D ⟶
 begin
   dsimp [pullback_along, equivalence.mk, pullback.with_id_l, pullback.with_id_r, identify_limit_apex, iso_apex_of_iso_cone, pullback.with_id_r', pullback.flip', flip_limit_cone, cospan_cone.flip, is_limit.unique_up_to_iso, is_limit.lift_cone_morphism],
   ext, simp, dsimp, erw limit.lift_π, simp, dunfold pullback_cone.snd, dsimp, simp, erw limit.lift_π, dsimp, simp,
-  erw limit.lift_π, dsimp,
-  slice_rhs 3 4 {erw limit.lift_π},
-  dsimp, slice_rhs 2 3 {erw limit.lift_π}, symmetry, apply pullback.condition
+  erw limit.lift_π, dsimp, symmetry, exact pullback.condition,
 end
 
 variables [is_locally_cartesian_closed.{v} C]
 
+instance {B : C} : has_pullbacks.{v} (over B) :=
+{ has_limits_of_shape := infer_instance }
+
 lemma thing {A B : C} (f : A ⟶ B) : is_left_adjoint (pullback_along f) :=
-{ right := _ ⋙ _, adj := adjunction.comp _ _ (@star_adj_pi_of_exponentiable (over B) _ (over.mk f) _ _ _ (@is_cartesian_closed.cart_closed _ _ _ (is_locally_cartesian_closed.overs_cc B) _)) (equivalence.to_adjunction _) }
+{ right := _ ⋙ _, adj := adjunction.comp _ _ (@star_adj_pi_of_exponentiable (over B) _ (over.mk f) _ _ _ _) (equivalence.to_adjunction _) }
 
 variables [has_binary_products.{v} C]
 /--
@@ -145,7 +147,8 @@ begin
   erw pullback_of_obj f g at q,
   have: (pullback.fst : pullback f g ⟶ A) ≫ (pullback.with_id_l f).inv ≫ (pullback.with_id_l f).hom = (pullback.fst : pullback f g ⟶ A),
     simp,
-  rw ← this, rw ← assoc, apply epi_comp_of_epi, assumption, apply is_iso.epi_of_iso
+  rw ← this, rw ← assoc, apply epi_comp _ _,
+  assumption, apply is_iso.epi_of_iso
 end
 
 lemma pullback_preserves_epi' {A B D : C}
@@ -154,7 +157,7 @@ epi (pullback.snd : pullback g f ⟶ A) :=
 begin
   have: (pullback.snd : pullback g f ⟶ A) = (pullback.flip' _ _).hom ≫ (pullback.fst : pullback f g ⟶ A), -- TODO: this should be a lemma
     dunfold pullback.flip' iso_apex_of_iso_cone flip_limit_cone flip_hom flip_twice, dsimp, erw id_comp, rw [limit.lift_π], refl,
-  rw this, apply epi_comp_of_epi, apply is_iso.epi_of_iso,
+  rw this, apply epi_comp _ _, apply is_iso.epi_of_iso,
   apply pullback_preserves_epi _ hg
 end
 lemma pullback_preserves_epi'' {A B D : C}
@@ -164,7 +167,7 @@ begin
   have y := is_limit.unique_up_to_iso t (limit.is_limit _),
   have z: pullback_cone.snd c = y.hom.hom ≫ pullback_cone.snd (limit.cone (cospan g f)),
     rw y.hom.w,
-  rw z, apply epi_comp_of_epi,
+  rw z, apply epi_comp _ _,
     apply @is_iso.epi_of_iso _ _ _ _ _ _, refine ⟨_, _, _⟩, apply y.inv.hom,
     show ((y.hom ≫ y.inv).hom = 𝟙 c.X), rw y.hom_inv_id, refl,
     show ((y.inv ≫ y.hom).hom = 𝟙 _), rw y.inv_hom_id, refl,
@@ -227,7 +230,7 @@ begin
   rwa ← cancel_epi n,
   have: limits.prod.map q q = limits.prod.map (𝟙 _) q ≫ limits.prod.map q (𝟙 _),
     apply prod.hom_ext, simp, dsimp, simp, simp,
-  rw this, apply epi_comp_of_epi, apply prod_map_epi' A (epi_part_is_epi f),
+  rw this, apply epi_comp _ _, apply prod_map_epi' A (epi_part_is_epi f),
   apply prod_map_epi _ (epi_part_is_epi f)
 end
 

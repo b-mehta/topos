@@ -43,29 +43,28 @@ nat_iso.of_components (limits.prod.associator _ _) (by tidy)
 end
 
 class exponentiable {C : Type u} [𝒞 : category.{v} C] [bp : @has_binary_products C 𝒞] (X : C) :=
-(exponentiable : is_left_adjoint (prodinl X))
+(is_adj : is_left_adjoint (prodinl X))
 
 def binary_product_exponentiable {C : Type u} [𝒞 : category.{v} C] [bp : @has_binary_products C 𝒞] {X Y : C}
   (hX : exponentiable X) (hY : exponentiable Y) : exponentiable (X ⨯ Y) :=
-{ exponentiable :=
-  { right := hX.exponentiable.right ⋙ hY.exponentiable.right,
-    adj := adjunction_of_nat_iso_left (adjunction.comp _ _ hY.exponentiable.adj hX.exponentiable.adj) (prodinl_comp _ _).symm } }
+{ is_adj :=
+  { right := hX.is_adj.right ⋙ hY.is_adj.right,
+    adj := adjunction_of_nat_iso_left (adjunction.comp _ _ hY.is_adj.adj hX.is_adj.adj) (prodinl_comp _ _).symm } }
 
 class is_cartesian_closed (C : Type u) [𝒞 : category.{v} C] [has_binary_products.{v} C] extends has_terminal.{v} C :=
 (cart_closed : Π (X : C), exponentiable X)
 
-instance exponentiable_of_cc {C : Type u} [𝒞 : category.{v} C] [@has_binary_products C 𝒞] [is_cartesian_closed C] {A : C} :
-  exponentiable A := is_cartesian_closed.cart_closed A
+attribute [instance] is_cartesian_closed.cart_closed
 
 variables {C : Type u} [𝒞 : category.{v} C] [has_binary_products.{v} C] {X X' Y Y' Z A B : C} [exponentiable A]
 include 𝒞
 
 /-- This is (-)^A -/
 def exp.functor (A : C) [exponentiable A] : C ⥤ C :=
-(exponentiable.exponentiable A).right
+(@exponentiable.is_adj _ _ _ A _).right
 
 def exp.adjunction : prodinl A ⊣ exp.functor A :=
-(exponentiable.exponentiable A).adj
+exponentiable.is_adj.adj
 
 def ev.nat_trans (A : C) [exponentiable A] : exp.functor A ⋙ prodinl A ⟶ 𝟭 C :=
 exp.adjunction.counit
@@ -135,11 +134,11 @@ lemma prod_left_unitor_naturality (f : X ⟶ Y):
 begin
   apply prod.hom_ext,
   { apply subsingleton.elim },
-  { simp [id_comp C f] }
+  { simp [id_comp f] }
 end
 
 def terminal_exponentiable : exponentiable ⊤_C :=
-{ exponentiable := {
+{ is_adj := {
   right := 𝟭 C,
   adj := adjunction.mk_of_hom_equiv
   { hom_equiv := λ X _, have unitor : _, from prod.left_unitor X,
@@ -154,7 +153,7 @@ yoneda.ext (⊤_ C ⟹ X) X
   (λ Z g, begin
     dsimp, rw ← assoc, erw iso.hom_inv_id (prod.left_unitor Z),
     simp [exp_transpose.right_inv g] end)
-  (λ Z g, by { dsimp, simp, erw [id_comp] })
+  (λ Z g, by simp)
   (λ Z W f g, begin
     rw [exp_transpose_natural_left_symm],
     slice_lhs 1 2 { erw prod_left_unitor_naturality f },
@@ -251,7 +250,7 @@ def alternative_cone (A B : C) : cone (pair A B ⋙ F) :=
 
 -- (implementation)
 def alt_is_limit (A B : C) : is_limit (functor.map_cone F (limit.cone (pair A B))) :=
-preserves_limit.preserves F (limit.is_limit (pair A B))
+preserves_limit.preserves (limit.is_limit (pair A B))
 
 -- the multiplicative comparison isomorphism
 def mult_comparison (A B : C) : F.obj (A ⨯ B) ≅ F.obj A ⨯ F.obj B :=

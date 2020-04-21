@@ -173,7 +173,7 @@ def pullback.with_id_r' {X Y : C} (f : X ⟶ Y) :
     show _ ≫ f ≫ 𝟙 Y = _,
     erw [comp_id, ← c.π.naturality walking_cospan.hom.inr, id_comp],
   end,
-  uniq' := λ _ _ J, by erw ← J walking_cospan.right; exact (comp_id _ _).symm
+  uniq' := λ _ _ J, by erw ← J walking_cospan.right; exact (comp_id _).symm
 }
 
 @[reducible]
@@ -286,19 +286,20 @@ identify_limit_apex ((pasting _ _ _ _ _ _ _ _ _ test).inv test) ≪≫ iso_apex_
 -- is a pullback (needed in over/exponentiable_in_slice)
 def pullback_prod (xy : X ⟶ Y) (Z : C) [has_binary_products.{v} C] :
   is_limit (pullback_cone.mk limits.prod.fst (limits.prod.map xy (𝟙 Z)) (by simp) : pullback_cone xy limits.prod.fst) :=
-{ lift := λ s, prod.lift (pullback_cone.fst s) (pullback_cone.snd s ≫ limits.prod.snd),
+{ lift := λ s, prod.lift (pullback_cone.fst s) (s.π.app walking_cospan.right ≫ limits.prod.snd),
   fac' := λ s,
     begin
       apply pi_app_left (pullback_cone.mk limits.prod.fst (limits.prod.map xy (𝟙 Z)) _) s, dsimp,
         dunfold pullback_cone.fst, simp, -- this should have been just simp
       apply limit.hom_ext, intro j, cases j, simp, dsimp, -- this should be easy.
         dunfold pullback_cone.snd, rw pullback_cone.simp_right, simp, exact pullback_cone.condition s,
-      simp, dunfold pullback_cone.snd, simp, dsimp, simp -- look here ed
+      simp, dunfold pullback_cone.snd, simp,
     end,
   uniq' := λ s m J,
     begin
-      ext, cases j, simp, apply J walking_cospan.left, simp, dunfold pullback_cone.snd, erw ← J walking_cospan.right,
-      simp, dsimp, simp
+      ext,
+      { simpa using J walking_cospan.left },
+      { erw [prod.lift_snd, ← J walking_cospan.right, assoc, limits.prod.map_snd], simp },
     end
 }
 
@@ -308,15 +309,16 @@ def pullback_prod' (xy : X ⟶ Y) (Z : C) [has_binary_products.{v} C] :
   fac' := λ s,
     begin
       apply pi_app_left (pullback_cone.mk limits.prod.snd (limits.prod.map (𝟙 Z) xy) _) s, dsimp,
-        dunfold pullback_cone.fst, simp,
+      { dunfold pullback_cone.fst, simp },
       apply limit.hom_ext, intro j, cases j, simp, dsimp,
-        dunfold pullback_cone.snd, rw pullback_cone.simp_right, simp, dsimp, simp,
+      { dunfold pullback_cone.snd, rw pullback_cone.simp_right, simp },
       simp, dunfold pullback_cone.snd, simp, dsimp, rw pullback_cone.condition s,
     end,
   uniq' := λ s m J,
     begin
-      ext, cases j, simp, dunfold pullback_cone.snd, erw ← J walking_cospan.right, simp, dsimp, simp,
-      simp, dsimp, dunfold pullback_cone.fst, erw ← J walking_cospan.left, simp,
+      ext,
+      { simp, dunfold pullback_cone.snd, erw ← J walking_cospan.right, simp, dsimp, simp },
+      { simp, dunfold pullback_cone.fst, erw ← J walking_cospan.left, simp },
     end
 }
 
@@ -419,11 +421,11 @@ begin
   exact (hl.fac new_cone walking_cospan.left).symm.trans (hl.fac new_cone walking_cospan.right),
 end
 
-lemma pullback_of_mono (X Y : C) (f : X ⟶ Y) (hf : mono f) :
+lemma pullback_of_mono (X Y : C) (f : X ⟶ Y) [hf : mono f] :
   is_limit (pullback_cone.mk (𝟙 X) (𝟙 X) (by simp) : pullback_cone f f) :=
 { lift := λ s, pullback_cone.fst s,
   fac' := λ s, begin apply pi_app_left (pullback_cone.mk (𝟙 X) (𝟙 X) _) s, erw comp_id, erw comp_id, rw ← cancel_mono f, exact pullback_cone.condition s end,
-  uniq' := λ s m J, (comp_id _ m).symm.trans (J walking_cospan.left) }
+  uniq' := λ s m J, (comp_id m).symm.trans (J walking_cospan.left) }
 
 universe u₂
 
@@ -434,11 +436,12 @@ begin
 end
 
 lemma preserves_mono_of_preserves_pullback {D : Type u₂} [category.{v} D] (F : C ⥤ D)
-  (hF : preserves_limits_of_shape walking_cospan F) (X Y : C) (f : X ⟶ Y) (hf : mono f) :
+  (hF : preserves_limits_of_shape walking_cospan F) (X Y : C) (f : X ⟶ Y) [mono f] :
   mono (F.map f) :=
 begin
   apply mono_of_pullback,
-  have that: is_limit _ := preserves_limit.preserves F (pullback_of_mono _ _ f hf),
+
+  have that: is_limit (F.map_cone _) := preserves_limit.preserves (pullback_of_mono _ _ f),
   have: cospan (F.map f) (F.map f) = cospan f f ⋙ F := cospan_comp _,
   convert that,
   dsimp [functor.map_cone, cones.functoriality, pullback_cone.mk],

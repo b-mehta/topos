@@ -57,12 +57,6 @@ universes v u
 variables {C : Type u} [𝒞 : category.{v} C]
 include 𝒞
 
-lemma prod.lift_fst {X Y Z : C} [has_limit (pair X Y)] (f : Z ⟶ X) (g : Z ⟶ Y) : prod.lift f g ≫ prod.fst = f :=
-by simp only [binary_fan.mk_π_app_left, limit.lift_π]
-
-lemma prod.lift_snd {X Y Z : C} [has_limit (pair X Y)] (f : Z ⟶ X) (g : Z ⟶ Y) : prod.lift f g ≫ prod.snd = g :=
-by simp only [binary_fan.mk_π_app_right, limit.lift_π]
-
 lemma prod.lift_uniq {X Y Z : C} [has_limit (pair X Y)] (f : Z ⟶ X) (g : Z ⟶ Y) (m : Z ⟶ X ⨯ Y)
   (hLeft : m ≫ prod.fst = f) (hRight : m ≫ prod.snd = g)
   : m = prod.lift f g :=

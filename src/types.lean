@@ -105,7 +105,7 @@ def currying_equiv (A X Y : Type u) : ((prodinl A).obj X ⟶ Y) ≃ (X ⟶ A →
   right_inv := λ _, rfl }
 
 instance type_exponentiable (A : Type u) : exponentiable A :=
-{ exponentiable :=
+{ is_adj :=
   { right := adjunction.right_adjoint_of_equiv (currying_equiv A) (
     begin
       intros X X' Y f g,

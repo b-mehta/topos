@@ -32,7 +32,7 @@ instance kleisli.category (T : C ⥤ C) [monad.{v} T] : category (kleisli T) :=
   comp_id' := λ X Y f, by simp only [category.comp_id, monad.right_unit ],
   assoc'   := λ W X Y Z f g h, begin
     simp only [functor.map_comp, category.assoc],
-    congr' 2, rw monad.assoc T Z,
+    congr' 2, rw @monad.assoc C 𝒞 T _ Z,
     slice_rhs 1 2 { erw [nat_trans.naturality (μ_ T) h] },
     simp only [category.assoc],
   end }
@@ -59,7 +59,7 @@ namespace adjunction
   map_id'   := λ X, by simp only [category_struct.id, monad.right_unit],
   map_comp' := λ X Y Z f g, begin
     dunfold category_struct.comp, dsimp,
-    simp only [monad.assoc T Z, functor.map_comp, category.assoc],
+    simp only [@monad.assoc _ 𝒞 T _ Z, functor.map_comp, category.assoc],
     congr' 1,
     slice_lhs 1 2 { erw [nat_trans.naturality (μ_ T) g] },
     simp only [category.assoc]
@@ -73,7 +73,7 @@ adjunction.mk_of_hom_equiv
   hom_equiv_naturality_left_symm' := λ X Y Z f g, begin
     simp, dunfold category_struct.comp, dsimp,
     slice_rhs 2 3 { rw [←nat_trans.naturality (η_ T) g] },
-    slice_rhs 3 4 { erw [monad.left_unit T] },
+    slice_rhs 3 4 { erw [monad.left_unit] },
     dsimp, simp only [category.comp_id]
   end,
   hom_equiv_naturality_right' := λ X Y Z f g, rfl }
@@ -83,8 +83,8 @@ functor.ext
   (λ X, by simp only [F_T_obj, U_T_obj, functor.comp_obj])
   (λ X Y f, begin
     simp,
-    slice_lhs 2 3 { erw [monad.right_unit T], },
-    exact category.comp_id _ _,
+    slice_lhs 2 3 { erw [monad.right_unit], },
+    exact category.comp_id _,
   end)
 
 end adjunction

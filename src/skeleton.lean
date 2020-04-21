@@ -95,8 +95,7 @@ def isequiv : C ≌ skeleton r :=
       apply iso.inv_hom_id,
     },
     intros, simp,
-    show ((repr_iso r X.val).hom ≫ f ≫ (repr_iso r Y.val).inv) ≫ (repr_iso r Y.val).hom =
-    (repr_iso r X.val).hom ≫ f,
+    change ((repr_iso X.val).hom ≫ f ≫ (repr_iso Y.val).inv) ≫ (repr_iso Y.val).hom = (repr_iso X.val).hom ≫ f,
     repeat {rw [category.assoc]},
     rw [iso.inv_hom_id], simp,
  end

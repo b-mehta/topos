@@ -66,7 +66,7 @@ class basis [@category_theory.limits.has_pullbacks C 𝒞] (K : arrow_set C) :=
            {h : over X | ∃ (f : over X) (hf : f ∈ ℱ) (g : over f.left) (hg : g ∈ 𝒢 hf), h = over.mk (g.hom ≫ f.hom)} ∈ K(X))
 
 instance of_basis [@category_theory.limits.has_pullbacks C 𝒞] {K : arrow_set C} [basis K] : grothendieck (sieve_set.generate K) :=
-{ max := λ X, ⟨{over.mk (𝟙 X)}, basis.has_isos K (iso.refl X), λ f h, ⟨⟩⟩,
+{ max := λ X, ⟨{over.mk (𝟙 X)}, basis.has_isos (iso.refl X), λ f h, ⟨⟩⟩,
   stab := begin
     rintros X Y S ⟨ℱ,h₁,h₂⟩ f,
     refine ⟨_,basis.has_pullbacks h₁ f,_⟩,

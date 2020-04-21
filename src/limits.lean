@@ -11,5 +11,5 @@ include 𝒞
   limit.lift F (limit.cone F) = 𝟙 (limit F) :=
 begin
   symmetry, refine is_limit.uniq _ _ _ _,
-  intro j, erw [id_comp _ (limit.π F j)], refl,
+  intro j, erw [id_comp (limit.π F j)], refl,
 end

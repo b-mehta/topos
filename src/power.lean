@@ -11,7 +11,7 @@ import sub
 import subobject_classifier
 import binary_products
 import creates
-import beck
+import beck2
 import category_theory.limits.opposites
 import category_theory.limits.shapes.equalizers
 
@@ -96,8 +96,8 @@ variables (A : C) [has_power_object.{v} A]
 
 def P : C := @has_power_object.PA _ 𝒞 _ A _
 def ni : C := @has_power_object.niA _ 𝒞 _ A _
-def mem : ni A ⟶ P A ⨯ A := has_power_object.memA A
-instance mem_mono : mono (mem A) := has_power_object.mem_mono' A
+def mem : ni A ⟶ P A ⨯ A := has_power_object.memA
+instance mem_mono : mono (mem A) := has_power_object.mem_mono'
 
 variables {A} {B R : C} (m : R ⟶ B ⨯ A) [mono m]
 
@@ -676,7 +676,7 @@ end
 theorem beck_chevalley {A B C' D : C}
   [has_power_object.{v} A] [has_power_object.{v} B]
   [has_power_object.{v} C'] [has_power_object.{v} D]
-  (h : D ⟶ A) (f : A ⟶ C') (k : D ⟶ B) (g : B ⟶ C') (comm : h ≫ f = k ≫ g) [mono f] [mono k]
+  {h : D ⟶ A} {f : A ⟶ C'} {k : D ⟶ B} {g : B ⟶ C'} (comm : h ≫ f = k ≫ g) [mono f] [mono k]
   (t : is_limit (pullback_cone.mk h k comm)) :
   internal_image f ≫ P_map g = P_map h ≫ internal_image k :=
 begin
@@ -842,15 +842,8 @@ def exists_power {A B : C} [has_power_object.{v} A] [has_power_object.{v} B] (f 
 begin
   suffices: internal_image f ≫ P_map f = P_map (𝟙 _) ≫ internal_image (𝟙 _),
     rwa [P_map_id, internal_image_map_id, id_comp] at this,
-  apply beck_chevalley _ _ _ _ _ _,
-  simp,
-  refine ⟨λ s, s.π.app walking_cospan.left, λ s, _, λ s m J, _⟩,
-  apply pi_app_left (pullback_cone.mk (𝟙 A) (𝟙 A) _) s, erw comp_id,
-  have := pullback_cone.condition s,
-  rw cancel_mono f at this,
-  rw ← this, erw comp_id,
-  erw ← J walking_cospan.left,
-  erw comp_id
+  apply beck_chevalley rfl _,
+  apply pullback_of_mono
 end
 
 instance fin_category_op (J : Type v) [small_category J] [fcj : fin_category J] : fin_category Jᵒᵖ :=
@@ -877,6 +870,9 @@ instance fin_category_op (J : Type v) [small_category J] [fcj : fin_category J] 
   { elems := begin have f: (opposite.unop Y ⟶ opposite.unop X) ↪ (X ⟶ Y) := ⟨has_hom.hom.op, has_hom.hom.op_inj⟩, have q := (@fin_category.fintype_hom J _ fcj Y.unop X.unop).elems, exact finset.map f q, end,
     complete := begin intro f, simp, use f.unop, split, apply (@fin_category.fintype_hom J _ fcj Y.unop X.unop).complete, refl end } }
 
+lemma unop_mono_of_epi {A B : Cᵒᵖ} (f : A ⟶ B) [epi f] : mono f.unop :=
+⟨λ Z g h eq, has_hom.hom.op_inj ((cancel_epi f).1 (has_hom.hom.unop_inj eq))⟩
+
 def pare [has_power_objects.{v} C] : monadic_right_adjoint (P_functor : Cᵒᵖ ⥤ C) :=
 { to_is_right_adjoint := self_adj,
   eqv :=
@@ -896,24 +892,17 @@ def pare [has_power_objects.{v} C] : monadic_right_adjoint (P_functor : Cᵒᵖ 
         rw ← unop_comp, rw cofork.condition c, refl,
       have fr: f ≫ r = 𝟙 A,
         rw ← unop_comp, rw rf, refl,
+      haveI : split_mono f := ⟨r, fr⟩,
+      haveI : mono f := split_mono.mono f,
       have gr: g ≫ r = 𝟙 A,
         rw ← unop_comp, rw rg, refl,
-      have: mono f,
-        refine ⟨λ Z p q pfqf, _⟩, rw [← comp_id _ p, ← fr, ← assoc, ← comp_id _ q, ← fr, ← assoc], congr' 1, assumption,
-      haveI: mono f := this, clear this,
-      have: mono g,
-        refine ⟨λ Z p q pfqf, _⟩, rw [← comp_id _ p, ← gr, ← assoc, ← comp_id _ q, ← gr, ← assoc], congr' 1, assumption,
-      haveI: mono g := this, clear this,
-      have: mono e,
-      { refine ⟨λ Z p q peqe, _⟩, apply has_hom.hom.op_inj,
-        apply is_colimit.hom_ext t, apply cocone_parallel_pair_ext,
-        apply has_hom.hom.unop_inj,
-        rw unop_comp, exact peqe },
-      haveI: mono e := this, clear this,
-
+      haveI : split_mono g := ⟨r, gr⟩,
+      haveI: mono g := split_mono.mono g,
+      have: epi (cofork.π c) := epi_of_is_colimit_parallel_pair t,
+      haveI: mono e := unop_mono_of_epi _,
       have equal_legs: Π (s : pullback_cone g f), pullback_cone.fst s = pullback_cone.snd s,
         intro s,
-        rw [← comp_id _ (pullback_cone.fst s), ← gr, ← assoc, pullback_cone.condition s, assoc, fr, comp_id],
+        rw [← comp_id (pullback_cone.fst s), ← gr, ← assoc, pullback_cone.condition s, assoc, fr, comp_id],
       have make_w: Π (s : pullback_cone g f), f' ≫ has_hom.hom.op (pullback_cone.fst s) = g' ≫ has_hom.hom.op (pullback_cone.fst s),
         intro s,
         apply has_hom.hom.unop_inj, dsimp, rw pullback_cone.condition s, rw equal_legs s,
@@ -922,17 +911,17 @@ def pare [has_power_objects.{v} C] : monadic_right_adjoint (P_functor : Cᵒᵖ 
         intro s,
         rw ← unop_comp, erw t.fac (make_cofork s) walking_parallel_pair.one, refl,
       have: is_limit (pullback_cone.mk e e comm.symm),
-        refine {lift := λ s, _, fac' := λ s, _, uniq' := λ s m J, _},
-        { apply has_hom.hom.unop, exact t.desc (make_cofork s) },
-        { apply pi_app_left, apply fac, rw ← equal_legs s, apply fac },
-        { apply has_hom.hom.op_inj, dsimp, apply t.uniq (make_cofork s),
-          rintro ⟨j⟩,
-          show (c.ι.app walking_parallel_pair.zero) ≫ m.op = f' ≫ (pullback_cone.fst s).op,
-          rw ← c.w walking_parallel_pair_hom.left,
-          show (f' ≫ cofork.π c) ≫ m.op = f' ≫ (s.π.app walking_cospan.left).op,
-          rw assoc, congr' 1, erw ← J walking_cospan.left, refl,
-          erw ← J walking_cospan.left, refl },
-      have := beck_chevalley _ _ _ _ _ this,
+        refine pullback_cone.is_limit.mk _ _ _ _ _,
+        { intro s, exact (t.desc (make_cofork s)).unop },
+        { intro s, exact fac s },
+        { intro s, exact (fac s).trans (equal_legs s) },
+        { intros s m w, apply has_hom.hom.op_inj, dsimp,
+          apply t.hom_ext,
+          apply cofork.coequalizer_ext,
+          rw is_colimit.fac,
+          erw ← w walking_cospan.left,
+          refl },
+      have := beck_chevalley _ this,
       apply colimit_of_splits (functor.map_cocone P_functor c) (internal_image e) (internal_image g) (exists_power e) (exists_power g) this }
   end }
 
