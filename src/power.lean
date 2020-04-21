@@ -6,6 +6,7 @@ Authors: Bhavik Mehta
 
 import category_theory.limits.shapes
 import category_theory.limits.types
+import category_theory.adjunction.limits
 import pullbacks
 import sub
 import subobject_classifier
@@ -28,6 +29,16 @@ attribute [instance] has_pullbacks_of_has_finite_limits
 
 variables {C : Type u} [𝒞 : category.{v} C]
 include 𝒞
+
+def unop_unop : C ⥤ Cᵒᵖᵒᵖ :=
+{ obj := λ X, opposite.op (opposite.op X),
+  map := λ X Y f, f.op.op }
+
+def op_op_equivalence : Cᵒᵖᵒᵖ ≌ C :=
+{ functor := op_op,
+  inverse := unop_unop,
+  unit_iso := iso.refl (𝟭 Cᵒᵖᵒᵖ),
+  counit_iso := iso.refl (unop_unop ⋙ op_op) }
 
 def cone_is_pullback {X Y Z : C} (f : X ⟶ Z) (g : Y ⟶ Z) [has_limit (cospan f g)] :
   is_limit (pullback_cone.mk _ _ pullback.condition : pullback_cone f g) :=
@@ -517,139 +528,35 @@ def internal_image {A B : C} [has_power_object.{v} A] [has_power_object.{v} B] (
 hat (mem A ≫ limits.prod.map (𝟙 (P A)) f)
 
 -- TODO: this doesn't use pasting so it's super long. can we make it nicer by using pasting?
--- TODO: if not, it's still a horribly long proof which desperately needs a cleanup
 lemma naturalish {A B : C} [has_power_object.{v} A] [has_power_object.{v} B] (f : A ⟶ B) [mono f] {R D : C} (m : R ⟶ D ⨯ A) [mono m] :
   hat m ≫ internal_image f = hat (m ≫ limits.prod.map (𝟙 D) f) :=
 begin
-  apply unique_hat,
-  refine ⟨square.top m ≫ square.top (mem A ≫ limits.prod.map (𝟙 (P A)) f), _, _⟩,
-  { slice_lhs 2 3 {rw square.commutes},
-    slice_lhs 1 2 {rw square.commutes},
-    slice_lhs 2 3 {rw ← prod_map_comm},
-    slice_lhs 3 4 {rw ← prod_functorial},
-    rw assoc,
-    refl },
-  have qcomm: Π (c : pullback_cone (mem B) (limits.prod.map (hat m ≫ internal_image f) (𝟙 B))), pullback_cone.fst c ≫ mem B = (pullback_cone.snd c ≫ limits.prod.map (hat m) (𝟙 B)) ≫ limits.prod.map (internal_image f) (𝟙 B),
-  { intro c, rw pullback_cone.condition, rw assoc, rw ← prod_functorial },
-  refine ⟨_, _, _⟩,
-  { intro c,
-    have qcomm: pullback_cone.fst c ≫ mem B = (pullback_cone.snd c ≫ limits.prod.map (hat m) (𝟙 B)) ≫ limits.prod.map (internal_image f) (𝟙 B),
-    { rw pullback_cone.condition, rw assoc, congr' 1, apply prod_functorial },
-    let q : c.X ⟶ ni A := (square.is_pullback (mem A ≫ limits.prod.map (𝟙 (P A)) f)).lift (pullback_cone.mk (pullback_cone.fst c) (pullback_cone.snd c ≫ limits.prod.map (hat m) (𝟙 B)) qcomm),
-    have: q ≫ mem A ≫ limits.prod.map (𝟙 (P A)) f = c.π.app walking_cospan.right ≫ (limits.prod.map (hat m) (𝟙 B)),
-    { erw (square.is_pullback (mem A ≫ limits.prod.map (𝟙 (P A)) f)).fac _ walking_cospan.right, refl },
-    refine (square.is_pullback m).lift (pullback_cone.mk q _ _),
-    { apply limits.prod.lift (pullback_cone.snd c ≫ limits.prod.fst) (q ≫ mem A ≫ limits.prod.snd) },
-    { apply prod.hom_ext,
-      { simp only [limit.lift_π, cones.postcompose_obj_π, binary_fan.mk_π_app_left, map_pair_left, limit.lift_map, assoc, nat_trans.comp_app],
-        have := this =≫ limits.prod.fst,
-        simp only [prod_left_def, map_pair_left, assoc, limit.map_π] at this,
-        rw ← this, erw comp_id },
-      { simp only [map_pair_right,
- limit.lift_π,
- cones.postcompose_obj_π,
- limit.lift_map,
- assoc,
- binary_fan.mk_π_app_right,
- nat_trans.comp_app], erw comp_id } } },
-  { intros c, dsimp, refine pi_app_left (pullback_cone.mk (square.top m ≫ square.top (mem A ≫ limits.prod.map (𝟙 (P A)) f)) (m ≫ limits.prod.map (𝟙 D) f) _) c _ _ _,
-    erw ← assoc, erw (square.is_pullback m).fac _ walking_cospan.left, dsimp, erw (square.is_pullback _).fac _ walking_cospan.left,
-    refl,
-    erw ← assoc, erw (square.is_pullback m).fac _ walking_cospan.right,
-    dsimp,
+  rw internal_image,
+  rw hat_natural_left,
+  have comm: pullback.fst ≫ mem A = prod.lift (pullback.snd ≫ limits.prod.fst) (pullback.fst ≫ mem A ≫ limits.prod.snd) ≫ limits.prod.map (hat m) (𝟙 A),
+  { have q: pullback.fst ≫ mem A ≫ limits.prod.map (𝟙 (P A)) f = pullback.snd ≫ limits.prod.map (hat m) (𝟙 B) := pullback.condition,
+    have q1 := q =≫ limits.prod.fst,
+    simp only [prod_left_def, map_pair_left, assoc, limit.map_π] at q1, erw comp_id at q1,
     apply prod.hom_ext,
-    simp only [limit.lift_π, cones.postcompose_obj_π, binary_fan.mk_π_app_left, map_pair_left, limit.lift_map, assoc, nat_trans.comp_app],
-    erw comp_id,
-    simp only [map_pair_right, limit.lift_π, cones.postcompose_obj_π, limit.lift_map, assoc, binary_fan.mk_π_app_right, nat_trans.comp_app],
-    set q : c.X ⟶ ni A := (square.is_pullback (mem A ≫ limits.prod.map (𝟙 (P A)) f)).lift (pullback_cone.mk (pullback_cone.fst c) (pullback_cone.snd c ≫ limits.prod.map (hat m) (𝟙 B)) (qcomm c)),
-
-    have: q ≫ mem A ≫ limits.prod.map (𝟙 (P A)) f = c.π.app walking_cospan.right ≫ (limits.prod.map (hat m) (𝟙 B)),
-    { erw (square.is_pullback (mem A ≫ limits.prod.map (𝟙 (P A)) f)).fac _ walking_cospan.right, refl },
-    show q ≫ _ ≫ _ ≫ _ = _,
-    have := this =≫ limits.prod.snd,
-    simp only [map_pair_right, prod_right_def, assoc, limit.map_π] at this,
-    rw this, erw comp_id },
-  { dsimp, intros c k J,
-    apply (square.is_pullback m).hom_ext, apply pullback_cone.equalizer_ext (pullback_cone.mk (square.top m) m _),
-    { apply (square.is_pullback (mem A ≫ limits.prod.map (𝟙 (P A)) f)).hom_ext, apply pullback_cone.equalizer_ext (pullback_cone.mk _ _ _),
-      simp only [map_pair_right, limit.lift_π, cones.postcompose_obj_π, prod_left_def, binary_fan.mk_π_app_left, map_pair_left, pullback_cone.simp_left, limit.lift_map,
- assoc,
- is_limit.fac,
- binary_fan.mk_π_app_right,
- limit.map_π,
- comp_id,
- nat_trans.comp_app], exact J walking_cospan.left,
-      change (k ≫ square.top m) ≫ (mem A ≫ limits.prod.map (𝟙 (P A)) f) =
-      ((square.is_pullback m).lift
-            (pullback_cone.mk
-                ((square.is_pullback (mem A ≫ limits.prod.map (𝟙 (P A)) f)).lift
-                  (pullback_cone.mk (pullback_cone.fst c) (_ ≫ limits.prod.map (hat m) (𝟙 B)) _))
-                (prod.lift (_ ≫ limits.prod.fst)
-                  ((square.is_pullback (mem A ≫ limits.prod.map (𝟙 (P A)) f)).lift
-                        (pullback_cone.mk (pullback_cone.fst c) (_ ≫ limits.prod.map (hat m) (𝟙 B)) _) ≫
-                      mem A ≫ limits.prod.snd))
-                _) ≫
-          square.top m) ≫ (mem A ≫ limits.prod.map (𝟙 (P A)) f),
-      erw (square.is_pullback m).fac _ walking_cospan.left, dsimp,
-      erw (square.is_pullback (mem A ≫ limits.prod.map (𝟙 (P A)) f)).fac _ walking_cospan.right, dsimp,
-      have: k ≫ (m ≫ limits.prod.map (𝟙 D) f) = pullback_cone.snd c := J walking_cospan.right, erw ← this,
-      conv_lhs { rw ← assoc, congr, rw assoc, congr, skip, rw square.commutes m }, apply prod.hom_ext; simp, congr' 3,
-      dsimp, simp only [id_comp, comp_id],
-      dsimp, simp only [category_theory.category.comp_id,
- category_theory.limits.limit.map_π_assoc,
- category_theory.limits.map_pair_right,
- category_theory.limits.limit.map_π,
- category_theory.prod_right_def,
- category_theory.limits.map_pair_left,
- category_theory.category.id_comp,
- category_theory.prod_left_def,
- category_theory.category.assoc]},
-    { apply prod.hom_ext,
-      { erw (square.is_pullback m).fac _ walking_cospan.right, dsimp,
-        simp only [limit.lift_π, binary_fan.mk_π_app_left, assoc],
-        have: k ≫ (m ≫ limits.prod.map (𝟙 D) f) = pullback_cone.snd c := J walking_cospan.right, erw ← this,
-        simp only [map_pair_right, prod_left_def, map_pair_left, prod_right_def, limit.map_π_assoc, assoc, id_comp, limit.map_π, comp_id],
-        congr' 2, erw comp_id },
-      { rw ← cancel_mono f, simp only [map_pair_right,
- pullback_cone.simp_right,
- limit.lift_π,
- cones.postcompose_obj_π,
- prod_left_def,
- binary_fan.mk_π_app_left,
- map_pair_left,
- prod_right_def,
- limit.map_π_assoc,
- limit.lift_map,
- assoc,
- id_comp,
- is_limit.fac,
- binary_fan.mk_π_app_right,
- limit.map_π,
- comp_id,
- nat_trans.comp_app],
-        set q : c.X ⟶ ni A := (square.is_pullback (mem A ≫ limits.prod.map (𝟙 (P A)) f)).lift (pullback_cone.mk (pullback_cone.fst c) (pullback_cone.snd c ≫ limits.prod.map (hat m) (𝟙 B)) (qcomm c)),
-
-        have: q ≫ mem A ≫ limits.prod.map (𝟙 (P A)) f = c.π.app walking_cospan.right ≫ (limits.prod.map (hat m) (𝟙 B)),
-        { erw (square.is_pullback (mem A ≫ limits.prod.map (𝟙 (P A)) f)).fac _ walking_cospan.right, refl },
-        have := this =≫ limits.prod.snd,
-        simp only [map_pair_right, prod_right_def, assoc, limit.map_π] at this,
-        rw this,
-        erw ← J walking_cospan.right,
-        simp only [map_pair_right,
- pullback_cone.simp_right,
- prod_left_def,
- map_pair_left,
- prod_right_def,
- limit.map_π_assoc,
- assoc,
- id_comp,
- limit.map_π,
- comp_id],
-        congr' 3,
-        erw comp_id
-      }
-    }
-  }
+    { simpa using q1 },
+    { simp only [map_pair_right, limit.lift_π, cones.postcompose_obj_π, limit.lift_map, assoc, binary_fan.mk_π_app_right, nat_trans.comp_app], dsimp, simp } },
+  let the_cone := (pullback_cone.mk pullback.fst (limits.prod.lift (pullback.snd ≫ limits.prod.fst) (pullback.fst ≫ mem A ≫ limits.prod.snd)) comm),
+  apply lifting _ _ _ _,
+  { apply (square.is_pullback m).lift the_cone },
+  { apply pullback.lift (square.top m) (m ≫ limits.prod.map (𝟙 _) f) _,
+    slice_lhs 1 2 {rw square.commutes m},
+    slice_lhs 2 3 {rw ← prod_map_comm},
+    simp },
+  { have: (square.is_pullback m).lift the_cone ≫ m = _ := (square.is_pullback m).fac the_cone walking_cospan.right,
+    slice_rhs 1 2 {rw this},
+    apply prod.hom_ext,
+    dsimp, simp, erw category.comp_id,
+    simp,
+    have: (pullback.fst ≫ mem A ≫ limits.prod.map (𝟙 _) f) ≫ limits.prod.snd = (pullback.snd ≫ limits.prod.map (hat m) (𝟙 _)) ≫ limits.prod.snd := pullback.condition =≫ limits.prod.snd,
+    rw [assoc] at this, simp at this,
+    rw this,
+    erw comp_id },
+  { rw limit.lift_π, refl }
 end
 
 lemma internal_image_map_comp {X Y Z : C} [has_power_object.{v} X] [has_power_object.{v} Y] [has_power_object.{v} Z]
@@ -873,7 +780,7 @@ instance fin_category_op (J : Type v) [small_category J] [fcj : fin_category J] 
 lemma unop_mono_of_epi {A B : Cᵒᵖ} (f : A ⟶ B) [epi f] : mono f.unop :=
 ⟨λ Z g h eq, has_hom.hom.op_inj ((cancel_epi f).1 (has_hom.hom.unop_inj eq))⟩
 
-def pare [has_power_objects.{v} C] : monadic_right_adjoint (P_functor : Cᵒᵖ ⥤ C) :=
+instance pare [has_power_objects.{v} C] : monadic_right_adjoint (P_functor : Cᵒᵖ ⥤ C) :=
 { to_is_right_adjoint := self_adj,
   eqv :=
   begin
@@ -926,15 +833,20 @@ def pare [has_power_objects.{v} C] : monadic_right_adjoint (P_functor : Cᵒᵖ 
   end }
 
 @[simps]
-def unop_unop : C ⥤ Cᵒᵖᵒᵖ :=
-{ obj := λ X, opposite.op (opposite.op X),
-  map := λ X Y f, f.op.op }
 
-def op_op_equivalence : Cᵒᵖᵒᵖ ≌ C :=
-{ functor := op_op,
-  inverse := unop_unop,
-  unit_iso := iso.refl (𝟭 Cᵒᵖᵒᵖ),
-  counit_iso := iso.refl (unop_unop ⋙ op_op) }
+
+instance has_colim [has_power_objects.{v} C] : has_finite_colimits.{v} C :=
+{ has_colimits_of_shape := λ J 𝒥₁ 𝒥₂, by exactI
+  { has_colimit := λ F,
+    begin
+      suffices: has_colimit (F ⋙ op_op_equivalence.inverse),
+        apply adjunction.has_colimit_of_comp_equivalence F op_op_equivalence.inverse,
+      let F'' : Jᵒᵖ ⥤ Cᵒᵖ := (F ⋙ op_op_equivalence.inverse).left_op,
+      suffices : has_limit F'',
+        apply limits.has_colimit_of_has_limit_left_op,
+      haveI q : has_limit (F'' ⋙ P_functor) := has_limits_of_shape.has_limit _,
+      apply monadic_creates_limits F'' P_functor,
+    end } }
 
 namespace intersect
 
