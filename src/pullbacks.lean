@@ -22,6 +22,11 @@ include 𝒞
 
 variables {X Y Z : C} {f : X ⟶ Z} {g : Y ⟶ Z}
 
+def is_limit.mk' (t : pullback_cone f g)
+  (create : Π (s : pullback_cone f g), {l : s.X ⟶ t.X // l ≫ t.fst = s.fst ∧ l ≫ t.snd = s.snd ∧ ∀ {m : s.X ⟶ t.X}, m ≫ t.fst = s.fst → m ≫ t.snd = s.snd → m = l}) :
+is_limit t :=
+pullback_cone.is_limit.mk t (λ s, (create s).1) (λ s, (create s).2.1) (λ s, (create s).2.2.1) (λ s m w, (create s).2.2.2 (w walking_cospan.left) (w walking_cospan.right))
+
 @[simp] lemma pullback_cone.simp_left {L : C} {lx : L ⟶ X} {ly : L ⟶ Y} {e : lx ≫ f = ly ≫ g} :
   ((pullback_cone.mk lx ly e).π).app walking_cospan.left = lx := rfl
 @[simp] lemma pullback_cone.simp_right {L : C} {lx : L ⟶ X} {ly : L ⟶ Y} {e : lx ≫ f = ly ≫ g} :
