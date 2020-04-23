@@ -30,16 +30,6 @@ attribute [instance] has_pullbacks_of_has_finite_limits
 variables {C : Type u} [𝒞 : category.{v} C]
 include 𝒞
 
-def unop_unop : C ⥤ Cᵒᵖᵒᵖ :=
-{ obj := λ X, opposite.op (opposite.op X),
-  map := λ X Y f, f.op.op }
-
-def op_op_equivalence : Cᵒᵖᵒᵖ ≌ C :=
-{ functor := op_op,
-  inverse := unop_unop,
-  unit_iso := iso.refl (𝟭 Cᵒᵖᵒᵖ),
-  counit_iso := iso.refl (unop_unop ⋙ op_op) }
-
 def cone_is_pullback {X Y Z : C} (f : X ⟶ Z) (g : Y ⟶ Z) [has_limit (cospan f g)] :
   is_limit (pullback_cone.mk _ _ pullback.condition : pullback_cone f g) :=
 begin

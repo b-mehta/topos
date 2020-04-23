@@ -136,4 +136,4 @@ def mono_is_equalizer {A B : C} (m : A ⟶ B) [@mono C 𝒞 _ _ m] :
 }
 
 def balanced {A B : C} (f : A ⟶ B) [ef : @epi C 𝒞 _ _ f] [mf : mono f] : is_iso f :=
-@epi_limit_cone_parallel_pair_is_iso _ _ _ _ _ _ _ (mono_is_equalizer f) ef
+@is_iso_limit_cone_parallel_pair_of_epi _ _ _ _ _ _ _ (mono_is_equalizer f) ef
