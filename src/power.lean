@@ -32,17 +32,11 @@ include 𝒞
 
 def cone_is_pullback {X Y Z : C} (f : X ⟶ Z) (g : Y ⟶ Z) [has_limit (cospan f g)] :
   is_limit (pullback_cone.mk _ _ pullback.condition : pullback_cone f g) :=
-begin
-  apply is_limit.of_iso_limit,
-  apply limit.is_limit,
-  refine cones.ext _ _, refl,
-  intro j,
-  erw id_comp,
-  cases j, refl, refl,
-  rw limit.cone_π,
-  erw ← limit.w (cospan _ _) walking_cospan.hom.inl,
-  refl
-end
+pullback_cone.is_limit.mk _
+  (λ s, pullback.lift (pullback_cone.fst s) (pullback_cone.snd s) (pullback_cone.condition s))
+  (λ s, limit.lift_π _ _)
+  (λ s, limit.lift_π _ _)
+  (λ s m w, pullback.hom_ext (by { rw limit.lift_π, apply w walking_cospan.left }) (by { rw limit.lift_π, apply w walking_cospan.right }))
 
 section faithful
 
@@ -181,16 +175,15 @@ begin
     conv_rhs {rw [l, k]}, simp,
   apply unique_hat,
   refine ⟨inv ≫ square.top g₁, _, _⟩,
-  slice_lhs 2 3 {rw square.commutes g₁},
-  slice_lhs 1 2 {rw ← l},
-  apply is_limit.of_iso_limit (square.is_pullback g₁),
-  ext, swap,
-  refine ⟨hom, inv, ‹_›, ‹_›⟩,
-  cases j, simp, slice_rhs 1 2 {rw hi},
-  erw id_comp,
-  simpa,
-  simp, show _ ≫ _ = _ ≫ _ ≫ _, slice_rhs 1 2 {rw hi},
-  erw id_comp
+  { slice_lhs 2 3 {rw square.commutes g₁},
+    slice_lhs 1 2 {rw ← l} },
+  { apply is_limit.of_iso_limit (square.is_pullback g₁),
+    refine cones.ext ⟨hom, inv, ‹_›, ‹_›⟩ (λ j, _),
+    cases j,
+    { simp [reassoc_of hi] },
+    { cases j,
+      { simp [reassoc_of hi] },
+      { simp [k] } } }
 end
 def how_inj_is_hat {A B R₁ R₂ : C} [has_power_object.{v} A] {f₁ : R₁ ⟶ B ⨯ A} {f₂ : R₂ ⟶ B ⨯ A} [mono f₁] [mono f₂] (h : hat f₁ = hat f₂) :
   R₁ ≅ R₂ :=
@@ -344,19 +337,16 @@ end functor_setup
 def thing (X Y Z : C) (g : Y ⟶ Z) :
   is_limit (pullback_cone.mk (limits.prod.map g (𝟙 X)) (prod.lift limits.prod.snd limits.prod.fst) (begin apply prod.hom_ext; simp end) : pullback_cone (prod.lift limits.prod.snd limits.prod.fst) (limits.prod.map (𝟙 X) g)) :=
 begin
-  refine ⟨_, _, _⟩,
+  refine pullback_cone.is_limit.mk _ _ _ _ _,
   intro c,
   apply pullback_cone.snd c ≫ (limits.prod.braiding _ _).hom,
   intro c,
-  apply pi_app_left (pullback_cone.mk (limits.prod.map g (𝟙 X)) (limits.prod.lift limits.prod.snd limits.prod.fst) _) c,
-  change (pullback_cone.snd c ≫ (limits.prod.braiding _ _).hom) ≫ (limits.prod.map _ _) = pullback_cone.fst c,
   apply prod.hom_ext,
   have := pullback_cone.condition c =≫ limits.prod.snd,
   simp at this, simp, exact this.symm,
-  simp,
   have := pullback_cone.condition c =≫ limits.prod.fst,
-  simp at this, exact this.symm,
-  change (pullback_cone.snd c ≫ (limits.prod.braiding _ _).hom) ≫ (limits.prod.lift limits.prod.snd limits.prod.fst) = pullback_cone.snd c,
+  simp at this, simp, exact this.symm,
+  intro c,
   rw category.assoc, apply prod.hom_ext,
   simp, simp,
   intros c m J,
@@ -558,16 +548,31 @@ begin
   simp
 end
 
-def powerises_id (A : C) [has_power_object.{v} A] : powerises (mem A) (mem A) (𝟙 (P A)) :=
-{ top := 𝟙 _,
-  commutes := begin apply prod.hom_ext; simp, erw comp_id, erw comp_id end,
-  forms_pullback' := begin convert pullback.with_id_l' (mem A), all_goals {apply prod.hom_ext; simp, erw comp_id, erw comp_id },  end
-}
+-- def powerises_id (A : C) [has_power_object.{v} A] : powerises (mem A) (mem A) (𝟙 (P A)) :=
+-- { top := 𝟙 _,
+--   commutes := begin apply prod.hom_ext; simp, erw comp_id, erw comp_id end,
+--   forms_pullback' := begin convert pullback.with_id_l' (mem A), all_goals {apply prod.hom_ext; simp, erw comp_id, erw comp_id },  end
+-- }
 lemma internal_image_map_id {X : C} [has_power_object.{v} X] : internal_image (𝟙 X) = 𝟙 (P X) :=
 begin
   symmetry, apply unique_hat,
-  convert powerises_id X,
-  apply prod.hom_ext; simp, erw comp_id, erw comp_id
+  have: limits.prod.map (𝟙 (P X)) (𝟙 X) = 𝟙 _,
+  { apply prod.hom_ext,
+    { erw [limits.prod.map_fst, comp_id, id_comp] },
+    { erw [limits.prod.map_snd, comp_id, id_comp] } },
+  rw [this, comp_id],
+  refine ⟨𝟙 _, _, _⟩,
+  rw [id_comp, this, comp_id],
+  refine pullback_cone.is_limit.mk _ _ _ _ _,
+  { intro s,
+    exact s.π.app walking_cospan.left },
+  { intro s,
+    erw comp_id },
+  { intro s,
+    simp [pullback_cone.condition s, this] },
+  { intros s m w,
+    rw ← w walking_cospan.left, dsimp, apply (comp_id _).symm,
+  }
 end
 
 theorem beck_chevalley {A B C' D : C}
@@ -614,43 +619,44 @@ def classifying_powers [has_power_object.{v} (⊤_ C)] {U X : C} (f : U ⟶ X) [
     simp, erw id_comp,
   end,
   forms_pullback' :=
-  { lift := λ s,
-    begin
+  begin
+    refine pullback_cone.is_limit.mk _ _ _ _ _,
+    { intro s,
       apply (square.is_pullback (f ≫ limits.prod.lift (𝟙 X) (terminal.from X))).lift (pullback_cone.mk (pullback_cone.fst s) _ _),
       apply pullback_cone.snd s ≫ (prod.right_unitor _).inv,
       apply prod.hom_ext,
       simp, rw pullback_cone.condition s, erw id_comp,
-      apply subsingleton.elim,
-    end,
-    fac' := λ s,
-    begin
-      have comm: pullback_cone.fst s ≫ mem (⊤_ C) = (pullback_cone.snd s ≫ (prod.right_unitor X).inv) ≫ limits.prod.map (hat (f ≫ limits.prod.lift (𝟙 X) (terminal.from X))) (𝟙 (⊤_ C)),
-        apply prod.hom_ext,
-        simp, rw pullback_cone.condition s, erw id_comp,
-        apply subsingleton.elim,
-      apply pi_app_left (pullback_cone.mk (square.top (f ≫ prod.lift (𝟙 X) (terminal.from X))) f _) s,
-      exact (square.is_pullback (f ≫ limits.prod.lift (𝟙 X) (terminal.from X))).fac (pullback_cone.mk (pullback_cone.fst s) _ comm) walking_cospan.left,
-      have := (square.is_pullback (f ≫ limits.prod.lift (𝟙 X) (terminal.from X))).fac (pullback_cone.mk (pullback_cone.fst s) (pullback_cone.snd s ≫ (prod.right_unitor _).inv) comm) walking_cospan.right =≫ limits.prod.fst,
-      dsimp at this, rw [assoc, assoc, assoc] at this, simp at this, exact this
-    end,
-    uniq' := λ s m J,
-    begin
+      apply subsingleton.elim },
+    { intro s,
       have comm: pullback_cone.fst s ≫ mem (⊤_ C) = (pullback_cone.snd s ≫ (prod.right_unitor X).inv) ≫ limits.prod.map (hat (f ≫ limits.prod.lift (𝟙 X) (terminal.from X))) (𝟙 (⊤_ C)),
           apply prod.hom_ext,
           simp, rw pullback_cone.condition s, erw id_comp,
           apply subsingleton.elim,
-      apply (square.is_pullback (f ≫ limits.prod.lift (𝟙 X) (terminal.from X))).uniq (pullback_cone.mk (pullback_cone.fst s) _ comm),
-      apply pi_app_left (pullback_cone.mk (square.top (f ≫ limits.prod.lift (𝟙 X) (terminal.from X))) (f ≫ limits.prod.lift (𝟙 X) (terminal.from X)) _) (pullback_cone.mk (pullback_cone.fst s) (pullback_cone.snd s ≫ (prod.right_unitor X).inv) comm),
-      dsimp,
-      -- change m ≫ (square.top (f ≫ limits.prod.lift (𝟙 X) (terminal.from X))) = (pullback_cone.fst s),
-      exact J walking_cospan.left,
+        exact (square.is_pullback (f ≫ limits.prod.lift (𝟙 X) (terminal.from X))).fac (pullback_cone.mk (pullback_cone.fst s) _ comm) walking_cospan.left },
+    { intro s,
+      have comm: pullback_cone.fst s ≫ mem (⊤_ C) = (pullback_cone.snd s ≫ (prod.right_unitor X).inv) ≫ limits.prod.map (hat (f ≫ limits.prod.lift (𝟙 X) (terminal.from X))) (𝟙 (⊤_ C)),
+        apply prod.hom_ext,
+        simp, rw pullback_cone.condition s, erw id_comp,
+        apply subsingleton.elim,
+      have := (square.is_pullback (f ≫ limits.prod.lift (𝟙 X) (terminal.from X))).fac (pullback_cone.mk (pullback_cone.fst s) (pullback_cone.snd s ≫ (prod.right_unitor _).inv) comm) walking_cospan.right =≫ limits.prod.fst,
+      dsimp at this, rw [assoc, assoc, assoc] at this, simp at this, exact this },
+    { intros s m J,
+      have comm: pullback_cone.fst s ≫ mem (⊤_ C) = (pullback_cone.snd s ≫ (prod.right_unitor X).inv) ≫ limits.prod.map (hat (f ≫ limits.prod.lift (𝟙 X) (terminal.from X))) (𝟙 (⊤_ C)),
+        apply prod.hom_ext,
+        simp, rw pullback_cone.condition s, erw id_comp,
+        apply subsingleton.elim,
+      apply (square.is_pullback (f ≫ limits.prod.lift (𝟙 X) (terminal.from X))).hom_ext,
+      refine pullback_cone.equalizer_ext (pullback_cone.mk (square.top (f ≫ prod.lift (𝟙 X) (terminal.from X)))
+           (f ≫ prod.lift (𝟙 X) (terminal.from X)) _) _ _,
+      rw (square.is_pullback (f ≫ prod.lift (𝟙 X) (terminal.from X))).fac,
+      change m ≫ (square.top (f ≫ limits.prod.lift (𝟙 X) (terminal.from X))) = (pullback_cone.fst s),
+      apply J walking_cospan.left,
+      rw (square.is_pullback (f ≫ prod.lift (𝟙 X) (terminal.from X))).fac,
       change m ≫ (f ≫ prod.lift (𝟙 X) (terminal.from X)) = pullback_cone.snd s ≫ (prod.right_unitor X).inv,
       apply prod.hom_ext,
       simp, exact J walking_cospan.right,
-      apply subsingleton.elim
-    end
-  }
-}
+      apply subsingleton.elim }
+  end }
 
 def classifying_powers' [has_power_object.{v} (⊤_ C)] {U X : C} (f : U ⟶ X) [mono f]
   (χ₁ : X ⟶ P (⊤_ C)) (k : classifying (mem (⊤_ C) ≫ (prod.right_unitor (P (⊤_ C))).hom) f χ₁) :
@@ -663,28 +669,30 @@ begin
   { apply prod.hom_ext,
     { rw assoc, erw comm, simp, erw id_comp },
     { apply subsingleton.elim } },
-  { refine ⟨_, _, _⟩,
+  { refine pullback_cone.is_limit.mk _ _ _ _ _,
     { intro s,
       apply pb.lift (pullback_cone.mk (pullback_cone.fst s) (pullback_cone.snd s ≫ limits.prod.fst) _),
       rw assoc,
       have := pullback_cone.condition s =≫ limits.prod.fst,
       simp at this, exact this },
-    { intro s, apply pi_app_left (pullback_cone.mk top (f ≫ prod.lift (𝟙 X) (terminal.from X)) _) _,
-      exact pb.fac (pullback_cone.mk (pullback_cone.fst s) (pullback_cone.snd s ≫ limits.prod.fst) _) walking_cospan.left,
+    { intro s,
+      exact pb.fac (pullback_cone.mk (pullback_cone.fst s) (pullback_cone.snd s ≫ limits.prod.fst) _) walking_cospan.left },
+    { intro s,
       erw ← assoc,
       erw pb.fac (pullback_cone.mk (pullback_cone.fst s) (pullback_cone.snd s ≫ limits.prod.fst) _) walking_cospan.right,
       erw assoc,
       erw (prod.right_unitor X).hom_inv_id,
       erw comp_id },
     { intros s m J,
-      apply pb.uniq (pullback_cone.mk (pullback_cone.fst s) (pullback_cone.snd s ≫ limits.prod.fst) _),
-      apply pi_app_left (pullback_cone.mk top f comm) (pullback_cone.mk (pullback_cone.fst s) (pullback_cone.snd s ≫ limits.prod.fst) _),
+      apply pb.hom_ext,
+      refine pullback_cone.equalizer_ext (pullback_cone.mk top f comm) _ _,
+      rw pb.fac,
       exact J walking_cospan.left,
+      rw pb.fac,
       dunfold pullback_cone.snd, dsimp,
       conv_rhs {rw [← J walking_cospan.right, assoc]},
       dsimp,
-      simp }
-  }
+      simp } }
 end
 
 instance weak_topos_has_subobj [has_power_object.{v} (⊤_ C)] : has_subobject_classifier.{v} C :=
@@ -706,12 +714,6 @@ instance weak_topos_has_subobj [has_power_object.{v} (⊤_ C)] : has_subobject_c
     exact k
   end
 }
-
-def is_iso_of_unop {X Y : Cᵒᵖ} (f : X ⟶ Y) [is_iso f.unop] : is_iso f :=
-{ inv := (inv (f.unop)).op,
-  hom_inv_id' := has_hom.hom.unop_inj (by simp),
-  inv_hom_id' := has_hom.hom.unop_inj (by simp) }
--- #check is_iso_of_unop
 
 instance p_reflects_iso [has_power_objects.{v} C] : reflects_isomorphisms (P_functor : Cᵒᵖ ⥤ C) :=
 { reflects := λ A B f i,

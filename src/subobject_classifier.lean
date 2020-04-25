@@ -6,6 +6,7 @@ Authors: Bhavik Mehta
 
 import category_theory.limits.shapes
 import category_theory.limits.types
+import category_theory.limits.shapes.regular_mono
 import pullbacks
 
 /-!
@@ -97,15 +98,21 @@ instance terminal_of_subobj : @has_terminal C 𝒞 :=
           apply has_subobject_classifier.uniquely (𝟙 s.X),
           refine {k := m, commutes := _, forms_pullback' := _},
           rw id_comp,
-          refine ⟨λ c, c.π.app walking_cospan.right, λ c, _, λ c, _⟩,
-          apply pi_app_left (pullback_cone.mk m (𝟙 s.X) _) c,
+          refine pullback_cone.is_limit.mk _ _ _ _ _,
+          intro c,
+          exact c.π.app walking_cospan.right,
+          intro c,
           rw ← cancel_mono subobj.truth,
           rw assoc, rw pullback_cone.condition c,
           refl,
           apply_instance,
+          intro c,
           erw comp_id,
-          intros g₂ j, specialize j walking_cospan.right, erw comp_id at j,
-          exact j, apply_instance
+          intros,
+          specialize w walking_cospan.right,
+          erw comp_id at w,
+          exact w,
+          apply_instance,
         end } } }
 }
 
@@ -130,8 +137,12 @@ def mono_is_equalizer {A B : C} (m : A ⟶ B) [@mono C 𝒞 _ _ m] :
     end,
   uniq' := λ s n J,
   begin
-    apply pullback_cone.hom_ext (subobj.square.is_pullback m), apply subsingleton.elim,
-    erw (subobj.square.is_pullback m).fac, erw J walking_parallel_pair.zero, refl,
+    apply (subobj.square.is_pullback m).hom_ext,
+    refine pullback_cone.equalizer_ext (pullback_cone.mk (subobj.square.k m) m _) _ _,
+    apply subsingleton.elim,
+    erw (subobj.square.is_pullback m).fac,
+    erw J walking_parallel_pair.zero,
+    refl,
   end
 }
 

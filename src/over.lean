@@ -32,6 +32,8 @@ include 𝒞
 section adjunction
 
 variable (B : C)
+
+section
 variable [has_binary_products.{v} C]
 
 local attribute [tidy] tactic.case_bash
@@ -39,7 +41,7 @@ local attribute [tidy] tactic.case_bash
 @[reducible]
 def star : C ⥤ over B :=
 { obj := λ A, @over.mk _ _ _ (B ⨯ A) limits.prod.fst,
-  map := λ X Y f, over.hom_mk (limits.prod.map (𝟙 _) f) (by simp) }
+  map := λ X Y f, over.hom_mk (limits.prod.map (𝟙 _) f) }
 
 def forget_adj_star : over.forget ⊣ star B :=
 adjunction.mk_of_hom_equiv
@@ -48,8 +50,9 @@ adjunction.mk_of_hom_equiv
     inv_fun := λ k, k.left ≫ limits.prod.snd,
     left_inv := by tidy,
     right_inv := by tidy } }
+end
 
-variables [has_terminal.{v} C] [has_pullbacks.{v} C]
+variables [has_finite_limits.{v} C]
 
 def Pi_obj [exponentiable B] (f : over B) : C := pullback (post B f.hom) (point_at_hom (𝟙 B))
 
@@ -73,7 +76,8 @@ private def pi_obj.equiv [exponentiable B] (X : C) (Y : over B) :
       apply function.injective_of_left_inverse exp_transpose.right_inv,
       rw exp_transpose.left_inv,
       rw exp_transpose.left_inv,
-      simp
+      simp,
+      apply comp_id,
     end,
   left_inv := λ f, begin apply over.over_morphism.ext, simp end,
   right_inv := λ g,
