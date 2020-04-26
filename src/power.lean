@@ -516,7 +516,7 @@ begin
   have comm: pullback.fst ≫ mem A = prod.lift (pullback.snd ≫ limits.prod.fst) (pullback.fst ≫ mem A ≫ limits.prod.snd) ≫ limits.prod.map (hat m) (𝟙 A),
   { have q: pullback.fst ≫ mem A ≫ limits.prod.map (𝟙 (P A)) f = pullback.snd ≫ limits.prod.map (hat m) (𝟙 B) := pullback.condition,
     have q1 := q =≫ limits.prod.fst,
-    simp only [prod_left_def, map_pair_left, assoc, limit.map_π] at q1, erw comp_id at q1,
+    simp only [limits.prod.map_fst, assoc] at q1, erw comp_id at q1,
     apply prod.hom_ext,
     { simpa using q1 },
     { simp only [map_pair_right, limit.lift_π, cones.postcompose_obj_π, limit.lift_map, assoc, binary_fan.mk_π_app_right, nat_trans.comp_app], dsimp, simp } },

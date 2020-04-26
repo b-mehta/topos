@@ -18,22 +18,6 @@ variables [has_binary_products.{v} C]
 
 local attribute [tidy] tactic.case_bash
 
-@[simps]
-def prod_functor : C ⥤ C ⥤ C :=
-{ obj := λ X, { obj := λ Y, X ⨯ Y, map := λ Y Z, limits.prod.map (𝟙 X) },
-  map := λ Y Z f, { app := λ T, limits.prod.map f (𝟙 T) }}
-
-@[simp] lemma prod_left_def {X Y : C} : limit.π (pair X Y) walking_pair.left = limits.prod.fst := rfl
-@[simp] lemma prod_right_def {X Y : C} : limit.π (pair X Y) walking_pair.right = limits.prod.snd := rfl
-
--- lemma prod.hom_ext {A X Y : C} {a b : A ⟶ X ⨯ Y} (h1 : a ≫ limits.prod.fst = b ≫ limits.prod.fst) (h2 : a ≫ limits.prod.snd = b ≫ limits.prod.snd) : a = b :=
--- begin
---   apply limit.hom_ext,
---   rintros (_ | _),
---   simpa,
---   simpa
--- end
-
 lemma prod_map_comm {A B X Y : C} (f : A ⟶ B) (g : X ⟶ Y) :
   limits.prod.map (𝟙 _) f ≫ limits.prod.map g (𝟙 _) = limits.prod.map g (𝟙 _) ≫ limits.prod.map (𝟙 _) f :=
 begin

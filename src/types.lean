@@ -1,9 +1,10 @@
 import category_theory.limits.shapes
 import category_theory.limits.types
 import category_theory.types
+import category_theory.limits.shapes.binary_products
 import pullbacks
 import subobject_classifier
-import locally_cartesian_closed
+import cartesian_closed
 
 universes v v₂ u
 
@@ -63,29 +64,34 @@ noncomputable instance types_has_subobj_classifier : @has_subobject_classifier T
     intros A B f mon,
     refine {k := λ _, (), commutes := _, forms_pullback' := _},
     funext, simp, use x,
-    refine ⟨λ c i, _, _, _⟩,
-    { show A,
-      have: pullback_cone.fst c ≫ _ = pullback_cone.snd c ≫ _ := pullback_cone.condition c,
-      have: (pullback_cone.snd c ≫ (λ (b : B), ∃ (a : A), f a = b)) i,
-        rw ← this, dsimp, trivial,
-      dsimp at this,
-      apply get_unique_value _ this_1 _,
-      intros,
-      rw ← a_2 at a_1,
-      rw mono_iff_injective at mon,
-      apply mon a_1 },
-    { intros c, apply pi_app_left,
-      ext, apply subsingleton.elim,
-      ext, dunfold pullback_cone.snd pullback_cone.mk, simp,
-      exact get_unique_property (λ (a : A), f a = c.π.app walking_cospan.right x) _ _ },
-    { intros c m J,
-      resetI,
-      rw ← cancel_mono f,
-      ext, simp,
-      have := get_unique_property (λ (a : A), f a = c.π.app walking_cospan.right x) _ _,
-      rw this,
-      erw ← congr_fun (J walking_cospan.right) x,
-      refl }
+    refine pullback_cone.is_limit.mk _ _ _ _ _,
+    intros c i,
+    show A,
+    have: pullback_cone.fst c ≫ _ = pullback_cone.snd c ≫ _ := pullback_cone.condition c,
+    have: (pullback_cone.snd c ≫ (λ (b : B), ∃ (a : A), f a = b)) i,
+      rw ← this, dsimp, trivial,
+    dsimp at this,
+    apply get_unique_value _ this_1 _,
+    intros,
+    rw ← a_2 at a_1,
+    rw mono_iff_injective at mon,
+    apply mon a_1,
+    intros c,
+    dsimp,
+    apply subsingleton.elim,
+    intros c,
+    ext, dunfold pullback_cone.snd pullback_cone.mk, simp,
+    exact get_unique_property (λ (a : A), f a = c.π.app walking_cospan.right x) _ _,
+    intros c m J,
+    dsimp,
+    resetI,
+    rw ← cancel_mono f,
+    ext,
+    simp,
+    have := get_unique_property (λ (a : A), f a = c.π.app walking_cospan.right x) _ _,
+    rw this,
+    erw ← congr_fun (J walking_cospan.right) x,
+    refl
   end,
   uniquely' :=
   begin
@@ -94,7 +100,7 @@ noncomputable instance types_has_subobj_classifier : @has_subobject_classifier T
   end }
 
 @[simps]
-def currying_equiv (A X Y : Type u) : ((prodinl A).obj X ⟶ Y) ≃ (X ⟶ A → Y) :=
+def currying_equiv (A X Y : Type u) : ((prod_functor.obj A).obj X ⟶ Y) ≃ (X ⟶ A → Y) :=
 { to_fun := λ f b a,
   begin
     refine f ⟨λ j, walking_pair.cases_on j a b, λ j₁ j₂, _⟩,
