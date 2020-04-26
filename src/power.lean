@@ -14,7 +14,7 @@ import binary_products
 import creates
 import beck2
 import category_theory.limits.opposites
--- import category_theory.limits.over
+import category_theory.limits.over
 import category_theory.limits.shapes.equalizers
 import category_theory.limits.shapes.constructions.limits_of_products_and_equalizers
 
@@ -942,7 +942,10 @@ end intersect
 
 -- This should land in mathlib soon so it's sorry for now.
 @[priority 10000] instance [has_finite_limits.{v} C] {B : C} : has_finite_limits.{v} (over B) :=
-sorry
+begin
+  haveI := has_finite_wide_pullbacks_of_has_finite_limits C,
+  apply over.has_finite_limits,
+end
 
 def P1 (A : C) [has_power_object.{v} A] : C := equalizer (intersect.intersect A) limits.prod.fst
 def P1sub (A : C) [has_power_object.{v} A] : P1 A ⟶ P A ⨯ P A := equalizer.ι (intersect.intersect A) limits.prod.fst
@@ -1006,7 +1009,6 @@ begin
   { rw [assoc, prod.lift_fst, ← over.comp_left, limits.prod.map_fst, assoc, limits.prod.map_fst, prod.lift_fst_assoc], refl },
   { rw [assoc, assoc, limits.prod.map_snd, comp_id, prod.lift_snd, ← over.comp_left, limits.prod.map_snd, comp_id, prod.lift_snd] }
 end
-
 def magic_pb (f g h : over B) (k : f ⟶ g) :
   is_limit (pullback_cone.mk (limits.prod.map k (𝟙 h)).left (magic_arrow h f) (magic_comm f g h k)) :=
 begin
@@ -1043,7 +1045,10 @@ begin
     change t.left ≫ magic_arrow h f ≫ limits.prod.snd = _,
     rw prod.lift_snd,
   refine ⟨t.left, _, fac, _⟩,
-  { erw [← cancel_mono (magic_arrow h g), pullback_cone.condition s, assoc, magic_comm, ← fac, assoc] },
+  rw [← cancel_mono (magic_arrow h g), pullback_cone.condition s, assoc],
+  change t.left ≫ (limits.prod.map k (𝟙 h)).left ≫ magic_arrow h g =
+    pullback_cone.snd s ≫ limits.prod.map k.left (𝟙 h.left),
+  rw [magic_comm, ← fac, assoc],
   intros m m₁ m₂,
   rw ← cancel_mono (magic_arrow h f),
   erw m₂,
@@ -1333,7 +1338,10 @@ begin
       rw prod.lift_fst at this,
       dsimp [h'] at this,
       slice_lhs 1 3 {rw this},
-      erw [assoc, limit.lift_π_assoc, prod.lift_fst] },
+      rw [assoc, h, hk],
+      slice_lhs 2 3 {rw limit.lift_π},
+      dsimp,
+      rw prod.lift_fst },
     { rw [assoc, assoc, assoc, limits.prod.map_snd, comp_id, prod.lift_snd] } },
   let t : s.X ⟶ r.left := (square.is_pullback (m'' m)).lift (pullback_cone.mk _ _ lem),
   have t₃ : t ≫ m'' m ≫ limits.prod.fst = pullback_cone.snd s,
@@ -1466,8 +1474,8 @@ def main (f : over B) [has_power_object.{v} f.left] : has_power_object.{v} f :=
       { rw [assoc, prod.lift_snd, ← over.comp_left, prod.lift_snd], refl } },
     convert vpaste p_top.left (m' m) (over.mem f).left _ (magic_arrow _ _) (magic_arrow _ _) _ _ _ _ z,
     { apply prod.hom_ext,
-      { erw [assoc, prod.lift_fst, ← over.comp_left, limits.prod.map_fst, assoc, limits.prod.map_fst, prod.lift_fst_assoc], refl },
-      { erw [assoc, prod.lift_snd, ← over.comp_left, limits.prod.map_snd, assoc, limits.prod.map_snd, prod.lift_snd_assoc], refl } },
+      { rw [assoc, prod.lift_fst, ← over.comp_left, assoc, limits.prod.map_fst, limits.prod.map_fst, prod.lift_fst_assoc], refl },
+      { rw [assoc, prod.lift_snd, ← over.comp_left, limits.prod.map_snd, assoc, limits.prod.map_snd, prod.lift_snd_assoc], refl } },
     apply magic_pb,
   end
 

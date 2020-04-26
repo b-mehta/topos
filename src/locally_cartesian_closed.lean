@@ -8,7 +8,10 @@ import pullbacks
 import comma
 import over
 
+-- This file is largely commented out for now.
+
 /-!
+OLD:
 # Properties of the over category.
 We say `C` is locally cartesian closed if it has all finite limits, and each
 `C/B` is cartesian closed.
@@ -41,52 +44,52 @@ attribute [instance] is_locally_cartesian_closed.overs_cc
 universe u₂
 
 variable {C}
--- lemma equiv_reflects_mono {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D)
---   (hef : mono (e.functor.map f)) : mono f :=
--- faithful_reflects_mono e.functor hef
+lemma equiv_reflects_mono {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D)
+  (hef : mono (e.functor.map f)) : mono f :=
+faithful_reflects_mono e.functor hef
 
--- lemma equiv_reflects_epi {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D)
---   (hef : epi (e.functor.map f)) : epi f :=
--- faithful_reflects_epi e.functor hef
+lemma equiv_reflects_epi {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D)
+  (hef : epi (e.functor.map f)) : epi f :=
+faithful_reflects_epi e.functor hef
 
--- lemma equiv_preserves_mono {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) [mono f] (e : C ≌ D) :
---   mono (e.functor.map f) :=
--- begin
---   apply equiv_reflects_mono ((e.functor).map f) e.symm,
---   erw equivalence.inv_fun_map,
---   apply mono_comp _ _,
---   apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
---   apply is_iso.of_iso_inverse,
---   apply mono_comp _ _,
---   apply_instance,
---   apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
---   apply is_iso.of_iso,
--- end
+lemma equiv_preserves_mono {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) [mono f] (e : C ≌ D) :
+  mono (e.functor.map f) :=
+begin
+  apply equiv_reflects_mono ((e.functor).map f) e.symm,
+  erw equivalence.inv_fun_map,
+  apply mono_comp _ _,
+  apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
+  apply is_iso.of_iso_inverse,
+  apply mono_comp _ _,
+  apply_instance,
+  apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
+  apply is_iso.of_iso,
+end
 
--- lemma equiv_preserves_epi {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) [epi f] (e : C ≌ D) :
---   epi (e.functor.map f) :=
--- begin
---   apply equiv_reflects_epi ((e.functor).map f) e.symm,
---   erw equivalence.inv_fun_map,
---   apply epi_comp _ _,
---   apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
---   apply is_iso.of_iso_inverse,
---   apply epi_comp _ _,
---   apply_instance,
---   apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
---   apply is_iso.of_iso,
--- end
+lemma equiv_preserves_epi {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) [epi f] (e : C ≌ D) :
+  epi (e.functor.map f) :=
+begin
+  apply equiv_reflects_epi ((e.functor).map f) e.symm,
+  erw equivalence.inv_fun_map,
+  apply epi_comp _ _,
+  apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
+  apply is_iso.of_iso_inverse,
+  apply epi_comp _ _,
+  apply_instance,
+  apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
+  apply is_iso.of_iso,
+end
 
--- lemma over_epi {B : C} {f g : over B} {k : f ⟶ g} (ke : epi k.left) : epi k :=
--- begin
---   split, intros h l m a, ext, rw [← cancel_epi k.left, ← over.comp_left, a], refl
--- end
+lemma over_epi {B : C} {f g : over B} {k : f ⟶ g} (ke : epi k.left) : epi k :=
+begin
+  split, intros h l m a, ext, rw [← cancel_epi k.left, ← over.comp_left, a], refl
+end
 
--- lemma over_epi' [has_binary_products.{v} C] (B : C) (f g : over B) (k : f ⟶ g) [ke : epi k] : epi k.left :=
--- left_adjoint_preserves_epi (forget_adj_star _) ke
+lemma over_epi' [has_binary_products.{v} C] (B : C) (f g : over B) (k : f ⟶ g) [ke : epi k] : epi k.left :=
+left_adjoint_preserves_epi (forget_adj_star _) ke
 
--- lemma over_epi'' [has_binary_products.{v} C] (B : C) (f g : over B) (k : f ⟶ g) : epi k ↔ epi k.left :=
--- ⟨λ ke, by exactI (over_epi' _ _ _ _), over_epi⟩
+lemma over_epi'' [has_binary_products.{v} C] (B : C) (f g : over B) (k : f ⟶ g) : epi k ↔ epi k.left :=
+⟨λ ke, by exactI (over_epi' _ _ _ _), over_epi⟩
 
 section
 local attribute [instance] over.construct_products.over_binary_product_of_pullback
@@ -95,22 +98,22 @@ local attribute [instance] over.construct_products.over_binary_product_of_pullba
 def pullback_along [has_pullbacks.{v} C] {A B : C} (f : A ⟶ B) : over B ⥤ over A :=
 star (over.mk f) ⋙ (over.iterated_slice_equiv _).functor
 
--- def over_iso {B : C} (f g : over B) (hl : f.left ≅ g.left) (hw : hl.hom ≫ g.hom = f.hom) : (f ≅ g) :=
--- { hom := over.hom_mk hl.hom, inv := over.hom_mk hl.inv (by simp [iso.inv_comp_eq, hw]) }
+def over_iso {B : C} (f g : over B) (hl : f.left ≅ g.left) (hw : hl.hom ≫ g.hom = f.hom) : (f ≅ g) :=
+{ hom := over.hom_mk hl.hom, inv := over.hom_mk hl.inv (by simp [iso.inv_comp_eq, hw]) }
 
--- def over_left_iso {B : C} {f g : over B} (hf : f ≅ g) : f.left ≅ g.left :=
--- { hom := hf.hom.left,
---   inv := hf.inv.left,
---   hom_inv_id' := begin rw [← over.comp_left, hf.hom_inv_id], refl end,
---   inv_hom_id' := begin rw [← over.comp_left, hf.inv_hom_id], refl end}
+def over_left_iso {B : C} {f g : over B} (hf : f ≅ g) : f.left ≅ g.left :=
+{ hom := hf.hom.left,
+  inv := hf.inv.left,
+  hom_inv_id' := begin rw [← over.comp_left, hf.hom_inv_id], refl end,
+  inv_hom_id' := begin rw [← over.comp_left, hf.inv_hom_id], refl end}
 
--- lemma pullback_along_obj_of_id [has_pullbacks.{v} C] {A B : C} (f : A ⟶ B) : (pullback_along f).obj (over.mk (𝟙 B)) ≅ over.mk (𝟙 A) :=
--- begin
---   apply over_iso, swap,
---   have: over.mk f⨯⊤_ over B ≅ over.mk f, apply prod.right_unitor,
---   apply over_left_iso this,
---   dunfold over_left_iso over.iterated_slice_equiv pullback_along equivalence.mk, simp, dsimp, simp,
--- end
+lemma pullback_along_obj_of_id [has_pullbacks.{v} C] {A B : C} (f : A ⟶ B) : (pullback_along f).obj (over.mk (𝟙 B)) ≅ over.mk (𝟙 A) :=
+begin
+  apply over_iso, swap,
+  have: over.mk f⨯⊤_ over B ≅ over.mk f, apply prod.right_unitor,
+  apply over_left_iso this,
+  dunfold over_left_iso over.iterated_slice_equiv pullback_along equivalence.mk, simp, dsimp, simp,
+end
 
 -- lemma pullback_of_obj [has_pullbacks.{v} C] {A B D : C} (f : A ⟶ B) (g : D ⟶ B) :
 --   ((pullback_along f).map (terminal.from (over.mk g))).left = (pullback.fst : pullback f g ⟶ A) ≫ (pullback.with_id_l f).inv :=
@@ -119,6 +122,8 @@ star (over.mk f) ⋙ (over.iterated_slice_equiv _).functor
 --   ext, simp, dsimp, erw limit.lift_π, simp, dunfold pullback_cone.snd, dsimp, simp, erw limit.lift_π, dsimp, simp,
 --   erw limit.lift_π, dsimp, symmetry, exact pullback.condition,
 -- end
+
+#print instances has_binary_products
 
 end
 
