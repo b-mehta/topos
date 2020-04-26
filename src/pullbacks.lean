@@ -270,8 +270,22 @@ end
 --   v       v
 --   D   ⟶   B
 -- is a pullback (needed in over/exponentiable_in_slice)
--- def pullback_prod (xy : X ⟶ Y) (Z : C) [has_binary_products.{v} C] :
---   is_limit (pullback_cone.mk limits.prod.fst (limits.prod.map xy (𝟙 Z)) (by simp) : pullback_cone xy limits.prod.fst) :=
+def pullback_prod (xy : X ⟶ Y) (Z : C) [has_binary_products.{v} C] :
+  is_limit (pullback_cone.mk limits.prod.fst (limits.prod.map xy (𝟙 Z)) (limits.prod.map_fst _ _).symm : pullback_cone xy limits.prod.fst) :=
+is_limit.mk' _ $
+begin
+  intro s,
+  refine ⟨prod.lift (pullback_cone.fst s) (pullback_cone.snd s ≫ limits.prod.snd), limit.lift_π _ _, _, _⟩,
+  { change limits.prod.lift (pullback_cone.fst s) (pullback_cone.snd s ≫ limits.prod.snd) ≫
+      limits.prod.map xy (𝟙 Z) = pullback_cone.snd s,
+    apply prod.hom_ext,
+    rw [assoc, limits.prod.map_fst, prod.lift_fst_assoc, pullback_cone.condition s],
+    rw [assoc, limits.prod.map_snd, prod.lift_snd_assoc, comp_id] },
+  { intros m m₁ m₂,
+    apply prod.hom_ext,
+    simpa using m₁,
+    erw [prod.lift_snd, ← m₂, assoc, limits.prod.map_snd, comp_id] },
+end
 -- { lift := λ s, prod.lift (pullback_cone.fst s) (s.π.app walking_cospan.right ≫ limits.prod.snd),
 --   fac' := λ s,
 --     begin
@@ -289,8 +303,21 @@ end
 --     end
 -- }
 
--- def pullback_prod' (xy : X ⟶ Y) (Z : C) [has_binary_products.{v} C] :
---   is_limit (pullback_cone.mk limits.prod.snd (limits.prod.map (𝟙 Z) xy) (by simp) : pullback_cone xy limits.prod.snd) :=
+def pullback_prod' (xy : X ⟶ Y) (Z : C) [has_binary_products.{v} C] :
+  is_limit (pullback_cone.mk limits.prod.snd (limits.prod.map (𝟙 Z) xy) (limits.prod.map_snd _ _).symm : pullback_cone xy limits.prod.snd) :=
+is_limit.mk' _ $
+begin
+  intro s,
+  refine ⟨prod.lift (pullback_cone.snd s ≫ limits.prod.fst) (pullback_cone.fst s), limit.lift_π _ _, _, _⟩,
+  { apply prod.hom_ext,
+    erw [assoc, limits.prod.map_fst, prod.lift_fst_assoc, comp_id],
+    slice_lhs 2 3 {erw limits.prod.map_snd},
+    rw [prod.lift_snd_assoc, pullback_cone.condition s] },
+  { intros m m₁ m₂,
+    apply prod.hom_ext,
+    erw [prod.lift_fst, ← m₂, assoc, limits.prod.map_fst, comp_id],
+    simpa using m₁ }
+end
 -- { lift := λ s, prod.lift (pullback_cone.snd s ≫ limits.prod.fst) (pullback_cone.fst s),
 --   fac' := λ s,
 --     begin
