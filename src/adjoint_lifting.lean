@@ -14,15 +14,6 @@ variables {C : Type u₁} [𝒞 : category.{v₁} C] {D : Type u₂} [𝒟 : cat
 include 𝒞
 variables {T : C ⥤ C} [monad.{v₁} T]
 
-lemma free_forget : free T ⋙ forget T = T :=
-begin
-  apply functor.ext _ _,
-  intro X,
-  refl,
-  intros,
-  simp
-end
-
 open monad limits
 
 lemma thing (A : algebra T) : (η_ T).app ((forget T).obj A) ≫ (forget T).map ((adj T).counit.app A) = 𝟙 ((forget T).obj A) :=
@@ -33,6 +24,8 @@ end
 
 include 𝒟
 variables {S : D ⥤ D} [monad.{v₂} S]
+
+namespace lift_left_adjoint
 
 variables (R : D ⥤ C) [ℛ : is_right_adjoint R]
 include ℛ
@@ -47,7 +40,7 @@ iso.app comm_iso B
 namespace part1
 
 def f1 (B : D) : R.obj B ⟶ R.obj (S.obj B) :=
-R.map ((η_ S).app B)
+R.map ((adj S).unit.app B)
 
 def f2 (B : D) (comm_iso : R' ⋙ forget T ≅ forget S ⋙ R) :
   (free T).obj (R.obj B) ⟶ R'.obj ((free S).obj B) :=
@@ -128,15 +121,12 @@ def refl_pair (a : algebra T) (comm_iso : R' ⋙ forget T ≅ forget S ⋙ R) :
     rw (L R).map_comp,
     rw category.assoc,
     rw part1.f1,
-    erw is_right_adjoint.adj.counit.naturality ((η_ S).app ((L R).obj a.A)),
+    erw is_right_adjoint.adj.counit.naturality ((adj S).unit.app ((L R).obj a.A)),
     change (L R).map (is_right_adjoint.adj.unit.app a.A) ≫
       (is_right_adjoint.adj).counit.app (((L R).obj a.A)) ≫
-        ((η_ S).app ((L R).obj a.A)) = (adj S).unit.app ((L R).obj a.A),
+        ((adj S).unit.app ((L R).obj a.A)) = (adj S).unit.app ((L R).obj a.A),
     slice_lhs 1 2 {erw (is_right_adjoint.adj).left_triangle_components},
-    erw category.id_comp,
-    dunfold adj adjunction.mk_of_hom_equiv,
-    dsimp,
-    erw category.comp_id
+    erw category.id_comp
   end }
 end part3
 
@@ -160,63 +150,86 @@ equiv.trans ((adj S).hom_equiv ((L R).obj a.A) b) $ equiv.trans (ℛ.adj.hom_equ
 }
 -- This final equivalence might be useful in other contexts (that is, A ⟶ B ≃ A ⟶ C when B ≅ C). It should also probably be a consequence of Yoneda
 
-def sound (a : algebra T) (b : algebra S) (comm_iso : R' ⋙ forget T ≅ forget S ⋙ R) (h' : (free S).obj ((L R).obj a.A) ⟶ b) :
-  (free S).map ((L R).map a.a) ≫ h' = part2.φ' R a.A comm_iso ≫ h' ↔ T.map ((arrow_map R a b comm_iso).to_fun h') ≫ (R'.obj b).a = a.a ≫ ((arrow_map R a b comm_iso).to_fun h') :=
+def test (b : algebra S) : (forget T).map ((adj T).counit.app (R'.obj b)) = (R'.obj b).a :=
 begin
-  let h := (((adj S).hom_equiv _ _).to_fun h'),
-  have: (free S).map ((L R).map a.a) ≫ h' = part2.φ' R a.A comm_iso ≫ h' ↔ ((L R).map a.a) ≫ h = part2.φ R a.A comm_iso ≫ (forget S).map h',
-  { erw [← (adj S).hom_equiv_naturality_left, part2.φ', ← (adj S).hom_equiv_naturality_right_symm],
-    split,
-    { intro k,
-      rw k,
-      apply ((adj S).hom_equiv _ _).right_inv },
-    { intro k,
-      rw ← k,
-      apply (((adj S).hom_equiv _ _).left_inv _).symm } },
-  rw this, clear this,
-  let hbar := ((is_right_adjoint.adj).hom_equiv a.A b.A).to_fun h,
-  have: (L R).map a.a ≫ h = part2.φ R a.A comm_iso ≫ (forget S).map h' ↔ a.a ≫ hbar = (forget T).map ((free T).map (part2.γ R a.A)) ≫ (forget T).map (part1.f2 _ _ comm_iso) ≫ comm_iso.hom.app ((free S).obj ((L R).obj a.A)) ≫ R.map ((forget S).map h'),
-  { sorry },
-  rw this, clear this,
-  erw ← comm_iso.hom.naturality h',
-  change a.a ≫ hbar = T.map (part2.γ R a.A) ≫ (part1.f2 R ((L R).obj a.A) comm_iso).f ≫ (R' ⋙ forget T).map h' ≫ comm_iso.hom.app b ↔
-    T.map (hbar ≫ comm_iso.inv.app b) ≫ (R'.obj b).a = a.a ≫ hbar ≫ comm_iso.inv.app b,
-  conv_rhs {rw ← category.assoc, rw eq_comm},
-  erw (iso.app comm_iso b).comp_inv_eq,
-  conv_lhs {rw [← category.assoc, ← category.assoc]},
-  convert iff.refl _ using 3,
-
-  -- have : R.obj (b.A) ⟶ (R'.obj b).A := comm_iso.inv.app b,
-  -- have := (R'.obj b).a,
-  -- have := hbar,
-
-  -- rw T.map_comp,
-  -- dunfold part2.γ part1.f2 transport iso.app part1.f1, dsimp,
-  change T.map (((is_right_adjoint.adj.hom_equiv a.A b.A).to_fun h) ≫ comm_iso.inv.app b) ≫ (R'.obj b).a =
-    ((forget T).map ((free T).map ((is_right_adjoint.adj).unit.app a.A)) ≫
-         (forget T).map (((adj T).hom_equiv (R.obj ((L R).obj a.A)) (R'.obj ((free S).obj ((L R).obj a.A)))).inv_fun
-            (R.map ((η_ S).app ((L R).obj a.A)) ≫ comm_iso.inv.app ((free S).obj ((L R).obj a.A))))) ≫
-      (forget T).map (R'.map h'),
-  -- dunfold adj adjunction.mk_of_hom_equiv free forget, dsimp,
-  have: (((adj T).hom_equiv _ _).inv_fun (R.map ((η_ S).app ((L R).obj a.A)) ≫ comm_iso.inv.app ((free S).obj ((L R).obj a.A)))) = _ :=
-    (adj T).hom_equiv_naturality_left_symm (R.map ((η_ S).app ((L R).obj a.A))) (comm_iso.inv.app ((free S).obj ((L R).obj a.A))),
-  erw this, clear this,
-  change T.map (((is_right_adjoint.adj).hom_equiv a.A b.A).to_fun h ≫ comm_iso.inv.app b) ≫ (R'.obj b).a =
-    ((forget T).map ((free T).map ((is_right_adjoint.adj).unit.app a.A)) ≫
-         (forget T).map
-           ((free T).map (R.map ((η_ S).app ((L R).obj a.A))) ≫
-              ((adj T).hom_equiv (R.obj (S.obj ((L R).obj a.A))) (R'.obj ((free S).obj ((L R).obj a.A)))).inv_fun
-                (comm_iso.inv.app ((free S).obj ((L R).obj a.A))))) ≫
-      (forget T).map (R'.map h'),
-
-
-
-  -- conv_rhs {congr, congr, skip, congr, erw (adj T).hom_equiv_counit,  },
-    -- (adj T).hom_equiv_counit,
-
-  -- have := comm_iso.inv.naturality h',
+  rw adj,
+  rw adjunction.mk_of_hom_equiv,
+  dsimp,
+  rw T.map_id,
+  rw category.id_comp,
 end
-#check eq.symm
+
+def sound' (a : algebra T) (b : algebra S) (comm_iso : R' ⋙ forget T ≅ forget S ⋙ R) (h : a.A ⟶ (forget T).obj (R'.obj b)) :
+  T.map h ≫ (R'.obj b).a = a.a ≫ h ↔
+    (free S).map ((L R).map a.a) ≫ (equiv.symm (arrow_map R a b comm_iso)).to_fun h =
+      part2.φ' R a.A comm_iso ≫ (equiv.symm (arrow_map R a b comm_iso)).to_fun h :=
+begin
+  symmetry,
+  rw part2.φ',
+  dunfold arrow_map,
+  conv_lhs {to_lhs, apply_congr ((adj S).hom_equiv_naturality_left_symm _ _).symm},
+  dunfold equiv.symm,
+  dsimp,
+  rw ← eq_hom_equiv_apply,
+  conv_lhs {to_rhs, apply_congr (adj S).hom_equiv_naturality_right _ _ },
+  conv_lhs {to_rhs, congr, apply_congr ((adj S).hom_equiv _ _).right_inv },
+  erw ← ℛ.adj.hom_equiv_naturality_left_symm,
+  rw ← ℛ.adj.eq_hom_equiv_apply,
+  rw ℛ.adj.hom_equiv_naturality_right,
+  rw part2.φ,
+  rw ← (L R).map_comp_assoc,
+  erw ℛ.adj.hom_equiv_naturality_left,
+  conv_lhs {to_rhs, congr, congr, skip, apply_congr ℛ.adj.hom_equiv_unit },
+  rw [adjunction.right_triangle_components, category.comp_id, part1.θ, transport, iso.app, category.assoc, category.assoc],
+  erw ← comm_iso.hom.naturality,
+  rw [← category.assoc, ← category.assoc, ← category.assoc, cancel_mono (comm_iso.hom.app b), eq_comm],
+  convert iff.refl _ using 2,
+  rw ← test R b,
+  rw functor.comp_map,
+  change (forget T).map ((free T).map _) ≫ _ = ((forget T).map ((free T).map _) ≫ _) ≫ _,
+  rw [← (forget T).map_comp, ← (forget T).map_comp, ← (forget T).map_comp],
+  congr' 1,
+  rw ℛ.adj.hom_equiv_naturality_left_symm,
+  rw (adj S).hom_equiv_naturality_left_symm,
+  rw R'.map_comp,
+  rw category.assoc,
+  rw part1.f2,
+  rw part1.f1,
+  rw transport,
+  conv_rhs {congr, skip, congr, apply_congr (adj T).hom_equiv_counit},
+  rw (free T).map_comp,
+  slice_rhs 4 5 {erw ← (adj T).counit.naturality},
+  slice_rhs 3 4 {rw functor.comp_map, rw ← (free T).map_comp },
+  conv_rhs {congr, skip, congr, skip, congr, congr, congr, rw iso.app, erw ← comm_iso.inv.naturality, rw functor.comp_map },
+  rw (free T).map_comp,
+  slice_rhs 2 3 {},
+  conv_rhs {congr, skip, congr, congr, congr, rw ← (free T).map_comp, congr, rw ← R.map_comp, congr, erw ← (adj S).unit.naturality, rw functor.id_map },
+  slice_rhs 1 2 {rw R.map_comp, rw (free T).map_comp},
+  slice_rhs 1 2 {rw ← (free T).map_comp, congr, erw ← ℛ.adj.unit.naturality },
+  simp only [functor.id_map, category.assoc, (free T).map_comp],
+  congr' 1,
+  rw (adj S).hom_equiv_counit,
+  rw ℛ.adj.hom_equiv_counit,
+  simp only [category.assoc, R'.map_comp, (free S).map_comp],
+  slice_rhs 4 5 {erw ← (adj T).counit.naturality},
+  slice_rhs 3 4 {rw functor.comp_map, rw ← (free T).map_comp },
+  simp only [category.assoc, functor.map_comp],
+  slice_rhs 5 7 {rw ← R'.map_comp, erw ← (adj T).counit.naturality, rw functor.map_comp, rw functor.map_comp, rw functor.comp_map, rw functor.comp_map },
+  slice_rhs 3 6 {rw [← (free T).map_comp, ← (free T).map_comp, ← (free T).map_comp], congr, erw [← (R' ⋙ forget T).map_comp, ← (R' ⋙ forget T).map_comp], rw ← comm_iso.inv.naturality },
+  simp only [functor.map_comp, functor.comp_map, category.assoc],
+  slice_rhs 2 4 {erw [← (R ⋙ free T).map_comp, ← (R ⋙ free T).map_comp], congr, erw [← S.map_comp], erw ← (adj S).unit.naturality, rw functor.id_map },
+  simp only [functor.map_comp, functor.comp_map, category.assoc],
+  slice_rhs 4 5 {erw [← (R ⋙ free T).map_comp], congr, rw (adj S).right_triangle_components },
+  erw (R ⋙ free T).map_id,
+  erw category.id_comp,
+  slice_rhs 1 2 {rw ← (free T).map_comp, congr, erw ← ℛ.adj.unit.naturality, rw functor.id_map },
+  simp only [functor.map_comp, functor.comp_map, category.assoc],
+  slice_rhs 2 3 {rw ← (free T).map_comp, congr, rw ℛ.adj.right_triangle_components },
+  slice_rhs 1 3 {rw [← (free T).map_comp, ← (free T).map_comp], congr, erw category.id_comp, rw nat_iso.hom_inv_id_app },
+  erw (free T).map_id,
+  rw category.id_comp,
+end
+
 omit ℛ
 def elast (a : algebra T) (b : algebra S) : {g : a.A ⟶ (forget T).obj (R'.obj b) // T.map g ≫ (R'.obj b).a = a.a ≫ g} ≃ (a ⟶ R'.obj b) :=
 { to_fun := λ f, {f := f.1, h' := f.2},
@@ -225,13 +238,46 @@ def elast (a : algebra T) (b : algebra S) : {g : a.A ⟶ (forget T).obj (R'.obj 
   right_inv := λ ⟨g, _⟩, rfl}
 include ℛ
 
-def L'e  (comm_iso : R' ⋙ forget T ≅ forget S ⋙ R) (hrc : has_reflexive_coequalizers (algebra S)) (a : algebra T) (b : algebra S) :
+def L'e (comm_iso : R' ⋙ forget T ≅ forget S ⋙ R) (hrc : has_reflexive_coequalizers (algebra S)) (a : algebra T) (b : algebra S) :
   (L'obj R comm_iso hrc a ⟶ b) ≃ (a ⟶ R'.obj b) :=
 begin
   apply equiv.trans (e1 _ _ _ _),
   apply equiv.trans _ (elast _ _),
-  exact restrict_equivalence (arrow_map R a b _) _ _ (sound R a b comm_iso),
+  apply equiv.symm,
+  exact restrict_equivalence (arrow_map R a b comm_iso).symm _ _ (sound' R a b comm_iso),
 end
+
+def L' (comm_iso : R' ⋙ forget T ≅ forget S ⋙ R) (hrc : has_reflexive_coequalizers (algebra S)) :
+  algebra T ⥤ algebra S :=
+begin
+  refine adjunction.left_adjoint_of_equiv (λ a b, L'e R comm_iso hrc a b) _,
+  intros a b b' g h,
+  ext1,
+  dsimp [L'e, elast, restrict_equivalence, equiv.subtype_congr, arrow_map, e1, coeq_equiv, equiv.trans, equiv.symm],
+  change (ℛ.adj.hom_equiv _ _).to_fun (((adj S).hom_equiv _ _).to_fun (_ ≫ h ≫ g)) ≫ comm_iso.inv.app b' =
+        ((ℛ.adj.hom_equiv _ _).to_fun (((adj S).hom_equiv _ _).to_fun (_ ≫ h)) ≫ comm_iso.inv.app b) ≫ (R'.map g).f,
+  conv_lhs {congr, congr, skip, conv {congr, skip, rw ← category.assoc}, apply_congr (adj S).hom_equiv_naturality_right},
+  change (ℛ.adj.hom_equiv a.A ((forget S).obj b')).to_fun (((adj S).hom_equiv _ b).to_fun (_ ≫ h) ≫ (forget S).map g) ≫ comm_iso.inv.app b' =
+         ((ℛ.adj.hom_equiv a.A ((forget S).obj b)).to_fun (((adj S).hom_equiv _ b).to_fun (_ ≫ h)) ≫ comm_iso.inv.app b) ≫ (R'.map g).f,
+  conv_lhs {congr, apply_congr ℛ.adj.hom_equiv_naturality_right },
+  change ((ℛ.adj.hom_equiv a.A ((forget S).obj b)).to_fun (((adj S).hom_equiv _ b).to_fun (_ ≫ h)) ≫ R.map ((forget S).map g)) ≫ comm_iso.inv.app b' =
+         ((ℛ.adj.hom_equiv a.A ((forget S).obj b)).to_fun (((adj S).hom_equiv _ b).to_fun (_ ≫ h)) ≫ comm_iso.inv.app b) ≫ (R'.map g).f,
+  rw [category.assoc, category.assoc],
+  congr' 1,
+  apply comm_iso.inv.naturality,
+end
+
+def is_adj (comm_iso : R' ⋙ forget T ≅ forget S ⋙ R) (hrc : has_reflexive_coequalizers (algebra S)) : L' R comm_iso hrc ⊣ R' :=
+adjunction.adjunction_of_equiv_left _ _
+
+end lift_left_adjoint
+open lift_left_adjoint
+
+def lift_algebra_left_adjoint {R : D ⥤ C} [is_right_adjoint R] {R' : algebra S ⥤ algebra T}
+  (comm_iso : R' ⋙ forget T ≅ forget S ⋙ R) (hrc : has_reflexive_coequalizers (algebra S)) :
+  is_right_adjoint R' :=
+{ left := L' R comm_iso hrc,
+  adj := is_adj R comm_iso hrc }
 
 end monad
 end category_theory
