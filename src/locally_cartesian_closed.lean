@@ -41,6 +41,24 @@ class is_locally_cartesian_closed [has_finite_limits.{v} C] :=
 attribute [instance] is_locally_cartesian_closed.overs_cc
 -- attribute [instance] has_pullbacks_of_has_finite_limits
 
+def over_terminal [has_terminal.{v} C] : over (⊤_ C) ≌ C :=
+{ functor := over.forget,
+  inverse :=
+  { obj := λ X, over.mk (terminal.from X),
+    map := λ X Y f, over.hom_mk f },
+  unit_iso :=
+  begin
+    refine nat_iso.of_components (λ X, { hom := over.hom_mk (𝟙 _), inv := over.hom_mk (𝟙 _) } ) _,
+    intros X Y f,
+    ext1,
+    simp,
+  end,
+  counit_iso := iso.refl _,
+}
+
+instance cc_of_lcc [has_finite_limits.{v} C] [is_locally_cartesian_closed.{v} C] : is_cartesian_closed.{v} C :=
+cartesian_closed_of_equiv (over_terminal C)
+
 universe u₂
 
 variable {C}

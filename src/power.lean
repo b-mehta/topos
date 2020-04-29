@@ -13,15 +13,24 @@ import subobject_classifier
 import binary_products
 import creates
 import beck2
+import over
 import category_theory.limits.opposites
 import category_theory.limits.over
 import category_theory.limits.shapes.equalizers
 import category_theory.limits.shapes.constructions.limits_of_products_and_equalizers
+import adjoint_lifting
+import locally_cartesian_closed
 
 /-!
 # Power objects
 
-Define power objects
+Define power objects.
+Show that power objects induces a (contravariant) functor `P_functor`.
+Show that this is self-adjoint on the right.
+Define the singleton arrow {} : B ⟶ PB and internal image (for monos only)
+and show the latter is functorial too.
+Show the existence of a subobject classifier and show
+
 -/
 universes v u v₂ u₂
 
@@ -40,42 +49,31 @@ pullback_cone.is_limit.mk _
   (λ s, limit.lift_π _ _)
   (λ s m w, pullback.hom_ext (by { rw limit.lift_π, apply w walking_cospan.left }) (by { rw limit.lift_π, apply w walking_cospan.right }))
 
-section faithful
-
-variables {D : Type u₂} [𝒟 : category.{v₂} D]
-include 𝒟
-instance right_op_faithful {F : Cᵒᵖ ⥤ D} [faithful F] : faithful F.right_op :=
-{ injectivity' :=
-  begin
-    dsimp,
-    intros X Y f g h,
-    have := has_hom.hom.op_inj ((faithful.injectivity F (has_hom.hom.op_inj h))),
-    exact this
-  end
-}
-end faithful
-
-def op_equiv (A : C) (B : Cᵒᵖ): (opposite.op A ⟶ B) ≃ (B.unop ⟶ A) :=
-{ to_fun := λ f, f.unop,
-  inv_fun := λ g, g.op,
-  left_inv := λ _, rfl,
-  right_inv := λ _, rfl }
-
 variables [has_finite_limits.{v} C]
 
+-- NB: it might be a good idea to define something like "gives pullback" which says that the given
+-- three morphisms are the left, bottom and right of a pullback square - we can then use pasting
+-- lemmas to paste these, and define this in terms of that
 structure powerises {A PA niA B R : C} (memA : niA ⟶ PA ⨯ A) (m : R ⟶ B ⨯ A) (mhat : B ⟶ PA) :=
 (top : R ⟶ niA)
 (commutes : top ≫ memA = m ≫ limits.prod.map mhat (𝟙 A))
 (forms_pullback' : is_limit (pullback_cone.mk _ _ commutes))
 restate_axiom powerises.forms_pullback'
 
+instance {A PA niA B R : C} (memA : niA ⟶ PA ⨯ A) [mono memA] (m : R ⟶ B ⨯ A) (mhat : B ⟶ PA) :
+  subsingleton (powerises memA m mhat) :=
+⟨by { intros P Q, cases P, cases Q, congr, rw [← cancel_mono memA, P_commutes, Q_commutes] }⟩
+
+structure is_power_object {A PA niA : C} (memA : niA ⟶ PA ⨯ A) :=
+(is_mono : mono memA)
+(hat : ∀ {B R} (m : R ⟶ B ⨯ A) [@mono _ 𝒞 _ _ m], B ⟶ PA)
+(powerises' : ∀ {B R} (m : R ⟶ B ⨯ A) [hm : @mono _ 𝒞 _ _ m], powerises memA m (hat m))
+(uniquely' : ∀ {B R} (m : R ⟶ B ⨯ A) [hm : @mono _ 𝒞 _ _ m] (hat' : B ⟶ PA), powerises memA m hat' → hat' = hat m)
+
 class has_power_object (A : C) :=
 (PA niA : C)
 (memA : niA ⟶ PA ⨯ A)
-(mem_mono' : @mono _ 𝒞 _ _ memA)
-(hat : ∀ {B R} (m : R ⟶ B ⨯ A) [hm : @mono _ 𝒞 _ _ m], B ⟶ PA)
-(powerises' : ∀ {B R} (m : R ⟶ B ⨯ A) [hm : @mono _ 𝒞 _ _ m], powerises memA m (hat m))
-(uniquely' : ∀ {B R} (m : R ⟶ B ⨯ A) [hm : @mono _ 𝒞 _ _ m] (hat' : B ⟶ PA), powerises memA m hat' → hat' = hat m)
+(is_power : is_power_object memA)
 
 variable (C)
 
@@ -94,17 +92,75 @@ variables (A : C) [has_power_object.{v} A]
 def P : C := @has_power_object.PA _ 𝒞 _ A _
 def ni : C := @has_power_object.niA _ 𝒞 _ A _
 def mem : ni A ⟶ P A ⨯ A := has_power_object.memA
-instance mem_mono : mono (mem A) := has_power_object.mem_mono'
+
+def power_is_power : is_power_object (mem A) := has_power_object.is_power
+
+instance mem_mono : mono (mem A) := (power_is_power A).is_mono
 
 variables {A} {B R : C} (m : R ⟶ B ⨯ A) [mono m]
 
-def hat : B ⟶ P A := has_power_object.hat m
-def hat_powerises : powerises (mem A) m (hat m) := has_power_object.powerises' m
+def hat : B ⟶ P A := (power_is_power A).hat m
+def hat_powerises : powerises (mem A) m (hat m) := (power_is_power A).powerises' m
 def square.top : R ⟶ ni A := (hat_powerises m).top
+@[reassoc]
 def square.commutes : square.top m ≫ mem A = m ≫ limits.prod.map (hat m) (𝟙 A) := (hat_powerises m).commutes
 def square.is_pullback : is_limit (pullback_cone.mk _ _ (square.commutes m)) := (hat_powerises m).forms_pullback
-lemma unique_hat (hat' : B ⟶ P A) (hp : powerises (mem A) m hat') : hat' = hat m := has_power_object.uniquely' m hat' hp
+lemma unique_hat (hat' : B ⟶ P A) (hp : powerises (mem A) m hat') : hat' = hat m := (power_is_power A).uniquely' m hat' hp
 end convenience
+
+
+-- def ni_unique_up_to_iso {A : C} {PA₁ niA₁ PA₂ niA₂ : C}
+--   (memA₁ : niA₁ ⟶ PA₁ ⨯ A) (memA₂ : niA₂ ⟶ PA₂ ⨯ A)
+--   (h₁ : is_power_object memA₁) (h₂ : is_power_object memA₂) :
+-- niA₁ ≅ niA₂ :=
+-- { hom := by { haveI := h₁.is_mono, exact (h₂.powerises' memA₁).top },
+--   inv := by { haveI := h₂.is_mono, exact (h₁.powerises' memA₂).top },
+--   hom_inv_id' :=
+--   begin
+--     haveI := h₁.is_mono,
+--     haveI := h₂.is_mono,
+--     rw [← cancel_mono_id memA₁, assoc, (h₁.powerises' memA₂).commutes, ← assoc,
+--         (h₂.powerises' memA₁).commutes],
+
+--   end
+
+-- }
+
+lemma P_unique_aux {A : C} {PA₁ niA₁ PA₂ niA₂ : C}
+  (memA₁ : niA₁ ⟶ PA₁ ⨯ A) (memA₂ : niA₂ ⟶ PA₂ ⨯ A)
+  (h₁ : is_power_object memA₁) (h₂ : is_power_object memA₂) :
+@is_power_object.hat _ _ _ _ _ _ _ h₁ _ _ memA₂ h₂.is_mono ≫ @is_power_object.hat _ _ _ _ _ _ _ h₂ _ _ memA₁ h₁.is_mono = 𝟙 PA₂ :=
+begin
+  haveI := h₂.is_mono,
+  haveI := h₁.is_mono,
+  have: h₂.hat memA₂ = 𝟙 _,
+  { symmetry,
+    apply h₂.uniquely',
+    have z : limits.prod.map (𝟙 PA₂) (𝟙 A) = 𝟙 _,
+    { apply prod.hom_ext,
+      { rw [limits.prod.map_fst, comp_id, id_comp] },
+      { rw [limits.prod.map_snd, comp_id, id_comp] } },
+    refine ⟨𝟙 _, _, _⟩,
+    { rw [z, id_comp, comp_id] },
+    { convert pullback_square_iso' (𝟙 niA₂) _ _ (𝟙 (PA₂ ⨯ A)) _,
+      { rw [id_comp, comp_id] } } },
+  rw ← this,
+  apply h₂.uniquely',
+  refine ⟨(h₁.powerises' memA₂).top ≫ (h₂.powerises' memA₁).top, _, _⟩,
+  { rw [assoc, (h₂.powerises' memA₁).commutes, ← assoc, (h₁.powerises' memA₂).commutes, assoc, prod_functorial] },
+  { have: limits.prod.map (h₁.hat memA₂ ≫ h₂.hat memA₁) (𝟙 A) = limits.prod.map (h₁.hat memA₂) (𝟙 A) ≫ limits.prod.map (h₂.hat memA₁) (𝟙 A) := prod_functorial _ _,
+    convert (pasting (h₁.powerises' memA₂).top (h₂.powerises' memA₁).top memA₂ memA₁ memA₂ (limits.prod.map (h₁.hat memA₂) (𝟙 A)) (limits.prod.map (h₂.hat memA₁) (𝟙 A)) (h₁.powerises' memA₂).commutes (h₂.powerises' memA₁).commutes (h₂.powerises' memA₁).forms_pullback').inv _,
+    apply (h₁.powerises' memA₂).forms_pullback' }
+end
+
+def P_unique_up_to_iso {A : C} {PA₁ niA₁ PA₂ niA₂ : C}
+  {memA₁ : niA₁ ⟶ PA₁ ⨯ A} {memA₂ : niA₂ ⟶ PA₂ ⨯ A}
+  (h₁ : is_power_object memA₁) (h₂ : is_power_object memA₂) :
+PA₁ ≅ PA₂ :=
+{ hom := by { haveI := h₁.is_mono, exact h₂.hat memA₁ },
+  inv := by { haveI := h₂.is_mono, exact h₁.hat memA₂ },
+  hom_inv_id' := P_unique_aux memA₂ memA₁ h₂ h₁,
+  inv_hom_id' := P_unique_aux memA₁ memA₂ h₁ h₂ }
 
 section functor_setup
 variables {A B : C} (f : A ⟶ B) [has_power_object.{v} B]
@@ -976,7 +1032,7 @@ variables {B : C} (f g : over B)
 set_option trace.app_builder false
 
 
-def over_mono {B : C} {f g : over B} (m : f ⟶ g) [mono m] : mono m.left :=
+instance over_mono {B : C} {f g : over B} (m : f ⟶ g) [mono m] : mono m.left :=
 begin
   refine ⟨λ A h k e, _⟩,
   let A' : over B := over.mk (k ≫ f.hom),
@@ -1081,6 +1137,32 @@ begin
     rw tk },
   { change (m' ≫ g) ≫ l = t ≫ l,
     erw [assoc, m₂, tl] }
+end
+
+def vpaste' {U V W X Y Z : C} (f : U ⟶ V) (g : U ⟶ W) (h : V ⟶ X) (k : W ⟶ X) (l : W ⟶ Y) (m : X ⟶ Z) (n : Y ⟶ Z)
+  (up_comm : f ≫ h = g ≫ k) (down_comm : k ≫ m = l ≫ n)
+  (down_pb : is_limit (pullback_cone.mk _ _ down_comm))
+  (entire_pb : is_limit (pullback_cone.mk f (g ≫ l) (by rw [reassoc_of up_comm, down_comm, assoc]) : pullback_cone (h ≫ m) n)) :
+  is_limit (pullback_cone.mk _ _ up_comm) :=
+is_limit.mk' _ $
+begin
+  intro s,
+  let c' : pullback_cone (h ≫ m) n := pullback_cone.mk (pullback_cone.fst s) (pullback_cone.snd s ≫ l) (by simp [pullback_cone.condition_assoc s, down_comm]),
+  let t : s.X ⟶ U := entire_pb.lift c',
+  have t₁ : t ≫ f = pullback_cone.fst s := entire_pb.fac c' walking_cospan.left,
+  have t₂ : t ≫ g ≫ l = pullback_cone.snd s ≫ l := entire_pb.fac c' walking_cospan.right,
+  have t₃ : t ≫ g = pullback_cone.snd s,
+    apply down_pb.hom_ext,
+    apply pullback_cone.equalizer_ext (pullback_cone.mk k l down_comm) _ _,
+    erw [assoc, ← up_comm, reassoc_of t₁, pullback_cone.condition s], refl,
+    rwa [assoc],
+  refine ⟨t, t₁, t₃, _⟩,
+  intros m' m₁ m₂,
+  apply entire_pb.hom_ext,
+  apply pullback_cone.equalizer_ext (pullback_cone.mk f (g ≫ l) _) _ _,
+  exact m₁.trans t₁.symm,
+  refine trans _ t₂.symm,
+  erw [reassoc_of m₂]
 end
 
 variables [has_power_object.{v} B] [has_power_object.{v} f.left]
@@ -1323,11 +1405,8 @@ end
 
 end hat
 
-def main (f : over B) [has_power_object.{v} f.left] : has_power_object.{v} f :=
-{ PA := over_pow f,
-  niA := over.ni f,
-  memA := over.mem f,
-  mem_mono' := over.mem_mono f,
+def main' (f : over B) [has_power_object.{v} f.left] : is_power_object (over.mem f) :=
+{ is_mono := over.mem_mono f,
   hat := λ b r m hm, by exactI make_arrow m,
   powerises' := λ g r m hm, by exactI
   begin
@@ -1398,8 +1477,295 @@ def main (f : over B) [has_power_object.{v} f.left] : has_power_object.{v} f :=
       { rw [assoc, prod.lift_fst, ← over.comp_left, assoc, limits.prod.map_fst, limits.prod.map_fst, prod.lift_fst_assoc], refl },
       { rw [assoc, prod.lift_snd, ← over.comp_left, limits.prod.map_snd, assoc, limits.prod.map_snd, prod.lift_snd_assoc], refl } },
     apply magic_pb,
-  end
+  end }
 
-}
+def main (f : over B) [has_power_object.{v} f.left] : has_power_object.{v} f :=
+{ PA := over_pow f,
+  niA := over.ni f,
+  memA := over.mem f,
+  is_power := main' f }
 
 end slicing
+
+instance fundamental_theorem (B : C) [has_power_objects.{v} C] : has_power_objects.{v} (over B) :=
+{ has_power_object := λ f, main f }
+
+-- def hat_natural_right {A A' B R : C} [has_power_object.{v} A] [has_power_object.{v} A'] (k : R ⟶ B ⨯ A) [mono k] (g : A' ⟶ A) :
+--   hat k ≫ P_map g = hat (pullback.snd : pullback k (limits.prod.map (𝟙 B) g) ⟶ B ⨯ A') :=
+-- begin
+--   rw easy_lemma
+-- end
+-- def hat_natural_left {A B B' R : C} [has_power_object.{v} A] (k : R ⟶ B ⨯ A) [mono k] (g : B' ⟶ B) :
+--   g ≫ hat k = hat (pullback.snd : pullback k (limits.prod.map g (𝟙 A)) ⟶ B' ⨯ A) :=
+
+def comparison [has_power_objects.{v} C]
+  {D : Type u₂} [category.{v} D] [has_finite_limits.{v} D] [has_power_objects.{v} D]
+  (F : C ⥤ D) (h : Π (J : Type v) [small_category J] [fin_category J], preserves_limits_of_shape J F)
+  (A : C) : F.obj (P A) ⟶ P (F.obj A) :=
+begin
+  let m := F.map (mem A) ≫ (mult_comparison F (P A) A).hom,
+  letI : mono (F.map (mem A)) := preserves_mono_of_preserves_pullback F infer_instance _ _ _,
+  exact hat m,
+end
+
+-- A B : Cᵒᵖ,
+-- g : A ⟶ B
+-- ⊢ (P_functor ⋙ F).map g ≫ comparison F (opposite.unop B) =
+--     comparison F (opposite.unop A) ≫ (functor.op F ⋙ P_functor).map g
+
+def comp_natural' [has_power_objects.{v} C]
+  {D : Type u₂} [category.{v} D] [has_finite_limits.{v} D] [has_power_objects.{v} D]
+  (F : C ⥤ D) (h : Π (J : Type v) [small_category J] [fin_category J], preserves_limits_of_shape J F)
+  (A B : C) (f : B ⟶ A) :
+  F.map (P_map f) ≫ comparison F h B = comparison F h A ≫ P_map (F.map f) :=
+begin
+  dsimp [comparison],
+  rw [hat_natural_left, hat_natural_right],
+  let m₁ := F.map (mem A) ≫ (mult_comparison F (P A) A).hom,
+  let m₂ := F.map (mem B) ≫ (mult_comparison F (P B) B).hom,
+  letI : mono (F.map (mem A)) := preserves_mono_of_preserves_pullback F infer_instance _ _ _,
+  letI : mono (F.map (mem B)) := preserves_mono_of_preserves_pullback F infer_instance _ _ _,
+  letI : mono (F.map (Emap f)) := preserves_mono_of_preserves_pullback F infer_instance _ _ _,
+  let P₁ := pullback (F.map (mem B) ≫ (mult_comparison F (P B) B).hom) (limits.prod.map (F.map (P_map f)) (𝟙 (F.obj B))),
+  let P₂ := pullback (F.map (mem A) ≫ (mult_comparison F (P A) A).hom) (limits.prod.map (𝟙 _) (F.map f)),
+  let h₁ : P₁ ⟶ _ := pullback.snd,
+  let h₂ : P₂ ⟶ _ := pullback.snd,
+  change hat h₁ = hat h₂,
+  let s₁ := Ppb f,
+  let s₂ := Epb f,
+  let Fs₁ := preserves_pullback F _ _ _ _ _ s₁,
+  let Fs₂ := preserves_pullback F _ _ _ _ _ s₂,
+  have s₃comm : F.map (limits.prod.map (P_map f) (𝟙 B)) ≫ (mult_comparison F (P B) B).hom = (mult_comparison F (P A) B).hom ≫ limits.prod.map (F.map (P_map f)) (𝟙 (F.obj B)),
+    rw [mult_comparison, mult_comparison],
+    apply prod.hom_ext,
+    { erw [assoc, prod.lift_fst, assoc, limits.prod.map_fst, ← F.map_comp, limits.prod.map_fst, prod.lift_fst_assoc, F.map_comp] },
+    { erw [assoc, prod.lift_snd, assoc, limits.prod.map_snd, comp_id, ← F.map_comp, limits.prod.map_snd, comp_id, prod.lift_snd] },
+  let s₃ := pullback_square_iso (F.map (limits.prod.map (P_map f) (𝟙 _))) (mult_comparison F (P A) B).hom (mult_comparison F (P B) B).hom (limits.prod.map (F.map (P_map f)) (𝟙 _)) s₃comm,
+  let Fs₁s₃ := vpaste _ _ _ _ _ _ _ _ _ s₃ Fs₁,
+  have eq₁: hat h₁ = hat (F.map (Emap f) ≫ (mult_comparison F (P A) B).hom),
+  { apply lifting _ _ _ _,
+    { apply Fs₁s₃.lift (limit.cone _) },
+    { apply limit.lift _ (pullback_cone.mk (F.map (square.top (Emap f))) (F.map (Emap f) ≫ (mult_comparison F (P A) B).hom) _),
+      rw [assoc, ← s₃comm, ← assoc, ← F.map_comp, square.commutes, F.map_comp, assoc], refl },
+    { exact (Fs₁s₃.fac (limit.cone _) walking_cospan.right).symm },
+    { rw limit.lift_π, refl } },
+  have s₄comm : F.map (limits.prod.map (𝟙 (P A)) f) ≫ (mult_comparison F (P A) A).hom = (mult_comparison F (P A) B).hom ≫ limits.prod.map (𝟙 (F.obj (P A))) (F.map f),
+    rw [mult_comparison, mult_comparison],
+    apply prod.hom_ext,
+    { rw [assoc, prod.lift_fst, assoc, limits.prod.map_fst, ← F.map_comp, limits.prod.map_fst, comp_id, comp_id, prod.lift_fst] },
+    { rw [assoc, prod.lift_snd, assoc, limits.prod.map_snd, ← F.map_comp, limits.prod.map_snd, prod.lift_snd_assoc, F.map_comp] },
+  let s₄ := pullback_square_iso (F.map (limits.prod.map (𝟙 _) f)) (mult_comparison F (P A) B).hom (mult_comparison F (P A) A).hom (limits.prod.map (𝟙 _) (F.map f)) s₄comm,
+  let Fs₂s₄ := vpaste _ _ _ _ _ _ _ _ _ s₄ Fs₂,
+  have eq₂: hat h₂ = hat (F.map (Emap f) ≫ (mult_comparison F (P A) B).hom),
+  { apply lifting _ _ _ _,
+    { apply Fs₂s₄.lift (limit.cone _) },
+    { apply limit.lift _ (pullback_cone.mk (F.map pullback.fst) (F.map (Emap f) ≫ (mult_comparison F (P A) B).hom) _),
+      rw [assoc, ← s₄comm, ← assoc, ← F.map_comp, pullback.condition, F.map_comp, assoc], refl },
+    { exact (Fs₂s₄.fac (limit.cone _) walking_cospan.right).symm },
+    { rw limit.lift_π, refl } },
+  rw [eq₁, eq₂],
+end
+
+-- Define F as a logical functor if this is an iso.
+def comp_natural [has_power_objects.{v} C]
+  {D : Type u₂} [category.{v} D] [has_finite_limits.{v} D] [has_power_objects.{v} D]
+  (F : C ⥤ D) [h : Π (J : Type v) [small_category J] [fin_category J], preserves_limits_of_shape J F] :
+  (P_functor ⋙ F) ⟶ (F.op ⋙ P_functor) :=
+{ app := λ A, comparison F h A.unop,
+  naturality' := λ A B g, comp_natural' F h A.unop B.unop g.unop }
+
+def star_power (A B : C) [has_power_object.{v} A] : (star B).obj (ni A) ⟶ (star B).obj (P A) ⨯ (star B).obj A :=
+begin
+  haveI := adjunction.right_adjoint_preserves_limits (forget_adj_star B),
+  exact (star B).map (mem A) ≫ (mult_comparison (star B) (P A) A).hom
+end
+instance (A B : C) [has_power_object.{v} A] : mono (star_power A B) :=
+begin
+  haveI : mono ((star B).map (mem A)) := right_adjoint_preserves_mono (forget_adj_star B) (by apply_instance),
+  rw star_power,
+  apply_instance
+end
+
+def alt_prod (A : C) {B : C} (g : over B) : over B := over.mk ((limits.prod.fst : g.left ⨯ A ⟶ g.left) ≫ g.hom)
+
+@[simps]
+def the_iso (A : C) {B : C} (g : over B) : g ⨯ (star B).obj A ≅ alt_prod A g :=
+{ hom :=
+  begin
+    apply over.hom_mk _ _,
+    apply prod.lift (limits.prod.fst : g ⨯ _ ⟶ _).left _,
+    refine (limits.prod.snd : g ⨯ _ ⟶ _).left ≫ limits.prod.snd,
+    erw limit.lift_π_assoc,
+    exact over.w (limits.prod.fst : g ⨯ (star B).obj A ⟶ _),
+  end,
+  inv :=
+  begin
+    apply prod.lift,
+    refine over.hom_mk limits.prod.fst rfl,
+    refine over.hom_mk (limits.prod.map g.hom (𝟙 _)) (limits.prod.map_fst _ _),
+  end,
+  hom_inv_id' :=
+  begin
+    ext1,
+    dsimp,
+    rw ← cancel_mono (magic_arrow ((star B).obj A) g),
+    rw id_comp,
+    apply prod.hom_ext,
+    rw [prod.lift_fst, assoc, prod.lift_fst, assoc, ← over.comp_left, prod.lift_fst, over.hom_mk_left, prod.lift_fst],
+    rw [prod.lift_snd, assoc, prod.lift_snd, assoc, ← over.comp_left, prod.lift_snd, over.hom_mk_left],
+    apply prod.hom_ext,
+    rw [assoc, limits.prod.map_fst, prod.lift_fst_assoc, over.w (limits.prod.fst : g ⨯ (star B).obj A ⟶ _)],
+    exact (over.w (limits.prod.snd : g ⨯ (star B).obj A ⟶ _)).symm,
+    rw [assoc, limits.prod.map_snd, prod.lift_snd_assoc, comp_id],
+  end,
+  inv_hom_id' :=
+  begin
+    ext,
+    dsimp,
+    rw [assoc, prod.lift_fst, ← over.comp_left, prod.lift_fst, id_comp], refl,
+    rw [over.comp_left, assoc, over.hom_mk_left, prod.lift_snd, ← assoc, ← over.comp_left,
+        prod.lift_snd, over.hom_mk_left, limits.prod.map_snd, over.id_left, id_comp, comp_id],
+  end }
+
+set_option pp.implicit false
+
+def star_hat {A B : C} [has_power_object.{v} A] {g r : over B} (m : r ⟶ g ⨯ (star B).obj A) (k : g.left ⟶ P A) [mono m] : g ⟶ (star B).obj (P A):=
+over.hom_mk (prod.lift g.hom k) (limit.lift_π _ _)
+
+def seven_eleven_r_comm (A B : C) [has_power_object.{v} A] :
+  𝟙 (B ⨯ _) ≫ limits.prod.map (𝟙 _) (mem A) = (star_power A B ≫ (the_iso A ((star B).obj (P A))).hom).left ≫ (prod.associator B (P A) A).hom :=
+begin
+  dsimp [star_power, the_iso, mult_comparison],
+  rw [assoc, assoc, id_comp],
+  apply prod.hom_ext,
+  rw [assoc, assoc, assoc, prod.lift_fst, prod.lift_fst_assoc, limits.prod.map_fst, comp_id],
+  slice_rhs 2 3 {rw ← over.comp_left},
+  rw [prod.lift_fst, over.hom_mk_left, ← assoc, ← prod_functorial', limits.prod.map_fst, comp_id],
+  rw [assoc, assoc, assoc, prod.lift_snd, limits.prod.map_snd],
+  apply prod.hom_ext,
+  rw [assoc, assoc, assoc, assoc, prod.lift_fst, prod.lift_fst_assoc],
+  slice_rhs 2 3 {rw ← over.comp_left},
+  rw [prod.lift_fst, over.hom_mk_left, ← assoc, ← assoc, ← prod_functorial', limits.prod.map_snd, assoc],
+  rw [assoc, assoc, assoc, assoc, prod.lift_snd, prod.lift_snd],
+  slice_rhs 2 3 {rw ← over.comp_left},
+  rw [prod.lift_snd, over.hom_mk_left, ← assoc, ← assoc, ← prod_functorial', limits.prod.map_snd, assoc],
+end
+
+def seven_eleven_aux (A B : C) [has_power_object.{v} A] (g r : over B) (m : r ⟶ g ⨯ (star B).obj A) [mono m] (k : g.left ⟶ P A) :
+  powerises (mem A) (m ≫ (the_iso A g).hom).left k ≅ powerises (star_power A B) m (star_hat m k) :=
+begin
+  have bottom_comm :
+    limits.prod.map (star_hat m k) (𝟙 _) ≫ (the_iso A _).hom =
+    (the_iso A g).hom ≫ over.hom_mk (limits.prod.map (prod.lift g.hom k) (𝟙 A))
+      (by { dsimp, erw [limits.prod.map_fst_assoc, limits.prod.lift_fst], refl }),
+  { dsimp [the_iso], ext : 2,
+    { rw [over.comp_left, over.comp_left, over.hom_mk_left, assoc, prod.lift_fst,
+          ← over.comp_left, limits.prod.map_fst, over.comp_left, star_hat, over.hom_mk_left,
+          over.hom_mk_left, over.hom_mk_left, prod.lift_map, prod.lift_fst] },
+    { rw [over.comp_left, over.comp_left, over.hom_mk_left, assoc, prod.lift_snd, ← assoc,
+          ← over.comp_left, limits.prod.map_snd, comp_id, over.hom_mk_left, over.hom_mk_left,
+          prod.lift_map, comp_id, prod.lift_snd] } },
+
+  have b_pb : is_limit (pullback_cone.mk _ _ bottom_comm) := pullback_square_iso _ _ _ _ bottom_comm,
+  have right₁_comm : 𝟙 (B ⨯ _) ≫ limits.prod.map (𝟙 _) (mem A) = (star_power A B ≫ (the_iso A ((star B).obj (P A))).hom).left ≫ (prod.associator B (P A) A).hom,
+    apply seven_eleven_r_comm,
+  have r₁_pb := pullback_square_iso' _ _ _ _ right₁_comm,
+  have r₂_pb := pullback_prod' (mem A) B,
+  have r_pb := (pasting _ _ _ _ _ _ _ _ _ r₂_pb).inv r₁_pb,
+  have p : limits.prod.map (prod.lift g.hom k) (𝟙 A) ≫ (prod.associator B (P A) A).hom ≫ limits.prod.snd = limits.prod.map k (𝟙 A),
+    erw [limits.prod.lift_snd],
+    apply prod.hom_ext,
+    { rw [assoc, prod.lift_fst, limits.prod.map_fst, prod.map_fst_assoc, prod.lift_snd] },
+    { rw [assoc, prod.lift_snd, limits.prod.map_snd, limits.prod.map_snd] },
+  refine ⟨_, _, subsingleton.elim _ _, subsingleton.elim _ _⟩,
+  { intro q,
+    refine ⟨over.hom_mk (prod.lift r.hom q.top) (prod.lift_fst _ _), _, _⟩,
+    { apply prod.hom_ext,
+      { rw [assoc, star_power, mult_comparison, assoc, prod.lift_fst, assoc, limits.prod.map_fst,
+            ← (star B).map_comp, star_hat],
+        ext1,
+        dsimp, apply prod.hom_ext,
+        { rw [assoc, limits.prod.map_fst, comp_id, prod.lift_fst, assoc, assoc, prod.lift_fst,
+              ← over.w m, ← over.w (limits.prod.fst : g ⨯ (star B).obj A ⟶ g)] },
+        { rw [assoc, limits.prod.map_snd, assoc, assoc, prod.lift_snd, prod.lift_snd_assoc,
+              reassoc_of q.commutes, over.comp_left, limits.prod.map_fst, the_iso, assoc],
+          dsimp, rw [prod.lift_fst_assoc] } },
+      { rw [assoc, star_power, assoc, mult_comparison, prod.lift_snd, assoc, limits.prod.map_snd,
+            comp_id, ← (star B).map_comp],
+        ext1,
+        dsimp, apply prod.hom_ext,
+        { rw [assoc, limits.prod.map_fst, comp_id, prod.lift_fst, ← over.w m, assoc,
+              ← over.w (limits.prod.snd : g ⨯ (star B).obj A ⟶ _)], refl },
+        { rw [assoc, limits.prod.map_snd, prod.lift_snd_assoc, reassoc_of q.commutes, over.comp_left,
+              limits.prod.map_snd, comp_id, assoc, the_iso],
+          dsimp, rw [prod.lift_snd, assoc] } } },
+    refine vpaste' _ _ _ _ _ _ _ _ bottom_comm b_pb _,
+    apply reflect_pullback,
+    dsimp,
+    apply (pasting _ _ _ _ _ _ _ _ _ r_pb).hom _,
+    convert q.forms_pullback,
+    rw [id_comp, prod.lift_snd] },
+  { intro q,
+    refine ⟨q.top.left ≫ (𝟙 _) ≫ limits.prod.snd, _, _⟩,
+    { have q₁ := q.commutes =≫ limits.prod.fst,
+      have q₂ := q.commutes =≫ limits.prod.snd,
+      simp only [assoc, star_power, limits.prod.map_fst, mult_comparison,
+                prod.lift_fst, limits.prod.map_snd, prod.lift_snd, comp_id, star_hat] at q₁ q₂,
+      replace q₁ : (q.top.left ≫ limits.prod.map (𝟙 B) (mem A) ≫ limits.prod.map (𝟙 B) limits.prod.fst) ≫ _ = (m.left ≫ _ ≫ prod.lift g.hom k) ≫ _ := congr_arg comma_morphism.left q₁ =≫ limits.prod.snd,
+      replace q₂ : (q.top.left ≫ limits.prod.map (𝟙 _) (mem A) ≫ limits.prod.map _ _) ≫ _ = (m.left ≫ _) ≫ _ := congr_arg comma_morphism.left q₂ =≫ limits.prod.snd,
+      rw [← prod_functorial'] at q₁ q₂,
+      rw [the_iso, id_comp, assoc, over.comp_left, assoc], dsimp,
+      rw [prod.lift_map, comp_id],
+      apply prod.hom_ext,
+      simpa using q₁,
+      simpa using q₂ },
+    have pb := vpaste _ _ _ _ _ _ _ _ _ b_pb q.forms_pullback,
+    have := p.symm,
+    convert (pasting _ _ _ _ _ _ _ _ _ r_pb).inv (preserve_pullback pb) }
+
+end
+
+def seven_eleven (A B : C) [has_power_object.{v} A] : is_power_object (star_power A B) :=
+{ is_mono := by apply_instance,
+  hat := λ g r m hm, by exactI over.hom_mk (prod.lift g.hom (hat (m ≫ (the_iso A g).hom).left)) (limit.lift_π _ _),
+  powerises' := λ g r m hm, by exactI
+  begin
+    apply (seven_eleven_aux A B g r m (hat (m ≫ (the_iso A g).hom).left)).hom,
+    exact hat_powerises (m ≫ (the_iso A g).hom).left,
+  end,
+  uniquely' := λ g r m hm hat' pow, by exactI
+  begin
+    ext,
+    rw [over.hom_mk_left, prod.lift_fst, ← over.w hat'], refl,
+    rw [over.hom_mk_left, prod.lift_snd],
+    apply unique_hat,
+    apply (seven_eleven_aux A B g r m (hat'.left ≫ limits.prod.snd)).inv,
+    convert pow,
+    rw [star_hat],
+    ext,
+    rw [over.hom_mk_left, prod.lift_fst, ← over.w hat'], refl,
+    rw [over.hom_mk_left, prod.lift_snd]
+  end }
+
+def logical_star [has_power_objects.{v} C] (B : C) : P_functor ⋙ star B ≅ (star B).op ⋙ P_functor :=
+begin
+  apply nat_iso.of_components _ _,
+  intro A,
+  exact P_unique_up_to_iso (seven_eleven A.unop B) (power_is_power _),
+  intros X Y g,
+  haveI := adjunction.right_adjoint_preserves_limits (forget_adj_star B),
+  have := comp_natural' (star B) _ X.unop Y.unop g.unop,
+  convert this,
+  apply_instance,
+end
+
+def cc_of_pow [has_power_objects.{v} C] : is_cartesian_closed.{v} C :=
+{ cart_closed := λ B,
+  begin
+    haveI : is_right_adjoint (star B) := ⟨over.forget, forget_adj_star B⟩,
+    have := monad.adjoint_lifting (logical_star B).symm (λ f g X Y r, by apply_instance),
+    exact exponentiable_of_star_is_left_adj B left_adjoint_of_right_adjoint_op,
+  end }
+
+instance lcc_of_pow [has_power_objects.{v} C] : is_locally_cartesian_closed.{v} C :=
+{ overs_cc := λ B, cc_of_pow }

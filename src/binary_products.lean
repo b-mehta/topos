@@ -40,6 +40,19 @@ begin
   apply prod.hom_ext,
   simp, dsimp, simp, simp
 end
+
+lemma prod_map_id_id {X Y : C} :
+  limits.prod.map (𝟙 X) (𝟙 Y) = 𝟙 _ :=
+prod.hom_ext (by rw [limits.prod.map_fst, id_comp, comp_id]) (by rw [limits.prod.map_snd, id_comp, comp_id])
+
+lemma prod.lift_map (V W X Y Z : C) (f : V ⟶ W) (g : V ⟶ X) (h : W ⟶ Y) (k : X ⟶ Z) :
+  prod.lift f g ≫ limits.prod.map h k = prod.lift (f ≫ h) (g ≫ k) :=
+begin
+  apply prod.hom_ext,
+  rw [prod.lift_fst, assoc, limits.prod.map_fst, prod.lift_fst_assoc],
+  rw [prod.lift_snd, assoc, limits.prod.map_snd, prod.lift_snd_assoc],
+end
+
 end
 
 variables [has_binary_products.{v} C] {B : C} [has_binary_products.{v} (over B)]

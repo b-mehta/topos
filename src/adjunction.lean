@@ -20,32 +20,94 @@ local attribute [elab_simple] whisker_left whisker_right
 section
 
 variables {C : Type u₁} [𝒞 : category.{v₁} C] {D : Type u₂} [𝒟 : category.{v₂} D]
-include 𝒞 𝒟
+include 𝒞
+
+@[simps]
+def op_equiv (A : C) (B : Cᵒᵖ) : (opposite.op A ⟶ B) ≃ (B.unop ⟶ A) :=
+{ to_fun := λ f, f.unop,
+  inv_fun := λ g, g.op,
+  left_inv := λ _, rfl,
+  right_inv := λ _, rfl }
+
+@[simps]
+def op_equiv' (A : Cᵒᵖ) (B : C) : (A ⟶ opposite.op B) ≃ (B ⟶ A.unop) :=
+{ to_fun := λ f, f.unop,
+  inv_fun := λ g, g.op,
+  left_inv := λ _, rfl,
+  right_inv := λ _, rfl }
+
+include 𝒟
 
 -- Some basic adjunction properties
 @[reducible]
-def equiv_homset_left_of_nat_iso {C : Type u₁} [𝒞 : category.{v₁} C] {D : Type u₂} [𝒟 : category.{v₂} D]
+def equiv_homset_left_of_nat_iso
   {F G : C ⥤ D} (iso : F ≅ G) {X : C} {Y : D} :
   (F.obj X ⟶ Y) ≃ (G.obj X ⟶ Y) :=
 ⟨λ f, (iso.app _).inv ≫ f, λ g, (iso.app _).hom ≫ g, λ f, begin dsimp, rw ← assoc, simp end, λ g, begin dsimp, rw ← assoc, simp end⟩
 
 @[reducible]
-def equiv_homset_right_of_nat_iso {C : Type u₁} [𝒞 : category.{v₁} C] {D : Type u₂} [𝒟 : category.{v₂} D]
+def equiv_homset_right_of_nat_iso
   {G H : D ⥤ C} (iso : G ≅ H) {X : C} {Y : D} :
   (X ⟶ G.obj Y) ≃ (X ⟶ H.obj Y) :=
 ⟨λ f, f ≫ (iso.app _).hom, λ g, g ≫ (iso.app _).inv, λ f, by simp, λ g, by simp⟩
 
-def adjunction_of_nat_iso_left {C : Type u₁} [𝒞 : category.{v₁} C] {D : Type u₂} [𝒟 : category.{v₂} D]
+def adjunction_of_nat_iso_left
   {F G : C ⥤ D} {H : D ⥤ C} (adj : F ⊣ H) (iso : F ≅ G) :
   G ⊣ H :=
 adjunction.mk_of_hom_equiv
 { hom_equiv := λ X Y, (equiv_homset_left_of_nat_iso iso.symm).trans (adj.hom_equiv X Y) }
 
-def adjunction_of_nat_iso_right {C : Type u₁} [𝒞 : category.{v₁} C] {D : Type u₂} [𝒟 : category.{v₂} D]
+def adjunction_of_nat_iso_right
   {F : C ⥤ D} {G H : D ⥤ C} (adj : F ⊣ G) (iso : G ≅ H) :
   F ⊣ H :=
 adjunction.mk_of_hom_equiv
 { hom_equiv := λ X Y, (adj.hom_equiv X Y).trans (equiv_homset_right_of_nat_iso iso) }
+
+def right_adjoint_of_nat_iso {F G : C ⥤ D} (h : F ≅ G) [r : is_right_adjoint F] : is_right_adjoint G :=
+{ left := r.left,
+  adj := adjunction_of_nat_iso_right r.adj h }
+
+def right_adjoint_of_comp {E : Type u₃} [ℰ : category.{v₃} E] {F : C ⥤ D} {G : D ⥤ E} [Fr : is_right_adjoint F] [Gr : is_right_adjoint G] :
+  is_right_adjoint (F ⋙ G) :=
+{ left := Gr.left ⋙ Fr.left,
+  adj := adjunction.comp _ _ Gr.adj Fr.adj }
+
+def left_adjoint_of_nat_iso {F G : C ⥤ D} (h : F ≅ G) [r : is_left_adjoint F] : is_left_adjoint G :=
+{ right := r.right,
+  adj := adjunction_of_nat_iso_left r.adj h }
+
+def left_adjoint_of_comp {E : Type u₃} [ℰ : category.{v₃} E] (F : C ⥤ D) (G : D ⥤ E) [Fr : is_left_adjoint F] [Gr : is_left_adjoint G] :
+  is_left_adjoint (F ⋙ G) :=
+{ right := Gr.right ⋙ Fr.right,
+  adj := adjunction.comp _ _ Fr.adj Gr.adj }
+
+def left_adjoint_of_equiv {F : C ⥤ D} [is_equivalence F] : is_left_adjoint F :=
+{ right := _,
+  adj := functor.adjunction F }
+
+def right_adjoint_of_equiv {F : C ⥤ D} [is_equivalence F] : is_right_adjoint F :=
+{ left := _,
+  adj := functor.adjunction F.inv }
+
+def adjoint_op {F : C ⥤ D} {G : Dᵒᵖ ⥤ Cᵒᵖ} (h : G ⊣ F.op) : F ⊣ G.unop :=
+adjunction.mk_of_hom_equiv
+{ hom_equiv := λ X Y, (equiv.trans (h.hom_equiv (opposite.op Y) (opposite.op X)) (op_equiv _ _)).symm.trans (op_equiv' _ _),
+  hom_equiv_naturality_left_symm' := λ X X' Y f g,
+  begin
+    dsimp [equiv.symm, op_equiv],
+    apply has_hom.hom.op_inj,
+    simp,
+  end,
+  hom_equiv_naturality_right' := λ X Y Y' f g,
+  begin
+    dsimp [equiv.symm, op_equiv'],
+    apply has_hom.hom.op_inj,
+    simp,
+  end }
+
+def left_adjoint_of_right_adjoint_op {F : C ⥤ D} [h : is_right_adjoint F.op] : is_left_adjoint F :=
+{ right := (left_adjoint F.op).unop,
+  adj := adjoint_op h.adj }
 
 end
 

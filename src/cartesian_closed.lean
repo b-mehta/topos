@@ -16,7 +16,7 @@ import binary_products
 Define exponentiable objects and cartesian closed categories.
 Show that exponential forms a difunctor.
 -/
-universes v u
+universes v u u₂
 
 namespace category_theory
 
@@ -77,11 +77,7 @@ def post (A : C) [exponentiable A] {X Y : C} (f : X ⟶ Y) : A⟹X ⟶ A⟹Y :=
 (exp.functor A).map f
 
 lemma post.map_comp {f : X ⟶ Y} {g : Y ⟶ Z} : post A (f ≫ g) = post A f ≫ post A g :=
-begin
-  show functor.map _ _ = _ ≫ _,
-  rw (exp.functor A).map_comp',
-  refl,
-end
+(exp.functor A).map_comp _ _
 
 def ev : A ⨯ (A⟹B) ⟶ B :=
 (ev.nat_trans A).app B
@@ -171,16 +167,16 @@ variables [has_finite_products.{v} C]
 local notation `⟨`f`, `g`⟩` := limits.prod.map f g
 
 @[reducible]
-def hat [exponentiable A] : (A ⨯ Y ⟶ X) → (Y ⟶ A ⟹ X) := exp_transpose.to_fun
+def cchat [exponentiable A] : (A ⨯ Y ⟶ X) → (Y ⟶ A ⟹ X) := exp_transpose.to_fun
 @[reducible]
 def unhat [exponentiable A] : (Y ⟶ A ⟹ X) → (A ⨯ Y ⟶ X) := exp_transpose.inv_fun
 
 def pre (X : C) (f : B ⟶ A) [exponentiable A] [exponentiable B] :  (A⟹X) ⟶ B⟹X :=
-hat (⟨f, 𝟙 (A ⟹ X)⟩ ≫ unhat (𝟙 (A ⟹ X)))
+cchat (⟨f, 𝟙 (A ⟹ X)⟩ ≫ unhat (𝟙 (A ⟹ X)))
 
 lemma pre_id [exponentiable A] : pre X (𝟙 A) = 𝟙 (A⟹X) :=
 begin
-  dunfold pre hat, erw exp_transpose_natural_left, rw exp_transpose.right_inv, simp
+  dunfold pre cchat, erw exp_transpose_natural_left, rw exp_transpose.right_inv, simp
 end
 
 lemma pre_map [exponentiable A] [exponentiable B] {D : C} [exponentiable D] {f : A ⟶ B} {g : B ⟶ D} : pre X (f ≫ g) = pre X g ≫ pre X f :=
@@ -188,10 +184,10 @@ begin
   dunfold pre, apply function.injective_of_left_inverse exp_transpose.right_inv,
   rw exp_transpose.left_inv, rw ← exp_transpose_natural_left, rw exp_transpose.left_inv,
   show ⟨f ≫ g, 𝟙 (D ⟹ X)⟩ ≫ unhat (𝟙 (D ⟹ X)) =
-    ⟨𝟙 A, (hat (⟨g, 𝟙 (D ⟹ X)⟩ ≫ unhat (𝟙 (D ⟹ X))))⟩ ≫
+    ⟨𝟙 A, (cchat (⟨g, 𝟙 (D ⟹ X)⟩ ≫ unhat (𝟙 (D ⟹ X))))⟩ ≫
       ⟨f, 𝟙 (B ⟹ X)⟩ ≫ unhat (𝟙 (B ⟹ X)),
   suffices: ⟨f ≫ g, 𝟙 (D ⟹ X)⟩ ≫ unhat (𝟙 (D ⟹ X)) =
-    (⟨f, 𝟙 (D ⟹ X)⟩ ≫ ⟨𝟙 B, (hat (⟨g, 𝟙 (D ⟹ X)⟩ ≫ unhat (𝟙 (D ⟹ X))))⟩) ≫ unhat (𝟙 (B ⟹ X)),
+    (⟨f, 𝟙 (D ⟹ X)⟩ ≫ ⟨𝟙 B, (cchat (⟨g, 𝟙 (D ⟹ X)⟩ ≫ unhat (𝟙 (D ⟹ X))))⟩) ≫ unhat (𝟙 (B ⟹ X)),
   rw this, rw ← assoc, congr' 1, apply prod.hom_ext, simp, dsimp, simp, simp, dsimp, simp,
   have: ⟨f ≫ g, 𝟙 (D ⟹ X)⟩ = ⟨f, 𝟙 _⟩ ≫ ⟨g, 𝟙 _⟩, { rw prod_functorial },
   rw this, rw assoc, rw assoc, congr' 1, erw ← exp_transpose_natural_left_symm,
@@ -234,10 +230,11 @@ def exp.difunctor [has_finite_products.{v} C] [is_cartesian_closed C] : C ⥤ C�
   map_id' := λ X, by { ext, apply functor.map_id },
   map_comp' := λ X Y Z f g, by { ext, apply functor.map_comp } }
 
-variables {D : Type u} [category.{v} D]
+variables {D : Type u₂} [category.{v} D]
 section functor
 
 variables [has_finite_products.{v} C] [has_finite_products.{v} D]
+
 variables (F : C ⥤ D) [preserves_limits_of_shape (discrete walking_pair) F]
 
 -- (implementation)
@@ -264,10 +261,47 @@ def mult_comparison (A B : C) : F.obj (A ⨯ B) ≅ F.obj A ⨯ F.obj B :=
   end,
   inv_hom_id' :=
   begin
-    ext ⟨j⟩, simp, erw (alt_is_limit F A B).fac, refl,
-    simp, erw (alt_is_limit F A B).fac, refl,
-  end
+    ext ⟨j⟩, { simp, erw (alt_is_limit F A B).fac, refl },
+    { simp, erw (alt_is_limit F A B).fac, refl },
+  end }
+
+def cartesian_closed_of_equiv (e : C ≌ D) [h : is_cartesian_closed C] : is_cartesian_closed D :=
+{ cart_closed := λ X,
+  { is_adj :=
+    begin
+      haveI q : exponentiable (e.inverse.obj X) := infer_instance,
+      have := q.is_adj,
+      have: e.functor ⋙ prod_functor.obj X ⋙ e.inverse ≅ prod_functor.obj (e.inverse.obj X),
+      apply nat_iso.of_components _ _,
+      intro Y,
+      apply mult_comparison e.inverse X (e.functor.obj Y) ≪≫ _,
+      refine ⟨limits.prod.map (𝟙 _) (e.unit_inv.app _),
+              limits.prod.map (𝟙 _) (e.unit.app _),
+              by simpa [← prod_functorial', prod_map_id_id],
+              by simpa [← prod_functorial', prod_map_id_id]⟩,
+      intros Y Z g,
+      -- apply prod.hom_ext,
+      simp only [mult_comparison, prod.lift_map, equivalence.unit_inv, functor.comp_map,
+                 prod_functor_obj_map, assoc, comp_id, iso.trans_hom],
+      apply prod.hom_ext,
+      rw [assoc, prod.lift_fst, prod.lift_fst, ← functor.map_comp, limits.prod.map_fst, comp_id],
+      rw [assoc, prod.lift_snd, prod.lift_snd, ← functor.map_comp_assoc, limits.prod.map_snd],
+      simp only [equivalence.unit, equivalence.unit_inv, nat_iso.hom_inv_id_app, assoc, equivalence.inv_fun_map, functor.map_comp, comp_id],
+      erw comp_id,
+      haveI : is_left_adjoint (e.functor ⋙ prod_functor.obj X ⋙ e.inverse) := left_adjoint_of_nat_iso this.symm,
+      haveI : is_left_adjoint e.inverse := left_adjoint_of_equiv,
+      haveI : is_left_adjoint e.functor := left_adjoint_of_equiv,
+      haveI : is_left_adjoint (e.inverse ⋙ e.functor ⋙ prod_functor.obj X ⋙ e.inverse) := left_adjoint_of_comp e.inverse _,
+      haveI := left_adjoint_of_comp (e.inverse ⋙ e.functor ⋙ prod_functor.obj X ⋙ e.inverse) e.functor,
+      have : (e.inverse ⋙ e.functor ⋙ prod_functor.obj X ⋙ e.inverse) ⋙ e.functor ≅ prod_functor.obj X,
+        apply iso_whisker_right e.counit_iso (prod_functor.obj X ⋙ e.inverse ⋙ e.functor) ≪≫ _,
+        change prod_functor.obj X ⋙ e.inverse ⋙ e.functor ≅ prod_functor.obj X,
+        apply iso_whisker_left (prod_functor.obj X) e.counit_iso,
+      apply left_adjoint_of_nat_iso this,
+    end
+  }
 }
+
 
 end functor
 
@@ -277,6 +311,6 @@ variables (F : C ⥤ D) [preserves_limits_of_shape (discrete walking_pair) F]
 -- the exponential comparison map
 def exp_comparison (A B : C) :
   F.obj (A ⟹ B) ⟶ F.obj A ⟹ F.obj B :=
-hat ((mult_comparison F A _).inv ≫ F.map ev)
+cchat ((mult_comparison F A _).inv ≫ F.map ev)
 
 end category_theory

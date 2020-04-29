@@ -4,8 +4,9 @@ import category_theory.monad
 import category_theory.limits.shapes.equalizers
 import creates
 import beck2
+import adjunction
 
-universes v₁ v₂ u₁ u₂
+universes v₁ v₂ v₃ v₄ u₁ u₂ u₃ u₄
 
 namespace category_theory
 namespace monad
@@ -170,7 +171,7 @@ begin
   conv_lhs {to_lhs, apply_congr ((adj S).hom_equiv_naturality_left_symm _ _).symm},
   dunfold equiv.symm,
   dsimp,
-  rw ← eq_hom_equiv_apply,
+  rw ← adjunction.eq_hom_equiv_apply,
   conv_lhs {to_rhs, apply_congr (adj S).hom_equiv_naturality_right _ _ },
   conv_lhs {to_rhs, congr, apply_congr ((adj S).hom_equiv _ _).right_inv },
   erw ← ℛ.adj.hom_equiv_naturality_left_symm,
@@ -278,6 +279,41 @@ def lift_algebra_left_adjoint {R : D ⥤ C} [is_right_adjoint R] {R' : algebra S
   is_right_adjoint R' :=
 { left := L' R comm_iso hrc,
   adj := is_adj R comm_iso hrc }
+
+variables {A : Type u₃} [𝒜 : category.{v₁} A] {B : Type u₄} [ℬ : category.{v₂} B]
+include 𝒜 ℬ
+
+-- def iso_whisker_left (F : C ⥤ D) {G H : D ⥤ E} (α : G ≅ H) : (F ⋙ G) ≅ (F ⋙ H) :=
+-- ((whiskering_left C D E).obj F).map_iso α
+
+-- def iso_whisker_right {G H : C ⥤ D} (α : G ≅ H) (F : D ⥤ E) : (G ⋙ F) ≅ (H ⋙ F) :=
+-- ((whiskering_right C D E).obj F).map_iso α
+
+-- def comparison_forget [is_right_adjoint R] : comparison R ⋙ forget ((left_adjoint R) ⋙ R) ≅ R :=
+
+def adjoint_lifting {Q : A ⥤ B} {R : C ⥤ D} {U : A ⥤ C} {V : B ⥤ D}
+  [is_right_adjoint R] [monadic_right_adjoint U] [monadic_right_adjoint V]
+  (comm_iso : Q ⋙ V ≅ U ⋙ R)
+  (hrc : has_reflexive_coequalizers A) :
+  is_right_adjoint Q :=
+begin
+  let i : (comparison U).inv ⋙ Q ⋙ V ≅ forget (left_adjoint U ⋙ U) ⋙ R :=
+    iso_whisker_left (comparison U).inv comm_iso ≪≫ iso_whisker_right (comparison U).inv_fun_id (forget (left_adjoint U ⋙ U) ⋙ R),
+  let i₂ : ((comparison U).inv ⋙ Q ⋙ comparison V) ⋙ forget _ ≅ forget _ ⋙ R := i,
+  have := lift_algebra_left_adjoint i₂ (reflexive_coeq_of_equiv (comparison U) hrc),
+  have i₃ : comparison U ⋙ (comparison U).inv ⋙ Q ⋙ comparison V ⋙ (comparison V).inv ≅ Q,
+    exact calc comparison U ⋙ (comparison U).inv ⋙ Q ⋙ comparison V ⋙ (comparison V).inv ≅ Q ⋙ comparison V ⋙ (comparison V).inv :
+      begin
+        exact iso_whisker_right (comparison U).fun_inv_id (Q ⋙ comparison V ⋙ (comparison V).inv),
+      end
+          ... ≅ Q : by exact iso_whisker_left Q (comparison V).fun_inv_id ≪≫ Q.right_unitor,
+  suffices: is_right_adjoint (comparison U ⋙ functor.inv (comparison U) ⋙ Q ⋙ comparison V ⋙ (comparison V).inv),
+    apply @right_adjoint_of_nat_iso _ _ _ _ _ _ i₃ this,
+  haveI : is_right_adjoint (comparison U) := right_adjoint_of_equiv,
+  haveI : is_right_adjoint (comparison V).inv := right_adjoint_of_equiv,
+  haveI : is_right_adjoint (comparison U ⋙ functor.inv (comparison U) ⋙ Q ⋙ comparison V) := right_adjoint_of_comp,
+  apply @right_adjoint_of_comp _ _ _ _ _ _ (comparison U ⋙ functor.inv (comparison U) ⋙ Q ⋙ comparison V),
+end
 
 end monad
 end category_theory

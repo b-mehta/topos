@@ -111,13 +111,20 @@ variable {C}
 variables {D : Type u₂} [𝒟 : category.{v} D]
 include 𝒟
 
-lemma hom_equiv_apply_eq {F : C ⥤ D} (G : D ⥤ C) (adj : F ⊣ G) {A : C} {B : D} (f : F.obj A ⟶ B) (g : A ⟶ G.obj B) :
-  adj.hom_equiv A B f = g ↔ f = (adj.hom_equiv A B).symm g :=
-⟨λ h, by {cases h, simp}, λ h, by {cases h, simp}⟩
-
-lemma eq_hom_equiv_apply {F : C ⥤ D} (G : D ⥤ C) (adj : F ⊣ G) {A : C} {B : D} (f : F.obj A ⟶ B) (g : A ⟶ G.obj B) :
-  g = adj.hom_equiv A B f ↔ (adj.hom_equiv A B).symm g = f :=
-⟨λ h, by {cases h, simp}, λ h, by {cases h, simp}⟩
+def reflexive_coeq_of_equiv (F : C ⥤ D) [is_equivalence F] (hrc : has_reflexive_coequalizers C) : has_reflexive_coequalizers D :=
+begin
+  intros X Y f g r,
+  apply adjunction.has_colimit_of_comp_equivalence _ F.inv,
+  have : limits.has_colimit (limits.parallel_pair ((functor.inv F).map f) ((functor.inv F).map g)),
+    apply hrc,
+    refine ⟨F.inv.map r.back, _, _⟩,
+    simp [← F.inv.map_comp, r.back_f],
+    simp [← F.inv.map_comp, r.back_g],
+  haveI : limits.has_colimit
+    (limits.parallel_pair ((limits.parallel_pair f g ⋙ F.inv).map limits.walking_parallel_pair_hom.left)
+       ((limits.parallel_pair f g ⋙ functor.inv F).map limits.walking_parallel_pair_hom.right)) := this,
+  exact has_colimit_of_iso (diagram_iso_parallel_pair (limits.parallel_pair f g ⋙ F.inv)),
+end
 
 section algebra
 open monad

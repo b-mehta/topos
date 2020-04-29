@@ -94,7 +94,7 @@ def iso_apex_of_iso_cone {F : J ⥤ C} {c₁ c₂ : cone F} (h : c₁ ≅ c₂) 
 attribute [simp] is_limit.fac
 
 -- The pasting lemma for pullbacks.
-lemma pasting {C : Type u} [𝒞 : category.{v} C] {U V W X Y Z : C}
+def pasting {C : Type u} [𝒞 : category.{v} C] {U V W X Y Z : C}
   (f : U ⟶ V) (g : V ⟶ W) (h : U ⟶ X) (k : V ⟶ Y) (l : W ⟶ Z) (m : X ⟶ Y) (n : Y ⟶ Z)
   (left_comm : f ≫ k = h ≫ m) (right_comm : g ≫ l = k ≫ n)
   (right : is_limit (pullback_cone.mk g k right_comm)) :
@@ -407,6 +407,31 @@ the pullback of f along g is isomorphic to the pullback of f along h
 
 -- [todo] comp_r; I was hoping there would be a cool way of lifting the isomorphism `(cospan f g).cones ≅ (cospan g f).cones` but can't see it.
 
+def pullback_square_iso {W X Y Z : C} (f : W ⟶ X) (g : W ⟶ Y) (h : X ⟶ Z) (k : Y ⟶ Z) [is_iso h] [is_iso g] (comm : f ≫ h = g ≫ k) :
+  is_limit (pullback_cone.mk _ _ comm) :=
+is_limit.mk' _ $
+begin
+  intro s,
+  refine ⟨pullback_cone.snd s ≫ inv g, _, _, _⟩,
+  erw [← cancel_mono h, assoc, comm, assoc, is_iso.inv_hom_id_assoc, pullback_cone.condition s],
+  erw [assoc, is_iso.inv_hom_id g, comp_id],
+  intros m m₁ m₂,
+  erw [(as_iso g).eq_comp_inv, m₂]
+end
+
+def pullback_square_iso' {W X Y Z : C} (f : W ⟶ X) (g : W ⟶ Y) (h : X ⟶ Z) (k : Y ⟶ Z) [is_iso f] [is_iso k] (comm : f ≫ h = g ≫ k) :
+  is_limit (pullback_cone.mk _ _ comm) :=
+is_limit.mk' _ $
+begin
+  intro s,
+  refine ⟨pullback_cone.fst s ≫ inv f, _, _, _⟩,
+  erw [assoc, is_iso.inv_hom_id, comp_id],
+  erw [← cancel_mono k, assoc, ← comm, assoc, is_iso.inv_hom_id_assoc, pullback_cone.condition s],
+  intros m m₁ m₂,
+  erw [(as_iso f).eq_comp_inv, m₁]
+end
+
+
 -- /-- Pullback of a monic is monic. -/
 lemma pullback.preserve_mono [@has_pullbacks C 𝒞]
   {X Y Z : C} {f : X ⟶ Z} {g : Y ⟶ Z} (hm : mono f) : @mono _ _ (pullback f g) _ pullback.snd :=
@@ -440,22 +465,95 @@ pullback_cone.is_limit.mk _ pullback_cone.fst (λ s, comp_id _) (λ s, by erw [c
 
 universe u₂
 
--- lemma cospan_comp {D : Type u₂} [category.{v} D] (F : C ⥤ D) : cospan (F.map f) (F.map g) = cospan f g ⋙ F :=
--- begin
---   apply category_theory.functor.ext, intros, cases f_1, simp, simp, simp, dsimp, simp,
---   intro j, cases j, simp, simp, simp
--- end
+lemma cospan_comp {D : Type u₂} [category.{v} D] (F : C ⥤ D) : cospan (F.map f) (F.map g) = cospan f g ⋙ F :=
+begin
+  apply category_theory.functor.ext _ _,
+  intro j,
+  cases j,
+  refl, cases j,
+  refl,
+  refl,
+  intros,
+  cases f_1,
+  cases X_1,
+  simpa,
+  cases X_1,
+  simpa,
+  simpa,
+  cases f_1_1,
+  simp,
+  simp,
+end
 
--- lemma preserves_mono_of_preserves_pullback {D : Type u₂} [category.{v} D] (F : C ⥤ D)
---   (hF : preserves_limits_of_shape walking_cospan F) (X Y : C) (f : X ⟶ Y) [mono f] :
---   mono (F.map f) :=
--- begin
---   apply mono_of_pullback,
+lemma preserves_mono_of_preserves_pullback {D : Type u₂} [category.{v} D] (F : C ⥤ D)
+  (hF : preserves_limits_of_shape walking_cospan F) (X Y : C) (f : X ⟶ Y) [mono f] :
+  mono (F.map f) :=
+begin
+  apply mono_of_pullback,
 
---   have that: is_limit (F.map_cone _) := preserves_limit.preserves (pullback_of_mono _ _ f),
---   have: cospan (F.map f) (F.map f) = cospan f f ⋙ F := cospan_comp _,
---   convert that,
---   dsimp [functor.map_cone, cones.functoriality, pullback_cone.mk],
---   congr, assumption, assumption, refine function.hfunext rfl _, intros, tactic.case_bash, simp, simp, simp,
---   apply proof_irrel_heq
--- end
+  have that: is_limit (F.map_cone _) := preserves_limit.preserves (pullback_of_mono _ _ f),
+  have: cospan (F.map f) (F.map f) = cospan f f ⋙ F := cospan_comp _,
+  convert that,
+  dsimp [functor.map_cone, cones.functoriality, pullback_cone.mk],
+  congr, assumption, assumption, refine function.hfunext rfl _, intros,
+  cases a,
+  cases a_1,
+  simp,
+  cases a_1,
+  cases a,
+  simp,
+  simp,
+  apply proof_irrel_heq
+end
+
+-- /--
+-- Given two functors which have equivalent categories of cones, we can transport a limiting cone across
+-- the equivalence.
+-- -/
+-- def of_cone_equiv {D : Type u'} [category.{v} D] {G : K ⥤ D} (h : cone F ≌ cone G) {c : cone G} (t : is_limit c) :
+--   is_limit (h.inverse.obj c) :=
+-- mk_cone_morphism
+--   (λ s, h.to_adjunction.hom_equiv s c (t.lift_cone_morphism _))
+--   (λ s m, (adjunction.eq_hom_equiv_apply _ _ _).2 t.uniq_cone_morphism )
+
+def cospan_nat_trans {D : Type u₂} [category.{v} D] (F : C ⥤ D) : cospan (F.map f) (F.map g) ≅ cospan f g ⋙ F :=
+begin
+  refine nat_iso.of_components _ _,
+  { intro j,
+    cases j,
+    { apply eq_to_iso rfl },
+    { cases j,
+      { apply eq_to_iso rfl },
+      { apply eq_to_iso rfl } } },
+  { intros A B g,
+    cases g,
+    cases A, simpa,
+    cases A, simpa,
+    simpa,
+    cases g_1, simp,
+    simp },
+end
+
+def cone_cospan_equiv {D : Type u₂} [category.{v} D] (F : C ⥤ D) :
+  cone (cospan (F.map f) (F.map g)) ≌ cone (cospan f g ⋙ F) :=
+cones.postcompose_equivalence (cospan_nat_trans F)
+
+def preserves_pullback {D : Type u₂} [category.{v} D] (F : C ⥤ D)
+  [hF : preserves_limits_of_shape walking_cospan F] {W X Y Z : C}
+  (f : W ⟶ X) (g : X ⟶ Z) (h : W ⟶ Y) (k : Y ⟶ Z) (comm : f ≫ g = h ≫ k)
+  (t : is_limit (pullback_cone.mk _ _ comm)) :
+  is_limit (pullback_cone.mk (F.map f) (F.map h) (by rw [← F.map_comp, comm, F.map_comp]) : pullback_cone (F.map g) (F.map k)) :=
+begin
+  have : is_limit (F.map_cone _) := preserves_limit.preserves t,
+  have that := is_limit.of_cone_equiv (cone_cospan_equiv F) this,
+  apply is_limit.of_iso_limit that,
+  dsimp [cone_cospan_equiv, cones.postcompose_equivalence, equivalence.mk, cones.postcompose, functor.map_cone, cones.functoriality],
+  fapply cones.ext,
+  refl,
+  intro j,
+  cases j,
+  dsimp, erw [id_comp, comp_id, F.map_comp],
+  cases j,
+  dsimp, erw [id_comp, comp_id],
+  dsimp, erw [id_comp, comp_id]
+end
