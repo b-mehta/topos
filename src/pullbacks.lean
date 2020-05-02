@@ -25,7 +25,11 @@ variables {X Y Z : C} {f : X ⟶ Z} {g : Y ⟶ Z}
 def is_limit.mk' (t : pullback_cone f g)
   (create : Π (s : pullback_cone f g), {l : s.X ⟶ t.X // l ≫ t.fst = s.fst ∧ l ≫ t.snd = s.snd ∧ ∀ {m : s.X ⟶ t.X}, m ≫ t.fst = s.fst → m ≫ t.snd = s.snd → m = l}) :
 is_limit t :=
-pullback_cone.is_limit.mk t (λ s, (create s).1) (λ s, (create s).2.1) (λ s, (create s).2.2.1) (λ s m w, (create s).2.2.2 (w walking_cospan.left) (w walking_cospan.right))
+pullback_cone.is_limit.mk t
+  (λ s, (create s).1)
+  (λ s, (create s).2.1)
+  (λ s, (create s).2.2.1)
+  (λ s m w, (create s).2.2.2 (w walking_cospan.left) (w walking_cospan.right))
 
 @[simp] lemma pullback_cone.simp_left {L : C} {lx : L ⟶ X} {ly : L ⟶ Y} {e : lx ≫ f = ly ≫ g} :
   ((pullback_cone.mk lx ly e).π).app walking_cospan.left = lx := rfl
@@ -407,7 +411,7 @@ the pullback of f along g is isomorphic to the pullback of f along h
 
 -- [todo] comp_r; I was hoping there would be a cool way of lifting the isomorphism `(cospan f g).cones ≅ (cospan g f).cones` but can't see it.
 
-def pullback_square_iso {W X Y Z : C} (f : W ⟶ X) (g : W ⟶ Y) (h : X ⟶ Z) (k : Y ⟶ Z) [is_iso h] [is_iso g] (comm : f ≫ h = g ≫ k) :
+def pullback_square_iso {W X Y Z : C} (f : W ⟶ X) (g : W ⟶ Y) (h : X ⟶ Z) (k : Y ⟶ Z) [mono h] [is_iso g] (comm : f ≫ h = g ≫ k) :
   is_limit (pullback_cone.mk _ _ comm) :=
 is_limit.mk' _ $
 begin
@@ -419,7 +423,7 @@ begin
   erw [(as_iso g).eq_comp_inv, m₂]
 end
 
-def pullback_square_iso' {W X Y Z : C} (f : W ⟶ X) (g : W ⟶ Y) (h : X ⟶ Z) (k : Y ⟶ Z) [is_iso f] [is_iso k] (comm : f ≫ h = g ≫ k) :
+def pullback_square_iso' {W X Y Z : C} (f : W ⟶ X) (g : W ⟶ Y) (h : X ⟶ Z) (k : Y ⟶ Z) [is_iso f] [mono k] (comm : f ≫ h = g ≫ k) :
   is_limit (pullback_cone.mk _ _ comm) :=
 is_limit.mk' _ $
 begin

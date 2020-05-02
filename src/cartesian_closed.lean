@@ -171,12 +171,19 @@ def cchat [exponentiable A] : (A ⨯ Y ⟶ X) → (Y ⟶ A ⟹ X) := exp_transpo
 @[reducible]
 def unhat [exponentiable A] : (Y ⟶ A ⟹ X) → (A ⨯ Y ⟶ X) := exp_transpose.inv_fun
 
+lemma cchat_eq_iff [exponentiable A] (f : A ⨯ Y ⟶ X) (g : Y ⟶ A ⟹ X) :
+  cchat f = g ↔ f = unhat g :=
+adjunction.hom_equiv_apply_eq _ f g
+
+lemma eq_cchat_iff [exponentiable A] (f : A ⨯ Y ⟶ X) (g : Y ⟶ A ⟹ X) :
+  g = cchat f ↔ unhat g = f := adjunction.eq_hom_equiv_apply _ f g
+
 def pre (X : C) (f : B ⟶ A) [exponentiable A] [exponentiable B] :  (A⟹X) ⟶ B⟹X :=
-cchat (⟨f, 𝟙 (A ⟹ X)⟩ ≫ unhat (𝟙 (A ⟹ X)))
+cchat (limits.prod.map f (𝟙 _) ≫ unhat (𝟙 _))
 
 lemma pre_id [exponentiable A] : pre X (𝟙 A) = 𝟙 (A⟹X) :=
 begin
-  dunfold pre cchat, erw exp_transpose_natural_left, rw exp_transpose.right_inv, simp
+  dunfold pre cchat, erw exp_transpose_natural_left, erw exp_transpose.right_inv, simp
 end
 
 lemma pre_map [exponentiable A] [exponentiable B] {D : C} [exponentiable D] {f : A ⟶ B} {g : B ⟶ D} : pre X (f ≫ g) = pre X g ≫ pre X f :=

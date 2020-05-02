@@ -7,6 +7,7 @@ Authors: Bhavik Mehta
 import category_theory.limits.shapes
 import category_theory.limits.types
 import category_theory.limits.shapes.regular_mono
+import category_theory.epi_mono
 import pullbacks
 
 /-!
@@ -40,111 +41,97 @@ class has_subobject_classifier :=
 (uniquely' : ∀ {U X} (f : U ⟶ X) [@mono C 𝒞 _ _ f] (χ₁ : X ⟶ Ω),
             classifying truth f χ₁ → χ₁ = classifier_of f)
 
-variable {C}
-lemma mono_id (A : C) : @mono _ 𝒞 _ _ (𝟙 A) := ⟨λ _ _ _ w, by simp at w; exact w⟩
+def fork.is_limit.mk' {X Y : C} {f g : X ⟶ Y} (t : fork f g)
+  (create : Π (s : fork f g), {l : s.X ⟶ t.X // l ≫ t.ι = s.ι ∧ ∀ {m : s.X ⟶ t.X}, m ≫ t.ι = s.ι → m = l}) :
+is_limit t :=
+fork.is_limit.mk t (λ s, (create s).1) (λ s, (create s).2.1) (λ s m w, (create s).2.2 (w walking_parallel_pair.zero))
+
+-- variable {C}
+-- lemma mono_id (A : C) : @mono _ 𝒞 _ _ (𝟙 A) := ⟨λ _ _ _ w, by simp at w; exact w⟩
 
 variables [has_subobject_classifier.{v} C]
 
+namespace subobj
+
 -- convenience defs
 @[reducible]
-def subobj.Ω : C :=
+def Ω : C :=
 @has_subobject_classifier.Ω _ 𝒞 _
 @[reducible]
-def subobj.Ω₀ : C :=
+def Ω₀ : C :=
 @has_subobject_classifier.Ω₀ _ 𝒞 _
 @[reducible]
-def subobj.truth : subobj.Ω₀ ⟶ subobj.Ω :=
+def truth : Ω₀ C ⟶ Ω C :=
 @has_subobject_classifier.truth _ 𝒞 _
-@[reducible]
-instance subobj.truth_mono : mono subobj.truth :=
+@[priority 10]
+instance subobj.truth_mono : mono (truth C) :=
 @has_subobject_classifier.truth_mono' _ 𝒞 _
-def subobj.classifier_of {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] : X ⟶ subobj.Ω :=
-has_subobject_classifier.classifier_of f
-def subobj.classifies {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] : classifying subobj.truth f (subobj.classifier_of f) :=
-has_subobject_classifier.classifies' f
-def subobj.square.k {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] : U ⟶ subobj.Ω₀ :=
-(subobj.classifies f).k
-def subobj.square.commutes {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] :
-  subobj.square.k f ≫ subobj.truth = f ≫ subobj.classifier_of f :=
-(subobj.classifies f).commutes
-def subobj.square.is_pullback {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] :
-  is_limit (pullback_cone.mk _ _ (subobj.square.commutes f)) :=
-(subobj.classifies f).forms_pullback
-restate_axiom has_subobject_classifier.uniquely'
-
--- subobject classifier => there is a terminal object.
--- TODO: make a lemma saying subobj.Ω₀ = ⊤_C
--- NB: together with the commented out instance at the top and the instance below that, this shows
--- that every category with a subobj classifier and pullbacks has binary products and equalizers
--- It's a todo in mathlib to show binary products implies finite products, and we have
--- in mathlib and these together imply finite limits exist.
--- So when we define (elem) toposes, we only need assume pullbacks and subobj classifier
--- and not all finite limits (but of course cartesian closed is still necessary and such)
-instance terminal_of_subobj : @has_terminal C 𝒞 :=
-{ has_limits_of_shape :=
-  { has_limit := λ F,
-    { cone :=
-      { X := subobj.Ω₀,
-        π := {app := λ p, pempty.elim p}},
-      is_limit :=
-      { lift := λ s, subobj.square.k (𝟙 s.X),
-        fac' := λ _ j, j.elim,
-        uniq' := λ s m J,
-        begin
-          clear J,
-          rw ← cancel_mono subobj.truth,
-          rw subobj.square.commutes,
-          rw id_comp,
-          apply has_subobject_classifier.uniquely (𝟙 s.X),
-          refine {k := m, commutes := _, forms_pullback' := _},
-          rw id_comp,
-          refine pullback_cone.is_limit.mk _ _ _ _ _,
-          intro c,
-          exact c.π.app walking_cospan.right,
-          intro c,
-          rw ← cancel_mono subobj.truth,
-          rw assoc, rw pullback_cone.condition c,
-          refl,
-          apply_instance,
-          intro c,
-          erw comp_id,
-          intros,
-          specialize w walking_cospan.right,
-          erw comp_id at w,
-          exact w,
-          apply_instance,
-        end } } }
-}
-
-variable (C)
-lemma terminal_obj : terminal C = subobj.Ω₀ := rfl
 
 variable {C}
-instance unique_to_Ω₀ (P : C) : unique (P ⟶ subobj.Ω₀) :=
-limits.unique_to_terminal P
+def classifier_of {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] : X ⟶ Ω C :=
+has_subobject_classifier.classifier_of f
+def classifies {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] : classifying (truth C) f (classifier_of f) :=
+has_subobject_classifier.classifies' f
+def square.k {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] : U ⟶ Ω₀ C :=
+(classifies f).k
+def square.commutes {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] :
+  square.k f ≫ truth C = f ≫ classifier_of f :=
+(subobj.classifies f).commutes
+def square.is_pullback {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] :
+  is_limit (pullback_cone.mk _ _ (square.commutes f)) :=
+(classifies f).forms_pullback
+restate_axiom has_subobject_classifier.uniquely'
 
--- TODO: really, we should prove that subobj.truth is an equalizer, and that
--- the pullback of an equalizer is an equalizer (and every mono is a pullback of truth)
-def mono_is_equalizer {A B : C} (m : A ⟶ B) [@mono C 𝒞 _ _ m] :
-  is_limit (fork.of_ι m (begin rw ← subobj.square.commutes m, rw ← assoc, congr' 1 end) : fork (subobj.classifier_of m) (terminal.from B ≫ subobj.truth)) :=
-{ lift := λ s, (subobj.square.is_pullback m).lift (pullback_cone.mk (terminal.from s.X) (fork.ι s) (begin erw fork.condition s, rw ← assoc, congr' 1 end)),
-  fac' := λ s,
-    begin
-      intro j, cases j,
-        simp, erw (subobj.square.is_pullback m).fac _ walking_cospan.right, refl,
-      simp, rw ← assoc, erw (subobj.square.is_pullback m).fac _ walking_cospan.right,
-      rw ← s.w walking_parallel_pair_hom.left, refl
-    end,
-  uniq' := λ s n J,
+end subobj
+
+open subobj
+
+variable {C}
+-- Usually we would assume C has finite limits, and Ω₀ C might not be equal to it.
+instance unique_to_Ω₀ (P : C) : unique (P ⟶ Ω₀ C) :=
+{ default := square.k (𝟙 _),
+  uniq := λ a,
   begin
-    apply (subobj.square.is_pullback m).hom_ext,
-    refine pullback_cone.equalizer_ext (pullback_cone.mk (subobj.square.k m) m _) _ _,
-    apply subsingleton.elim,
-    erw (subobj.square.is_pullback m).fac,
-    erw J walking_parallel_pair.zero,
-    refl,
-  end
-}
+    rw ← cancel_mono (truth C),
+    rw square.commutes (𝟙 _),
+    rw id_comp,
+    apply has_subobject_classifier.uniquely,
+    refine ⟨a, (id_comp _).symm, pullback_square_iso _ _ _ _ _⟩,
+  end }
 
-def balanced {A B : C} (f : A ⟶ B) [ef : @epi C 𝒞 _ _ f] [mf : mono f] : is_iso f :=
-@is_iso_limit_cone_parallel_pair_of_epi _ _ _ _ _ _ _ (mono_is_equalizer f) ef
+variable (C)
+instance truth_is_split : split_mono (subobj.truth C) :=
+{ retraction := subobj.square.k (𝟙 _),
+  id' := subsingleton.elim _ _ }
+
+variable {C}
+def regular_of_regular_pullback {P Q R S : C} {f : P ⟶ Q} {g : P ⟶ R} {h : Q ⟶ S} {k : R ⟶ S} [hr : regular_mono h]
+  (comm : f ≫ h = g ≫ k) (t : is_limit (pullback_cone.mk _ _ comm)) : regular_mono g :=
+{ Z := hr.Z,
+  left := k ≫ hr.left,
+  right := k ≫ hr.right,
+  w := by rw [← reassoc_of comm, ← reassoc_of comm, hr.w],
+  is_limit :=
+  begin
+    apply fork.is_limit.mk' _ _,
+    intro s,
+    have l₁ : (fork.ι s ≫ k) ≫ regular_mono.left = (fork.ι s ≫ k) ≫ regular_mono.right,
+      rw [assoc, s.condition, assoc],
+    let l₂ : fork hr.left hr.right := fork.of_ι (s.ι ≫ k) l₁,
+    let p₂ : pullback_cone h k := pullback_cone.mk (hr.is_limit.lift l₂) s.ι (hr.is_limit.fac _ walking_parallel_pair.zero),
+    refine ⟨t.lift p₂, t.fac p₂ walking_cospan.right, _⟩,
+    intros m w,
+    have z : m ≫ g = t.lift p₂ ≫ g,
+      erw w, exact (t.fac p₂ walking_cospan.right).symm,
+    apply t.hom_ext,
+    apply (pullback_cone.mk f g comm).equalizer_ext,
+    erw [← cancel_mono h, assoc, assoc, comm],
+    rw reassoc_of z,
+    exact z,
+  end }
+
+def mono_is_regular {A B : C} (m : A ⟶ B) [mono m] : regular_mono m :=
+regular_of_regular_pullback _ (square.is_pullback m)
+
+def balanced {A B : C} (f : A ⟶ B) [ef : epi f] [mono f] : is_iso f :=
+@is_iso_limit_cone_parallel_pair_of_epi _ _ _ _ _ _ _ (mono_is_regular f).is_limit ef

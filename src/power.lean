@@ -750,7 +750,7 @@ instance weak_topos_has_subobj [has_power_object.{v} (⊤_ C)] : has_subobject_c
 { Ω := P (⊤_ C),
   Ω₀ := ni (⊤_ C),
   truth := mem (⊤_ C) ≫ (prod.right_unitor _).hom,
-  truth_mono' := begin apply_instance end,
+  truth_mono' := by apply_instance,
   classifier_of := λ U X f hf,
   begin
     haveI := hf,
@@ -997,7 +997,6 @@ end intersect
 
 -- end
 
--- This should land in mathlib soon so it's sorry for now.
 @[priority 10000] instance [has_finite_limits.{v} C] {B : C} : has_finite_limits.{v} (over B) :=
 begin
   haveI := has_finite_wide_pullbacks_of_has_finite_limits C,
@@ -1023,7 +1022,7 @@ begin
   exact ⟨congr_arg hat_sub, λ k, function.injective_of_left_inverse hat_sub''.right_inv k⟩,
 end
 
-lemma leq_prop (A B R₁ R₂ : C) [has_power_object.{v} A] (m : R₁ ⟶ B ⨯ A) (n : R₂ ⟶ B ⨯ A) [mono m] [mono n] [has_power_object.{v} A] :
+lemma leq_prop (A B R₁ R₂ : C) [has_power_object.{v} A] (m : R₁ ⟶ B ⨯ A) (n : R₂ ⟶ B ⨯ A) [mono m] [mono n] :
   (∃ (k : R₁ ⟶ R₂), m = k ≫ n) ↔ limits.prod.lift (hat m) (hat n) ≫ intersect.intersect A = limits.prod.lift (hat m) (hat n) ≫ limits.prod.fst :=
 leq_prop' _ _ ⟦⟨over.mk m, _inst_3⟩⟧ ⟦⟨over.mk n, _inst_4⟩⟧
 
