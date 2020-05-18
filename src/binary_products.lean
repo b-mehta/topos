@@ -6,10 +6,12 @@ Authors: Bhavik Mehta
 
 import category_theory.limits.shapes.binary_products
 import category_theory.limits.shapes.pullbacks
+import finite_products
 import category_theory.comma
 import pullbacks
+import category_theory.adjunction.limits
 
-universes v u
+universes v u u₂
 
 open category_theory category_theory.category category_theory.limits
 namespace category_theory
@@ -22,36 +24,50 @@ variables [has_binary_products.{v} C]
 
 local attribute [tidy] tactic.case_bash
 
-lemma prod_map_comm {A B X Y : C} (f : A ⟶ B) (g : X ⟶ Y) :
+@[reassoc] lemma prod_map_comm {A B X Y : C} (f : A ⟶ B) (g : X ⟶ Y) :
   limits.prod.map (𝟙 _) f ≫ limits.prod.map g (𝟙 _) = limits.prod.map g (𝟙 _) ≫ limits.prod.map (𝟙 _) f :=
-begin
-  apply prod.hom_ext, simp, erw id_comp, erw comp_id, simp, erw id_comp, erw comp_id
-end
+by tidy
 
-lemma prod_functorial {X Y Z W : C} (f : X ⟶ Y) (g : Y ⟶ Z) :
+@[reassoc] lemma prod_functorial {X Y Z W : C} (f : X ⟶ Y) (g : Y ⟶ Z) :
   limits.prod.map (f ≫ g) (𝟙 W) = limits.prod.map f (𝟙 W) ≫ limits.prod.map g (𝟙 W) :=
-begin
-  apply prod.hom_ext,
-  simp, simp, dsimp, simp
-end
-lemma prod_functorial' {X Y Z W : C} (f : X ⟶ Y) (g : Y ⟶ Z) :
+by tidy
+
+@[reassoc] lemma prod_functorial' {X Y Z W : C} (f : X ⟶ Y) (g : Y ⟶ Z) :
   limits.prod.map (𝟙 W) (f ≫ g) = limits.prod.map (𝟙 W) f ≫ limits.prod.map (𝟙 W) g :=
-begin
-  apply prod.hom_ext,
-  simp, dsimp, simp, simp
-end
+by tidy
 
-lemma prod_map_id_id {X Y : C} :
+@[simp] lemma prod_map_id_id {X Y : C} :
   limits.prod.map (𝟙 X) (𝟙 Y) = 𝟙 _ :=
-prod.hom_ext (by rw [limits.prod.map_fst, id_comp, comp_id]) (by rw [limits.prod.map_snd, id_comp, comp_id])
+by tidy
 
-lemma prod.lift_map (V W X Y Z : C) (f : V ⟶ W) (g : V ⟶ X) (h : W ⟶ Y) (k : X ⟶ Z) :
+@[reassoc] lemma prod.lift_map (V W X Y Z : C) (f : V ⟶ W) (g : V ⟶ X) (h : W ⟶ Y) (k : X ⟶ Z) :
   prod.lift f g ≫ limits.prod.map h k = prod.lift (f ≫ h) (g ≫ k) :=
-begin
-  apply prod.hom_ext,
-  rw [prod.lift_fst, assoc, limits.prod.map_fst, prod.lift_fst_assoc],
-  rw [prod.lift_snd, assoc, limits.prod.map_snd, prod.lift_snd_assoc],
+by tidy
+
+@[reassoc] lemma braid_natural {W X Y Z : C} (f : X ⟶ Y) (g : Z ⟶ W) :
+  limits.prod.map f g ≫ (limits.prod.braiding _ _).hom = (limits.prod.braiding _ _).hom ≫ limits.prod.map g f :=
+by tidy
+
 end
+
+section
+variables {D : Type u₂} [𝒟 : category.{v} D]
+include 𝒟
+
+variables (F : C ⥤ D) [preserves_limits_of_shape (discrete walking_pair) F] [preserves_limits_of_shape pempty F]
+
+
+-- def preserves_fin_of_preserves_binary_and_terminal : Π (n : ℕ), preserves_limits_of_shape (discrete (ulift (fin n))) F := sorry
+
+-- def preserves_finite_limits_of_preserves_binary_and_terminal (J : Type v) [fintype J] [decidable_eq J] :
+--   preserves_limits_of_shape (discrete J) F :=
+-- begin
+--   refine trunc.rec_on_subsingleton (fintype.equiv_fin J) _,
+--   intro eq,
+--   have := discrete.equiv_of_iso eq,
+--   have := adjunction.is_equivalence_preserves_limits,
+-- end
+
 
 end
 

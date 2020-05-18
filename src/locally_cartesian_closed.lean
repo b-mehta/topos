@@ -56,7 +56,7 @@ def over_terminal [has_terminal.{v} C] : over (⊤_ C) ≌ C :=
   counit_iso := iso.refl _,
 }
 
-instance cc_of_lcc [has_finite_limits.{v} C] [is_locally_cartesian_closed.{v} C] : is_cartesian_closed.{v} C :=
+def cc_of_lcc [has_finite_limits.{v} C] [is_locally_cartesian_closed.{v} C] : is_cartesian_closed.{v} C :=
 cartesian_closed_of_equiv (over_terminal C)
 
 universe u₂

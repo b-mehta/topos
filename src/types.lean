@@ -62,7 +62,7 @@ noncomputable instance types_has_subobj_classifier : @has_subobject_classifier T
   classifies' :=
   begin
     intros A B f mon,
-    refine {k := λ _, (), commutes := _, forms_pullback' := _},
+    refine {top := λ _, (), comm := _, is_pb := _},
     funext, simp, use x,
     refine pullback_cone.is_limit.mk _ _ _ _ _,
     intros c i,
@@ -98,6 +98,58 @@ noncomputable instance types_has_subobj_classifier : @has_subobject_classifier T
     introv _ fst, ext x,
     rw set_classifier fst x
   end }
+
+noncomputable def invert_mono {U X : Type u} (m : U ⟶ X) [mon : mono m] (t : X) (h : ∃ i, m i = t) : {i : U // m i = t} :=
+begin
+  apply get_unique _ h _,
+  intros,
+  rw mono_iff_injective at mon,
+  apply mon,
+  rw [a_1, a_2]
+end
+
+-- instance types_has_subobj_classifier : @has_subobject_classifier (Type u) category_theory.types :=
+-- { Ω := ulift Prop,
+--   Ω₀ := punit,
+--   truth := λ _, ulift.up true,
+--   truth_mono' := ⟨λ A f g h, by { ext i, apply subsingleton.elim }⟩,
+--   classifier_of := λ A B f mon b, ulift.up (∃ (a : A), f a = b),
+--   classifies' := λ U X m hm,
+--   { top := λ _, punit.star,
+--     comm :=
+--     begin
+--       ext1,
+--       dsimp,
+--       congr' 1,
+--       rw [eq_iff_iff, true_iff],
+--       exact ⟨x, rfl⟩,
+--     end,
+--     is_pb :=
+--     begin
+--       haveI := hm,
+--       refine is_limit.mk' _ _,
+--       intro s,
+--       refine ⟨_, subsingleton.elim _ _, _, _⟩,
+--       { change s.X ⟶ U,
+--         intro i,
+--         refine (invert_mono m (s.snd i) _).1,
+--         have a := congr_fun s.condition i,
+--         dsimp at a,
+--         replace a : true = ∃ (a : U), m a = s.snd i := congr_arg ulift.down a,
+--         rw ← a,
+--         trivial },
+--       { dsimp,
+--         ext i,
+--         dsimp,
+--         have := (invert_mono m (s.snd i) _).2,
+--       },
+
+
+
+
+--     end
+--   }
+-- }
 
 @[simps]
 def currying_equiv (A X Y : Type u) : ((prod_functor.obj A).obj X ⟶ Y) ≃ (X ⟶ A → Y) :=

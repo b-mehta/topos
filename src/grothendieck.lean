@@ -9,7 +9,7 @@ import .pullbacks
 universes u v w
 namespace category_theory
 
-open order lattice
+open category_theory limits order lattice
 
 def sieve_set (C : Type u) [𝒞 : category.{v} C] :=  Π (X : C), set (sieve X)
 
@@ -55,6 +55,12 @@ variables {C : Type u} [𝒞 : category.{v} C]
 variables {X Y : C} {S R : sieve X}
 variables {J : sieve_set C} [grothendieck J]
 include 𝒞
+
+def over.pullback [@has_pullbacks C 𝒞] {X Y : C} (f : X ⟶ Y) (g : over Y) : over X :=
+over.mk (@pullback.fst _ _ _ _ _ f g.hom _)
+
+@[simp] lemma over_pullback_def [@has_pullbacks C 𝒞] {X Y : C} (f : X ⟶ Y) (g : over Y) :
+  (over.pullback f g).hom = pullback.fst := rfl
 
 class basis [@category_theory.limits.has_pullbacks C 𝒞] (K : arrow_set C) :=
 (has_isos      : ∀ {X Y : C} (e : X ≅ Y), {over.mk e.hom} ∈ K(Y))

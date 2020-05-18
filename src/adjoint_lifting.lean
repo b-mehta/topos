@@ -104,7 +104,7 @@ def refl_pair (a : algebra T) (comm_iso : R' ⋙ forget T ≅ forget S ⋙ R) :
   begin
     dunfold part2.φ',
     erw ← adjunction.hom_equiv_naturality_left_symm (adj S) ((L R).map ((η_ T).app a.A)) (part2.φ R a.A comm_iso),
-    apply function.injective_of_left_inverse ((adj S).hom_equiv _ _).left_inv,
+    apply ((adj S).hom_equiv _ _).left_inv.injective,
     erw ((adj S).hom_equiv _ _).right_inv,
     dunfold part2.φ,
 

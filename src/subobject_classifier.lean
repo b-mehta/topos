@@ -24,11 +24,12 @@ variables {C : Type u} [𝒞 : category.{v} C]
 include 𝒞
 
 -- Define what it means for χ to classify the mono f.
-structure classifying {Ω Ω₀ U X : C} (true : Ω₀ ⟶ Ω) (f : U ⟶ X) (χ : X ⟶ Ω) :=
-(k : U ⟶ Ω₀)
-(commutes : k ≫ true = f ≫ χ)
-(forms_pullback' : is_limit (pullback_cone.mk _ _ commutes))
-restate_axiom classifying.forms_pullback'
+abbreviation classifying {Ω Ω₀ U X : C} (true : Ω₀ ⟶ Ω) (f : U ⟶ X) (χ : X ⟶ Ω) := has_pullback_top f χ true
+-- structure classifying {Ω Ω₀ U X : C} (true : Ω₀ ⟶ Ω) (f : U ⟶ X) (χ : X ⟶ Ω) :=
+-- (k : U ⟶ Ω₀)
+-- (commutes : k ≫ true = f ≫ χ)
+-- (forms_pullback' : is_limit (pullback_cone.mk _ _ commutes))
+-- restate_axiom classifying.forms_pullback'
 
 variable (C)
 -- A subobject classifier is a mono which classifies every mono uniquely
@@ -73,13 +74,13 @@ has_subobject_classifier.classifier_of f
 def classifies {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] : classifying (truth C) f (classifier_of f) :=
 has_subobject_classifier.classifies' f
 def square.k {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] : U ⟶ Ω₀ C :=
-(classifies f).k
+(classifies f).top
 def square.commutes {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] :
   square.k f ≫ truth C = f ≫ classifier_of f :=
-(subobj.classifies f).commutes
+(subobj.classifies f).comm
 def square.is_pullback {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] :
   is_limit (pullback_cone.mk _ _ (square.commutes f)) :=
-(classifies f).forms_pullback
+(classifies f).is_pb
 restate_axiom has_subobject_classifier.uniquely'
 
 end subobj

@@ -15,7 +15,7 @@ open category
 
 universes v₁ v₂ v₃ u₁ u₂ u₃ -- declare the `v`'s first; see `category_theory.category` for an explanation
 
-local attribute [elab_simple] whisker_left whisker_right
+-- local attribute [elab_simple] whisker_left whisker_right
 
 section
 
@@ -43,7 +43,13 @@ include 𝒟
 def equiv_homset_left_of_nat_iso
   {F G : C ⥤ D} (iso : F ≅ G) {X : C} {Y : D} :
   (F.obj X ⟶ Y) ≃ (G.obj X ⟶ Y) :=
-⟨λ f, (iso.app _).inv ≫ f, λ g, (iso.app _).hom ≫ g, λ f, begin dsimp, rw ← assoc, simp end, λ g, begin dsimp, rw ← assoc, simp end⟩
+{ to_fun := λ f, (iso.app _).inv ≫ f,
+  inv_fun := λ g, (iso.app _).hom ≫ g,
+  left_inv := λ f,
+  begin
+    simp,
+  end,
+  right_inv := λ g, begin dsimp, rw ← assoc, simp end }
 
 @[reducible]
 def equiv_homset_right_of_nat_iso

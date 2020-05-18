@@ -21,7 +21,7 @@ def covers (X : Top) : arrow_set (opens X) :=
 
 variables {X : Top}
 
-instance opens_has_limits : @has_limits (opens X) (opens.opens_category) := 
+instance opens_has_limits : @has_limits (opens X) (opens.opens_category) :=
 limits.has_limits_of_complete_lattice
 
 instance opens_has_pullbacks : @has_pullbacks (opens X) (opens.opens_category) :=
@@ -35,13 +35,13 @@ variables {U V W : opens X}
 /- [todo] this can be moved to category_theory/limits/lattice -/
 lemma eq_of_iso (e : U ≅ W) : U = W :=
 begin
-    rcases e with ⟨⟨⟨_⟩⟩,⟨⟨_⟩⟩,_,_⟩, 
+    rcases e with ⟨⟨⟨_⟩⟩,⟨⟨_⟩⟩,_,_⟩,
     apply partial_order.le_antisymm,
     assumption,
     assumption
 end
 
-lemma over_eq_of_left_eq : Π {f g : over U}, f.left = g.left → f = g 
+lemma over_eq_of_left_eq : Π {f g : over U}, f.left = g.left → f = g
 | ⟨_,⟨⟩,⟨⟨_⟩⟩⟩ ⟨_,⟨⟩,⟨⟨_⟩⟩⟩ rfl := rfl
 
 open lattice
@@ -56,36 +56,36 @@ end
 
 instance : grothendieck.basis (covers X) :=
 { has_isos :=
-    begin 
+    begin
         -- all isos in opens U are equality.
         intros U V e x xU,
-        refine ⟨over.mk e.hom, _,_⟩, 
-        simp, 
-        have : U = V, apply eq_of_iso e, 
+        refine ⟨over.mk e.hom, _,_⟩,
+        simp,
+        have : U = V, apply eq_of_iso e,
         simpa [this],
-    end, 
+    end,
   has_pullbacks :=
     begin
-        -- idea: ℱ is covering for U 
+        -- idea: ℱ is covering for U
         -- ⇒ {V ∩ W | W ∈ ℱ} is a covering for V
-        intros U V ℱ h₁ g, 
+        intros U V ℱ h₁ g,
         intros x xV,
         rcases g with ⟨⟨g⟩⟩,
-        rcases h₁ x (g xV) with ⟨f,fF,xf⟩, 
+        rcases h₁ x (g xV) with ⟨f,fF,xf⟩,
         refine ⟨over.mk ⟨⟨inf_le_right⟩⟩,⟨f,fF,_⟩,⟨xf,xV⟩⟩,
-        apply over_eq_of_left_eq, 
-            simp [over.pullback],
+        apply over_eq_of_left_eq,
+            simp [grothendieck.over.pullback],
             rw pullback_is_inter,
             rw inf_comm, refl,
     end,
-  trans := 
+  trans :=
     begin
-        -- idea: ℱ covers U and 𝒢 U covers V for each V ∈ ℱ 
+        -- idea: ℱ covers U and 𝒢 U covers V for each V ∈ ℱ
         -- ⇒ ⋃ 𝒢 covers U
-        intros U, 
+        intros U,
         rintros _ FcU _ GcF x xU,
         rcases FcU x xU with ⟨V,VF,xV⟩,
-        rcases GcF VF x xV with ⟨W,WG,xW⟩, 
+        rcases GcF VF x xV with ⟨W,WG,xW⟩,
         refine ⟨over.mk (W.hom ≫ V.hom),⟨_,VF,⟨W,WG,rfl⟩⟩,xW⟩,
     end
 }

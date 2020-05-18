@@ -13,8 +13,8 @@ import pfin
 /-! # Stuff that should be in the catthy library. -/
 namespace category_theory
 
-universe w
-def discrete.equiv_of_iso {J K : Type w} (h : J ≃ K) : (discrete J ≌ discrete K) :=
+universes w w₁
+def discrete.equiv_of_iso {J : Type w} {K : Type w₁} (h : J ≃ K) : (discrete J ≌ discrete K) :=
 equivalence.mk
   (functor.of_function h.to_fun) -- C ⥤ D
   (functor.of_function h.inv_fun) -- D ⥤ C
