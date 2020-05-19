@@ -45,10 +45,7 @@ def equiv_homset_left_of_nat_iso
   (F.obj X ⟶ Y) ≃ (G.obj X ⟶ Y) :=
 { to_fun := λ f, (iso.app _).inv ≫ f,
   inv_fun := λ g, (iso.app _).hom ≫ g,
-  left_inv := λ f,
-  begin
-    simp,
-  end,
+  left_inv := λ f, begin dsimp, rw ← assoc, simp end,
   right_inv := λ g, begin dsimp, rw ← assoc, simp end }
 
 @[reducible]

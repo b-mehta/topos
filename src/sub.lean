@@ -448,6 +448,12 @@ instance [has_pullbacks.{v} C] {B : C} : semilattice_inf_top (sub B) :=
 
 lemma top_eq_top {B : C} : ⊤ = sub_top B := rfl
 
+lemma pullback_top {A B : C} (f : A ⟶ B) [has_pullbacks.{v} C] : sub_map f ⊤ = ⊤ :=
+begin
+  rw eq_top_iff,
+  refine ⟨pullback.lift f (𝟙 _) (by { dsimp, simp }), (pullback.lift_snd _ _ _).symm⟩,
+end
+
 lemma inf_eq_intersection {B : C} (m m' : sub B) [has_pullbacks.{v} C] : m ⊓ m' = intersection m m' := rfl
 
 local attribute [instance] has_pullbacks_of_has_finite_limits

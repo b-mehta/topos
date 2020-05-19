@@ -62,6 +62,36 @@ pullback_cone.is_limit.mk t
   (λ s, (create s).2.2.1)
   (λ s m w, (create s).2.2.2 (w walking_cospan.left) (w walking_cospan.right))
 
+def is_limit.mk'' (t : pullback_cone f g) [mono f]
+  (create : Π (s : pullback_cone f g), {l : s.X ⟶ t.X // l ≫ t.snd = s.snd ∧ ∀ {m : s.X ⟶ t.X}, m ≫ t.fst = s.fst → m ≫ t.snd = s.snd → m = l}) :
+is_limit t :=
+is_limit.mk' t $
+begin
+  intro s,
+  refine ⟨(create s).1, _, (create s).2.1, λ m m₁ m₂, (create s).2.2 m₁ m₂⟩,
+  rw [← cancel_mono f, assoc, t.condition, s.condition, reassoc_of (create s).2.1]
+end
+
+def is_limit.mk''' (t : pullback_cone f g) [mono f] (q : mono t.snd)
+  (create : Π (s : pullback_cone f g), {l : s.X ⟶ t.X // l ≫ t.snd = s.snd}) :
+is_limit t :=
+is_limit.mk' t $
+begin
+  intro s,
+  refine ⟨(create s).1, _, (create s).2, λ m _ m₂, _⟩,
+  rw [← cancel_mono f, assoc, t.condition, s.condition, reassoc_of (create s).2],
+  rw [← cancel_mono t.snd, m₂, (create s).2],
+end
+
+def pullback_mono_is_mono (c : pullback_cone f g) [mono f] (t : is_limit c) : mono c.snd :=
+⟨λ Z h k eq,
+begin
+  apply t.hom_ext,
+  apply pullback_cone.equalizer_ext,
+  rw [← cancel_mono f, assoc, c.condition, reassoc_of eq, assoc, c.condition],
+  assumption
+end⟩
+
 def cone_is_pullback {X Y Z : C} (f : X ⟶ Z) (g : Y ⟶ Z) [has_limit (cospan f g)] :
   is_limit (pullback_cone.mk _ _ pullback.condition : pullback_cone f g) :=
 is_limit.mk' _ $ λ s,

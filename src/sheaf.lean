@@ -5,6 +5,7 @@ import category_theory.reflect_isomorphisms
 import reflects
 import cartesian_closed
 import sub
+import equiv
 
 open category_theory category_theory.category category_theory.limits
 open subobj
@@ -503,7 +504,7 @@ end
 --   refine @characterised _ _ _ _ _ j _ E _ _ _ _ (id _),
 -- end
 
--- end closure
+end closure
 
 variable (C)
 -- structure separated :=
@@ -571,9 +572,9 @@ forget_reflects_limits (forget_sheaf C j)
 attribute [irreducible] sheaf
 
 section biject
-variables (j) (m : sub' A) [closure.dense j ⟦m⟧]
+variables {A : C} (j) (m : sub' A) [closure.dense j ⟦m⟧]
 
-def bijection : {n : sub A // closure j n = n} ≃ {n' : sub m.1.left // closure j n' = n'} :=
+def bijection : {n : sub A // closure.closure j n = n} ≃ {n' : sub m.1.left // closure.closure j n' = n'} :=
 { to_fun := λ n,
   { val := sub_map m.1.hom n.val,
     property :=
@@ -585,9 +586,9 @@ def bijection : {n : sub A // closure j n = n} ≃ {n' : sub m.1.left // closure
   { val :=
     begin
       haveI := m.2,
-      apply closure j (postcompose m.1.hom n'.1),
+      apply closure.closure j (postcompose m.1.hom n'.1),
     end,
-    property := idem _ _ },
+    property := closure.idem _ _ },
   left_inv :=
   begin
     rintro ⟨N, hN⟩,

@@ -696,7 +696,8 @@ begin
       simp } }
 end
 
-instance weak_topos_has_subobj [has_power_object.{v} (⊤_ C)] : has_subobject_classifier.{v} C :=
+variable (C)
+def weak_topos_has_subobj [has_power_object.{v} (⊤_ C)] : has_subobject_classifier.{v} C :=
 { Ω := P (⊤_ C),
   Ω₀ := ni (⊤_ C),
   truth := mem (⊤_ C) ≫ (prod.right_unitor _).hom,
@@ -715,6 +716,7 @@ instance weak_topos_has_subobj [has_power_object.{v} (⊤_ C)] : has_subobject_c
     exact k
   end
 }
+variable {C}
 
 instance p_reflects_iso [has_power_objects.{v} C] : reflects_isomorphisms (P_functor : Cᵒᵖ ⥤ C) :=
 { reflects := λ A B f i,
@@ -724,6 +726,7 @@ instance p_reflects_iso [has_power_objects.{v} C] : reflects_isomorphisms (P_fun
       refine ⟨this.inv.op, _, _⟩,
       dsimp, apply has_hom.hom.unop_inj, simp,
       dsimp, apply has_hom.hom.unop_inj, simp,
+    haveI := weak_topos_has_subobj C,
     apply @balanced _ 𝒞 _ _ _ _ _ _,
     { split,
       intros,
@@ -1567,16 +1570,28 @@ def power_of_subobj (A : C) [exponentiable A] [has_subobject_classifier.{v} C] :
       apply left_right_hpb_to_both_hpb pullback.snd p has_pullback_top_of_pb,
     end } }
 
+instance topos_has_power [has_subobject_classifier.{v} C] [is_cartesian_closed.{v} C] : has_power_objects.{v} C :=
+⟨λ A, power_of_subobj A⟩
+
 instance topos_is_lcc [has_subobject_classifier.{v} C] [is_cartesian_closed.{v} C] : is_locally_cartesian_closed.{v} C :=
-begin
-  haveI: has_power_objects.{v} C := ⟨λ A, power_of_subobj A⟩,
-  apply lcc_of_pow,
-end
+lcc_of_pow
 
 instance topos_has_finite_colims [has_subobject_classifier.{v} C] [is_cartesian_closed.{v} C] : has_finite_colimits.{v} C :=
+has_colim
+
+def raise_le [has_subobject_classifier.{v} C] {B : C} {m₁ m₂ : sub' B} (h : m₁ ≤ m₂) : m₁.1.left ⟶ m₂.1.left :=
 begin
-  haveI: has_power_objects.{v} C := ⟨λ A, power_of_subobj A⟩,
-  apply has_colim,
+  haveI := m₂.2,
+  apply (subobj.square.is_pullback m₂.1.hom).lift (pullback_cone.mk (default _) m₁.1.hom _),
+  cases h,
+  rw [h_h, assoc, ← subobj.square.commutes m₂.1.hom, ← assoc, cancel_mono (subobj.truth C)],
+  apply subsingleton.elim
+end
+
+@[reassoc] lemma raise_le_prop [has_subobject_classifier.{v} C] {B : C} {m₁ m₂ : sub' B} (h : m₁ ≤ m₂) : raise_le h ≫ m₂.1.hom = m₁.1.hom :=
+begin
+  haveI := m₂.2,
+  apply (subobj.square.is_pullback m₂.1.hom).fac _ walking_cospan.right,
 end
 
 -- instance some_colims (J : Type v) [small_category J] [has_power_objects.{v} C] [has_limits_of_shape Jᵒᵖ C] : has_colimits_of_shape J C :=

@@ -8,8 +8,6 @@ import pullbacks
 import comma
 import over
 
--- This file is largely commented out for now.
-
 /-!
 OLD:
 # Properties of the over category.
