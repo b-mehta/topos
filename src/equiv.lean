@@ -8,8 +8,6 @@ import category_theory.limits.shapes.finite_products
 
 universes v u
 
-
-
 open category_theory category_theory.category category_theory.limits
 
 namespace category_theory
@@ -19,12 +17,12 @@ variables {C : Type u} [category.{v} C] [has_finite_limits.{v} C]
 variables {A R : C}
 
 -- Definitions 1.3.6
-structure relation (A R : C) :=
+structure relation (R A : C) :=
 (a : R ⟶ A)
 (b : R ⟶ A)
 [jointly_mono : mono (prod.lift a b)]
 
-variable (rel : relation.{v} A R)
+variable (rel : relation.{v} R A)
 
 instance joint_mono : mono (prod.lift rel.a rel.b) :=
 rel.jointly_mono
@@ -63,7 +61,8 @@ def triples : C := pullback rel.b rel.a
 
 def p : triples rel ⟶ R := pullback.fst
 def q : triples rel ⟶ R := pullback.snd
-def consistent : p rel ≫ rel.b = q rel ≫ rel.a := pullback.condition
+@[reassoc]
+lemma consistent : p rel ≫ rel.b = q rel ≫ rel.a := pullback.condition
 
 class transitive :=
 (t : triples rel ⟶ R)
@@ -114,10 +113,37 @@ instance subsingleton_transitive :
   { simp [h₁r₁, h₁r₂] },
   { simp [h₂r₁, h₂r₂] },
 end⟩
+
 -- That was nice and easy!
 
--- Supposedly any kernel pair is an equivalence relation.
--- Our goal is to show a converse: any equivalence relation is a kernel pair.
+-- Show a kernel pair is an equivalence relation.
+@[simps]
+def kernel_pair_relation {A B : C} (f : A ⟶ B) : relation.{v} (pullback f f) A :=
+{ a := pullback.fst,
+  b := pullback.snd,
+  jointly_mono :=
+  ⟨λ Z g h eq, begin apply pullback.hom_ext, simpa using eq =≫ limits.prod.fst, simpa using eq =≫ limits.prod.snd end⟩ }
+
+instance {A B : C} (f : A ⟶ B) : reflexive (kernel_pair_relation f) :=
+{ r := pullback.lift (𝟙 _) (𝟙 _) rfl,
+  cancel_a := pullback.lift_fst _ _ _,
+  cancel_b := pullback.lift_snd _ _ _ }
+
+instance {A B : C} (f : A ⟶ B) : symmetric (kernel_pair_relation f) :=
+{ s := pullback.lift pullback.snd pullback.fst pullback.condition.symm,
+  w₁ := pullback.lift_fst _ _ _,
+  w₂ := pullback.lift_snd _ _ _ }
+
+def tag' (n : ℕ) (A B : C) (f : A ⟶ B) : A ⟶ B := f
+
+instance {A B : C} (f : A ⟶ B) : transitive (kernel_pair_relation f) :=
+{ t := pullback.lift (p _ ≫ pullback.fst) (q _ ≫ (kernel_pair_relation f).b)
+      (by { erw [assoc, assoc, pullback.condition, consistent_assoc, pullback.condition], refl }),
+  w₁ := pullback.lift_fst _ _ _,
+  w₂ := pullback.lift_snd _ _ _
+}
+
+-- Now we show the converse: any equivalence relation is a kernel pair.
 
 lemma left_pb_comm [transitive rel] :
   (transitive.t : triples rel ⟶ _) ≫ prod.lift rel.a rel.b = prod.lift (p rel) (q rel ≫ rel.b) ≫ limits.prod.map rel.a (𝟙 _) :=
@@ -138,9 +164,6 @@ end
 variables [has_subobject_classifier.{v} C] [is_cartesian_closed.{v} C]
 
 def named : A ⟶ P A := hat (prod.lift rel.a rel.b)
-
--- This is the first paragraph of the proof.
-def tag' (n : ℕ) (A B : C) (f : A ⟶ B) : A ⟶ B := f
 
 def right_pb_square : is_limit (pullback_cone.mk _ _ (right_pb_comm rel)) :=
 is_limit.mk'' _ $ λ c,

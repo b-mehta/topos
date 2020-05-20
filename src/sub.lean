@@ -11,7 +11,6 @@ import category_theory.full_subcategory
 import pullbacks
 import comma
 import cartesian_closed
-import tactic.equiv_rw
 
 universes u v
 
