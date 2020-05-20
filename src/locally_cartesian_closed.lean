@@ -51,8 +51,7 @@ def over_terminal [has_terminal.{v} C] : over (⊤_ C) ≌ C :=
     ext1,
     simp,
   end,
-  counit_iso := iso.refl _,
-}
+  counit_iso := iso.refl _ }
 
 def cc_of_lcc [has_finite_limits.{v} C] [is_locally_cartesian_closed.{v} C] : is_cartesian_closed.{v} C :=
 cartesian_closed_of_equiv (over_terminal C)
