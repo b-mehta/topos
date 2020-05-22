@@ -9,10 +9,7 @@ import category_theory.limits.preserves
 import category_theory.limits.creates
 import category_theory.monad.limits
 import category_theory.monad.adjunction
-import category_theory.monad
 import category_theory.limits.shapes.equalizers
-import tactic
-import category_theory.monad.adjunction
 universes u₁ u₂ v
 
 namespace category_theory

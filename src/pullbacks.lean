@@ -399,8 +399,11 @@ is_limit (F.map_cone (pullback_cone.mk _ _ comm)) ≅ is_limit (pullback_cone.mk
     apply is_limit.of_iso_limit this _,
     apply cones.ext _ _,
       refl,
-    dsimp [diagram_iso_cospan, cones.postcompose_equivalence, equivalence.mk],
-    tidy,
+    dsimp [diagram_iso_cospan], simp_rw [id_comp],
+    rintro (_ | _ | _),
+    { dsimp, rw [comp_id, F.map_comp] },
+    { dsimp, rw [comp_id] },
+    { dsimp, rw [comp_id] },
   end,
   hom_inv_id' := subsingleton.elim _ _,
   inv_hom_id' := subsingleton.elim _ _ }

@@ -146,18 +146,15 @@ def arrow_map (a : algebra T) (b : algebra S) (comm_iso : R' ⋙ forget T ≅ fo
 equiv.trans ((adj S).hom_equiv ((L R).obj a.A) b) $ equiv.trans (ℛ.adj.hom_equiv a.A ((forget S).obj b)) $
 { to_fun := λ f, f ≫ comm_iso.inv.app b,
   inv_fun := λ g, g ≫ comm_iso.hom.app b,
-  left_inv := λ f, begin dsimp, slice_lhs 2 3 {rw nat_iso.inv_hom_id_app}, apply category.comp_id end,
-  right_inv := λ g, begin dsimp, slice_lhs 2 3 {rw nat_iso.hom_inv_id_app}, apply category.comp_id end
+  left_inv := λ f, begin dsimp, rw [category.assoc, nat_iso.inv_hom_id_app], apply category.comp_id end,
+  right_inv := λ g, begin dsimp, rw [category.assoc, nat_iso.hom_inv_id_app], apply category.comp_id end
 }
 -- This final equivalence might be useful in other contexts (that is, A ⟶ B ≃ A ⟶ C when B ≅ C). It should also probably be a consequence of Yoneda
 
 def test (b : algebra S) : (forget T).map ((adj T).counit.app (R'.obj b)) = (R'.obj b).a :=
 begin
-  rw adj,
-  rw adjunction.mk_of_hom_equiv,
-  dsimp,
-  rw T.map_id,
-  rw category.id_comp,
+  dsimp [adj, adjunction.mk_of_hom_equiv],
+  rw [T.map_id, category.id_comp],
 end
 
 def sound' (a : algebra T) (b : algebra S) (comm_iso : R' ⋙ forget T ≅ forget S ⋙ R) (h : a.A ⟶ (forget T).obj (R'.obj b)) :
@@ -169,8 +166,7 @@ begin
   rw part2.φ',
   dunfold arrow_map,
   conv_lhs {to_lhs, apply_congr ((adj S).hom_equiv_naturality_left_symm _ _).symm},
-  dunfold equiv.symm,
-  dsimp,
+  dsimp [equiv.symm],
   rw ← adjunction.eq_hom_equiv_apply,
   conv_lhs {to_rhs, apply_congr (adj S).hom_equiv_naturality_right _ _ },
   conv_lhs {to_rhs, congr, apply_congr ((adj S).hom_equiv _ _).right_inv },
@@ -245,7 +241,7 @@ begin
   apply equiv.trans (e1 _ _ _ _),
   apply equiv.trans _ (elast _ _),
   apply equiv.symm,
-  exact restrict_equivalence (arrow_map R a b comm_iso).symm _ _ (sound' R a b comm_iso),
+  exact equiv.subtype_congr (arrow_map R a b comm_iso).symm (sound' R a b comm_iso),
 end
 
 def L' (comm_iso : R' ⋙ forget T ≅ forget S ⋙ R) (hrc : has_reflexive_coequalizers (algebra S)) :
@@ -254,7 +250,7 @@ begin
   refine adjunction.left_adjoint_of_equiv (λ a b, L'e R comm_iso hrc a b) _,
   intros a b b' g h,
   ext1,
-  dsimp [L'e, elast, restrict_equivalence, equiv.subtype_congr, arrow_map, e1, coeq_equiv, equiv.trans, equiv.symm],
+  dsimp [L'e, elast, equiv.subtype_congr, arrow_map, e1, coeq_equiv, equiv.trans, equiv.symm],
   change (ℛ.adj.hom_equiv _ _).to_fun (((adj S).hom_equiv _ _).to_fun (_ ≫ h ≫ g)) ≫ comm_iso.inv.app b' =
         ((ℛ.adj.hom_equiv _ _).to_fun (((adj S).hom_equiv _ _).to_fun (_ ≫ h)) ≫ comm_iso.inv.app b) ≫ (R'.map g).f,
   conv_lhs {congr, congr, skip, conv {congr, skip, rw ← category.assoc}, apply_congr (adj S).hom_equiv_naturality_right},
@@ -283,14 +279,6 @@ def lift_algebra_left_adjoint {R : D ⥤ C} [is_right_adjoint R] {R' : algebra S
 variables {A : Type u₃} [𝒜 : category.{v₁} A] {B : Type u₄} [ℬ : category.{v₂} B]
 include 𝒜 ℬ
 
--- def iso_whisker_left (F : C ⥤ D) {G H : D ⥤ E} (α : G ≅ H) : (F ⋙ G) ≅ (F ⋙ H) :=
--- ((whiskering_left C D E).obj F).map_iso α
-
--- def iso_whisker_right {G H : C ⥤ D} (α : G ≅ H) (F : D ⥤ E) : (G ⋙ F) ≅ (H ⋙ F) :=
--- ((whiskering_right C D E).obj F).map_iso α
-
--- def comparison_forget [is_right_adjoint R] : comparison R ⋙ forget ((left_adjoint R) ⋙ R) ≅ R :=
-
 def adjoint_lifting {Q : A ⥤ B} {R : C ⥤ D} {U : A ⥤ C} {V : B ⥤ D}
   [is_right_adjoint R] [monadic_right_adjoint U] [monadic_right_adjoint V]
   (comm_iso : Q ⋙ V ≅ U ⋙ R)
@@ -307,12 +295,12 @@ begin
         exact iso_whisker_right (comparison U).fun_inv_id (Q ⋙ comparison V ⋙ (comparison V).inv),
       end
           ... ≅ Q : by exact iso_whisker_left Q (comparison V).fun_inv_id ≪≫ Q.right_unitor,
-  suffices: is_right_adjoint (comparison U ⋙ functor.inv (comparison U) ⋙ Q ⋙ comparison V ⋙ (comparison V).inv),
+  suffices: is_right_adjoint (comparison U ⋙ (comparison U).inv ⋙ Q ⋙ comparison V ⋙ (comparison V).inv),
     apply @right_adjoint_of_nat_iso _ _ _ _ _ _ i₃ this,
   haveI : is_right_adjoint (comparison U) := right_adjoint_of_equiv,
   haveI : is_right_adjoint (comparison V).inv := right_adjoint_of_equiv,
-  haveI : is_right_adjoint (comparison U ⋙ functor.inv (comparison U) ⋙ Q ⋙ comparison V) := right_adjoint_of_comp,
-  apply @right_adjoint_of_comp _ _ _ _ _ _ (comparison U ⋙ functor.inv (comparison U) ⋙ Q ⋙ comparison V),
+  haveI : is_right_adjoint (comparison U ⋙ (comparison U).inv ⋙ Q ⋙ comparison V) := right_adjoint_of_comp,
+  apply @right_adjoint_of_comp _ _ _ _ _ _ (comparison U ⋙ (comparison U).inv ⋙ Q ⋙ comparison V),
 end
 
 end monad
