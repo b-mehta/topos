@@ -2,7 +2,6 @@ import category_theory.limits.shapes
 import category_theory.limits.types
 import category_theory.types
 import category_theory.limits.shapes.binary_products
-import pullbacks
 import subobject_classifier
 import cartesian_closed
 
@@ -53,52 +52,6 @@ end
 noncomputable def get_unique_value {α : Sort u} (p : α → Prop) (h₁ : ∃ a, p a) (h₂ : ∀ a b, p a → p b → a = b) : α := (get_unique p h₁ h₂).val
 lemma get_unique_property {α : Sort u} (p : α → Prop) (h₁ : ∃ a, p a) (h₂ : ∀ a b, p a → p b → a = b) : p (get_unique_value p h₁ h₂) := (get_unique p h₁ h₂).property
 
-noncomputable instance types_has_subobj_classifier : @has_subobject_classifier Type category_theory.types :=
-{ Ω := Prop,
-  Ω₀ := unit,
-  truth := λ _, true,
-  truth_mono' := ⟨λ A f g _, begin ext i, apply subsingleton.elim end⟩,
-  classifier_of := λ A B f mon b, ∃ (a : A), f a = b,
-  classifies' :=
-  begin
-    intros A B f mon,
-    refine {top := λ _, (), comm := _, is_pb := _},
-    funext, simp, use x,
-    refine pullback_cone.is_limit.mk _ _ _ _ _,
-    intros c i,
-    show A,
-    have: pullback_cone.fst c ≫ _ = pullback_cone.snd c ≫ _ := pullback_cone.condition c,
-    have: (pullback_cone.snd c ≫ (λ (b : B), ∃ (a : A), f a = b)) i,
-      rw ← this, dsimp, trivial,
-    dsimp at this,
-    apply get_unique_value _ this_1 _,
-    intros,
-    rw ← a_2 at a_1,
-    rw mono_iff_injective at mon,
-    apply mon a_1,
-    intros c,
-    dsimp,
-    apply subsingleton.elim,
-    intros c,
-    ext, dunfold pullback_cone.snd pullback_cone.mk, simp,
-    exact get_unique_property (λ (a : A), f a = c.π.app walking_cospan.right x) _ _,
-    intros c m J,
-    dsimp,
-    resetI,
-    rw ← cancel_mono f,
-    ext,
-    simp,
-    have := get_unique_property (λ (a : A), f a = c.π.app walking_cospan.right x) _ _,
-    rw this,
-    erw ← congr_fun (J walking_cospan.right) x,
-    refl
-  end,
-  uniquely' :=
-  begin
-    introv _ fst, ext x,
-    rw set_classifier fst x
-  end }
-
 noncomputable def invert_mono {U X : Type u} (m : U ⟶ X) [mon : mono m] (t : X) (h : ∃ i, m i = t) : {i : U // m i = t} :=
 begin
   apply get_unique _ h _,
@@ -108,48 +61,46 @@ begin
   rw [a_1, a_2]
 end
 
--- instance types_has_subobj_classifier : @has_subobject_classifier (Type u) category_theory.types :=
--- { Ω := ulift Prop,
---   Ω₀ := punit,
---   truth := λ _, ulift.up true,
---   truth_mono' := ⟨λ A f g h, by { ext i, apply subsingleton.elim }⟩,
---   classifier_of := λ A B f mon b, ulift.up (∃ (a : A), f a = b),
---   classifies' := λ U X m hm,
---   { top := λ _, punit.star,
---     comm :=
---     begin
---       ext1,
---       dsimp,
---       congr' 1,
---       rw [eq_iff_iff, true_iff],
---       exact ⟨x, rfl⟩,
---     end,
---     is_pb :=
---     begin
---       haveI := hm,
---       refine is_limit.mk' _ _,
---       intro s,
---       refine ⟨_, subsingleton.elim _ _, _, _⟩,
---       { change s.X ⟶ U,
---         intro i,
---         refine (invert_mono m (s.snd i) _).1,
---         have a := congr_fun s.condition i,
---         dsimp at a,
---         replace a : true = ∃ (a : U), m a = s.snd i := congr_arg ulift.down a,
---         rw ← a,
---         trivial },
---       { dsimp,
---         ext i,
---         dsimp,
---         have := (invert_mono m (s.snd i) _).2,
---       },
+def truth : punit ⟶ ulift Prop := λ _, ulift.up true
+instance : mono truth := ⟨λ A f g _, begin ext i, apply subsingleton.elim end⟩
 
+lemma set_classifier_u {U X : Type u} {f : U ⟶ X} {χ₁ : X ⟶ ulift Prop} (q : classifying truth f χ₁) :
+  ∀ x, (χ₁ x).down ↔ ∃ (a : U), f a = x :=
+begin
+  obtain ⟨ka, la, ma⟩ := q,
+  intro x,
+  split, rintro,
+  { let g := ma.lift (pullback_cone.mk (𝟙 _) (λ _, x) (by simp [ulift.ext_iff, function.funext_iff, a, truth])),
+    refine ⟨g punit.star, _⟩,
+    have : (g ≫ f) _ = (λ _, x) _ := congr_fun (ma.fac _ walking_cospan.right) punit.star,
+    exact this },
+  rintro ⟨t, rfl⟩, have : _ = _ := congr_fun la t, simp at this, rw ← this, trivial,
+end
 
-
-
---     end
---   }
--- }
+noncomputable instance types_has_subobj_classifier : @has_subobject_classifier (Type u) category_theory.types :=
+{ Ω := ulift Prop,
+  Ω₀ := punit,
+  truth := truth,
+  is_subobj_classifier :=
+  { classifier_of := λ A B f mon b, ulift.up (∃ (a : A), f a = b),
+    classifies' :=
+    begin
+      introsI A B f mon,
+      refine ⟨λ _, punit.star, _, _⟩,
+      funext, ext1, dsimp [truth], rw [eq_iff_iff, true_iff], use x,
+      refine is_limit.mk''' _ mon _,
+      intro s,
+      refine ⟨λ i, (invert_mono f (s.snd i) _).1, _⟩,
+      have z : _ = _ := congr_fun s.condition i,
+      rw ← ulift.up.inj z, trivial,
+      ext i,
+      apply (invert_mono f (s.snd i) _).2,
+    end,
+    uniquely' :=
+    begin
+      introv _ fst, ext x,
+      rw set_classifier_u fst x,
+    end } }
 
 @[simps]
 def currying_equiv (A X Y : Type u) : ((prod_functor.obj A).obj X ⟶ Y) ≃ (X ⟶ A → Y) :=

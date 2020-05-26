@@ -5,7 +5,7 @@ import topology.category.Top.opens
 import category_theory.limits.lattice
 import category_theory.limits.limits
 import category_theory.limits.shapes.pullbacks
-import .grothendieck
+import grothendieck
 
 universes u
 open category_theory

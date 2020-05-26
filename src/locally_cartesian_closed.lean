@@ -2,10 +2,7 @@ import category_theory.comma
 import category_theory.adjunction.basic
 import category_theory.limits.shapes
 import category_theory.epi_mono
-import cartesian_closed
 import category_theory.limits.over
-import pullbacks
-import comma
 import over
 
 /-!
@@ -67,6 +64,8 @@ lemma equiv_reflects_epi {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y
   (hef : epi (e.functor.map f)) : epi f :=
 faithful_reflects_epi e.functor hef
 
+section
+
 lemma equiv_preserves_mono {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) [mono f] (e : C ≌ D) :
   mono (e.functor.map f) :=
 begin
@@ -94,11 +93,10 @@ begin
   apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
   apply is_iso.of_iso,
 end
+end
 
 lemma over_epi {B : C} {f g : over B} {k : f ⟶ g} [epi k.left] : epi k :=
-begin
-  split, intros h l m a, ext, rw [← cancel_epi k.left, ← over.comp_left, a], refl
-end
+⟨λ h l m a, by { ext, rw [← cancel_epi k.left, ← over.comp_left, a], refl }⟩
 
 lemma over_epi' [has_binary_products.{v} C] (B : C) (f g : over B) (k : f ⟶ g) [ke : epi k] : epi k.left :=
 left_adjoint_preserves_epi (forget_adj_star _) ke
@@ -145,24 +143,9 @@ left_adjoint_preserves_epi (forget_adj_star _) ke
 def over_iso {B : C} {f g : over B} (hl : f.left ≅ g.left) (hw : hl.hom ≫ g.hom = f.hom) : (f ≅ g) :=
 { hom := over.hom_mk hl.hom, inv := over.hom_mk hl.inv (by simp [iso.inv_comp_eq, hw]) }
 
+local attribute [instance] has_pullbacks_of_has_finite_limits
+
 variables [has_finite_limits.{v} C] [is_locally_cartesian_closed.{v} C]
-
-@[simps]
-def real_pullback {A B : C} (f : A ⟶ B) : over B ⥤ over A :=
-{ obj := λ g, over.mk (pullback.fst : pullback f g.hom ⟶ A),
-  map := λ g h k,
-  begin
-    apply over.hom_mk _ _,
-    apply pullback.lift pullback.fst _ _,
-    apply pullback.snd ≫ k.left,
-    rw pullback.condition,
-    rw assoc,
-    rw over.w k,
-    dsimp,
-    rw limit.lift_π,
-    refl
-  end }
-
 
 def pullback_along {A B : C} (f : A ⟶ B) : over B ⥤ over A :=
 star (over.mk f) ⋙ (over.iterated_slice_equiv _).functor
@@ -313,37 +296,31 @@ end
 instance epi_part_is_epi : epi (epi_part f) := coequalizer_epi _ _
 
 lemma mono_part_is_mono : mono (mono_part f) :=
-begin
-  split, intros D g h gmhm,
-  set R := pullback f f,
-  set I := image f,
+⟨begin
+  intros D g h gmhm,
   set q := epi_part f,
-  set m := mono_part f,
   set E := pullback (limits.prod.map q q) (limits.prod.lift g h),
   set n : E ⟶ D := pullback.snd,
-  set kl : E ⟶ A ⨯ A := pullback.fst,
-  set a : R ⟶ A := pullback.fst,
-  set b : R ⟶ A := pullback.snd,
-  set k : E ⟶ A := kl ≫ limits.prod.fst,
-  set l : E ⟶ A := kl ≫ limits.prod.snd,
+  set k : E ⟶ A := pullback.fst ≫ limits.prod.fst,
+  set l : E ⟶ A := pullback.fst ≫ limits.prod.snd,
   have kqng: k ≫ q = n ≫ g,
-    have: (kl ≫ limits.prod.map q q) ≫ limits.prod.fst = (n ≫ limits.prod.lift g h) ≫ limits.prod.fst, rw pullback.condition,
+    have: (pullback.fst ≫ limits.prod.map q q) ≫ limits.prod.fst = (n ≫ limits.prod.lift g h) ≫ limits.prod.fst,
+      rw pullback.condition,
     rw [assoc, assoc, prod.lift_fst, limits.prod.map_fst, ← assoc] at this, exact this,
   have lqnh: l ≫ q = n ≫ h,
-    have: (kl ≫ limits.prod.map q q) ≫ limits.prod.snd = (n ≫ limits.prod.lift g h) ≫ limits.prod.snd, rw pullback.condition,
+    have: (pullback.fst ≫ limits.prod.map q q) ≫ limits.prod.snd = (n ≫ limits.prod.lift g h) ≫ limits.prod.snd,
+      rw pullback.condition,
     rw [assoc, assoc, prod.lift_snd, limits.prod.map_snd, ← assoc] at this, exact this,
   have kflf: k ≫ f = l ≫ f,
     rw [← factorises f, ← assoc, kqng, assoc, gmhm, ← assoc, ← lqnh, assoc],
-  set p : E ⟶ R := pullback.lift k l kflf,
-  have pak: p ≫ a = k, simp,
-  have pbl: p ≫ b = l, simp,
-  have aqbq: a ≫ q = b ≫ q := coequalizer.condition a b,
+  set p : E ⟶ pullback f f := pullback.lift k l kflf,
+  have aqbq : _ ≫ q = _ ≫ q := coequalizer.condition _ _,
   have: n ≫ g = n ≫ h,
-    rw [← kqng, ← pak, assoc, aqbq, ← assoc, pbl, lqnh],
-  haveI: epi n := pullback_preserves_epi' _ _,
+    rw [← kqng, ← pullback.lift_fst k l kflf, assoc, aqbq, pullback.lift_snd_assoc _ _ _, lqnh],
+  haveI : epi n := pullback_preserves_epi' _ _,
   rwa ← cancel_epi n,
   apply_instance,
-end
+end⟩
 
 variable {f}
 def image_map {A' B' : C} {f' : A' ⟶ B'} {l : A ⟶ A'} {r : B ⟶ B'} (h : l ≫ f' = f ≫ r) : image f ⟶ image f' :=
@@ -366,11 +343,6 @@ begin
   rw ← cancel_epi (epi_part f),
   rw ← assoc, rw image_map_comm_left, rw assoc, rw factorises, rw h, rw ← assoc, rw factorises
 end
-
--- lemma cofork.of_π_app_zero {X Y : C} {f g : X ⟶ Y} {P : C} (π : Y ⟶ P) (w : f ≫ π = g ≫ π) :
---   (cofork.of_π π w).ι.app walking_parallel_pair.zero = f ≫ π := rfl
--- lemma cofork.of_π_app_one {X Y : C} {f g : X ⟶ Y} {P : C} (π : Y ⟶ P) (w : f ≫ π = g ≫ π) :
---   (cofork.of_π π w).ι.app walking_parallel_pair.one = π := rfl
 
 lemma coequalizer.hom_ext {X Y P : C} {f g : X ⟶ Y} {h k : coequalizer f g ⟶ P}
   (hyp : coequalizer.π f g ≫ h = coequalizer.π f g ≫ k) :

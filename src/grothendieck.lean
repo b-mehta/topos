@@ -3,8 +3,8 @@
  -/
 
 import category_theory.whiskering
-import .sieve
-import .pullbacks
+import sieve
+import pullbacks
 
 universes u v w
 namespace category_theory

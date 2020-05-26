@@ -5,7 +5,7 @@ import category_theory.limits.shapes.finite_limits
 import category_theory.yoneda
 import order.complete_lattice
 import data.set.lattice
-import .comma
+import comma
 
 universes u v
 namespace category_theory

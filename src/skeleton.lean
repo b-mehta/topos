@@ -3,7 +3,7 @@
    This should probably live in full_subcategory.lean
    -/
 import category_theory.full_subcategory
-import .pullbacks
+import category_theory.comma
 
 def logic.equivalence := @equivalence
 

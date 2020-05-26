@@ -1,5 +1,5 @@
 import data.nat.basic
-import pfin.basic pfin.ops
+import pfin.ops
 
 universe u
 open pfin nat function

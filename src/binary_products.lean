@@ -5,8 +5,8 @@ Authors: Bhavik Mehta
 -/
 
 import category_theory.limits.shapes.binary_products
+import category_theory.limits.shapes.constructions.preserve_binary_products
 import category_theory.limits.shapes.pullbacks
--- import finite_products
 import category_theory.comma
 import pullbacks
 import category_theory.adjunction.limits
@@ -72,19 +72,6 @@ section
 
 variables [has_finite_products.{v} C] [has_finite_products.{v} D] (F : C ⥤ D)
 
-def prod_comparison (A B : C) : F.obj (A ⨯ B) ⟶ F.obj A ⨯ F.obj B :=
-prod.lift (F.map limits.prod.fst) (F.map limits.prod.snd)
-
-/-- Naturality of the prod_comparison morphism in both arguments. -/
-@[reassoc] lemma prod_comparison_natural {A A' B B' : C} (f : A ⟶ A') (g : B ⟶ B') :
-  F.map (limits.prod.map f g) ≫ prod_comparison F A' B' = prod_comparison F A B ≫ limits.prod.map (F.map f) (F.map g) :=
-begin
-  rw [prod_comparison, prod_comparison, prod.lift_map],
-  apply prod.hom_ext,
-  { simp only [← F.map_comp, category.assoc, prod.lift_fst, limits.prod.map_fst, category.comp_id] },
-  { simp only [← F.map_comp, category.assoc, prod.lift_snd, limits.prod.map_snd, prod.lift_snd_assoc] },
-end
-
 @[reassoc]
 lemma thingy (A B : C) [is_iso (prod_comparison F A B)] :
   inv (prod_comparison F A B) ≫ F.map limits.prod.fst = limits.prod.fst :=
@@ -103,63 +90,14 @@ begin
   rw prod.lift_snd,
 end
 
-@[simps]
-private def alternative_cone (A B : C) : cone (pair A B ⋙ F) :=
-{ X := F.obj A ⨯ F.obj B,
-  π := nat_trans.of_homs (λ j, walking_pair.cases_on j limits.prod.fst limits.prod.snd)}
-
-def alt_is_limit' (A B : C) : is_limit (alternative_cone F A B) :=
-{ lift := λ s, prod.lift (s.π.app walking_pair.left) (s.π.app walking_pair.right),
-  fac' := λ s j, walking_pair.cases_on j (prod.lift_fst _ _) (prod.lift_snd _ _),
-  uniq' := λ s m w, prod.hom_ext
-    (by { rw prod.lift_fst, apply w walking_pair.left })
-    (by { rw prod.lift_snd, apply w walking_pair.right }) }
-
-def preserves_binary_prod_of_prod_comparison_iso (A B : C) [is_iso (prod_comparison F A B)] :
-  preserves_limit (pair A B) F :=
-preserves_limit_of_preserves_limit_cone (limit.is_limit (pair A B))
+@[reassoc] lemma prod_comparison_inv_natural {A A' B B' : C} (f : A ⟶ A') (g : B ⟶ B') [is_iso (prod_comparison F A B)] [is_iso (prod_comparison F A' B')] :
+  inv (prod_comparison F A B) ≫ F.map (limits.prod.map f g) = limits.prod.map (F.map f) (F.map g) ≫ inv (prod_comparison F A' B') :=
 begin
-  apply is_limit.of_iso_limit (alt_is_limit' F A B) _,
-  apply cones.ext _ _,
-  { apply (as_iso (prod_comparison F A B)).symm },
-  { rintro ⟨j⟩,
-    { apply (as_iso (prod_comparison F A B)).eq_inv_comp.2 (prod.lift_fst _ _) },
-    { apply (as_iso (prod_comparison F A B)).eq_inv_comp.2 (prod.lift_snd _ _) } },
+  erw [(as_iso (prod_comparison F A' B')).eq_comp_inv, assoc, (as_iso (prod_comparison F A B)).inv_comp_eq],
+  apply prod_comparison_natural,
 end
 
-def preserves_binary_prods_of_prod_comparison_iso [∀ A B, is_iso (prod_comparison F A B)] :
-  preserves_limits_of_shape (discrete walking_pair) F :=
-{ preserves_limit := λ K,
-  begin
-    haveI := preserves_binary_prod_of_prod_comparison_iso F (K.obj walking_pair.left) (K.obj walking_pair.right),
-    apply preserves_limit_of_iso F (diagram_iso_pair K).symm,
-  end }
-
 variables [preserves_limits_of_shape (discrete walking_pair) F]
-
--- (implementation)
-private def alt_is_limit (A B : C) : is_limit (F.map_cone (limit.cone (pair A B))) :=
-preserves_limit.preserves (limit.is_limit (pair A B))
-
-/--
-The product comparison isomorphism. Technically a special case of `preserves_limit_iso`, but
-this version is convenient to have.
--/
-instance prod_comparison_iso_of_preserves_binary_prods (A B : C) : is_iso (prod_comparison F A B) :=
-{ inv := (alt_is_limit F A B).lift (alternative_cone F A B),
-  hom_inv_id' :=
-  begin
-    apply is_limit.hom_ext (alt_is_limit F A B),
-    rintro ⟨j⟩,
-    { rw [category.assoc, (alt_is_limit F A B).fac, category.id_comp], apply prod.lift_fst },
-    { rw [category.assoc, (alt_is_limit F A B).fac, category.id_comp], apply prod.lift_snd },
-  end,
-  inv_hom_id' :=
-  begin
-    ext ⟨j⟩,
-    { simpa [prod_comparison] using (alt_is_limit F A B).fac _ _ },
-    { simpa [prod_comparison] using (alt_is_limit F A B).fac _ _ }
-  end }
 
 end
 
@@ -231,7 +169,7 @@ def preserves_fin_of_preserves_binary_and_terminal  :
     apply preserves_limit_of_preserves_limit_cone this,
     have q : is_limit (F.map_cone (limit.cone K')),
       apply p'.preserves, apply limit.is_limit,
-    haveI := category_theory.prod_comparison_iso_of_preserves_binary_prods F (K.obj ⟨0⟩) (limit K'),
+    haveI := category_theory.limits.prod_comparison_iso_of_preserves_binary_prods F (K.obj ⟨0⟩) (limit K'),
     refine ⟨λ s, _, _, _⟩,
     { apply _ ≫ inv (prod_comparison F (K.obj ⟨0⟩) (limit K')),
       apply prod.lift (s.π.app ⟨0⟩) (q.lift ⟨_, nat_trans.of_homs (λ i, _)⟩),

@@ -33,53 +33,6 @@ structure split_coequalizer  (f g : A ⟶ B) :=
 (p2 : t ≫ g = 𝟙 B)
 (p3 : t ≫ f = cf.π ≫ s)
 
-/-- You can make a coequalizer by finding a π which uniquely factors any other cofork. -/
-def is_coeq_lemma' {f g : A ⟶ B} {X : C} (π : B ⟶ X)
-  (e : f ≫ π = g ≫ π)
-  (factor : ∀ {Y} (c : B ⟶ Y), (f ≫ c = g ≫ c) →  unique {m : X ⟶ Y // c = π ≫ m}) :
-is_colimit (cofork.of_π π e) :=
-begin
-  refine {desc := λ c : cofork f g, _, fac' :=  λ c : cofork f g, _, uniq' :=  λ c : cofork f g, _},
-  rcases (factor c.π c.condition) with ⟨⟨⟨k,h1⟩⟩,h2⟩, apply k,
-  rcases (factor c.π c.condition) with ⟨⟨⟨k,h1⟩⟩,h2⟩, rintros (_|_),
-    change (_ ≫ _) ≫ k = _,  rw category.assoc, rw ← h1, rw ← cofork.left_app_one,
-    change π ≫ k = c.π, dsimp, rw h1,
-  rcases (factor c.π c.condition) with ⟨⟨⟨k,h1⟩⟩,h2⟩,
-      intros, change m = k,
-        have, apply h2 ⟨m,eq.symm (w walking_parallel_pair.one)⟩,
-        apply subtype.ext.1 this,
-end
-
--- /-- You can make a coequalizer by finding a π which uniquely factors any other cofork. -/
--- -- def is_coeq_lemma {f g : A ⟶ B} {X : C} (π : B ⟶ X)
--- --   (e : f ≫ π = g ≫ π)
--- --   (factor : ∀ {Y} (c : B ⟶ Y), (f ≫ c = g ≫ c) → unique {m : X ⟶ Y // c = π ≫ m}) :
--- --   has_colimit (parallel_pair f g) :=
--- -- {cocone := cofork.of_π π e, is_colimit := is_coeq_lemma' _ _ (λ Y, factor)}
-
-def split_coequalizer_is_coequalizer' {f g : A ⟶ B} (sc : split_coequalizer f g) : is_colimit (cofork.of_π sc.cf.π (cofork.condition _)) :=
-begin
-  refine is_coeq_lemma' sc.cf.π (cofork.condition _) _,
-  { intros, refine ⟨⟨⟨sc.s ≫ c, _⟩⟩,_⟩,
-  erw [← reassoc_of sc.p3, a, ← category.assoc, sc.p2, category.id_comp],
-  rintros ⟨m2,p⟩,
-  apply subtype.ext.2,
-  change m2 = sc.s ≫ c,
-  rw [p, ← category.assoc, sc.p1], dsimp, simp }
-end
-
--- def split_coequalizer_is_coequalizer {f g : A ⟶ B} (sc : split_coequalizer f g) : has_colimit (parallel_pair f g) :=
--- begin
---   refine is_coeq_lemma sc.cf.π (cofork.condition _) _,
---   { intros, refine ⟨⟨⟨sc.s ≫ c,_⟩⟩,_⟩,
---   rw [← category.assoc, ← sc.p3, category.assoc, a, ← category.assoc, sc.p2, category.id_comp],
---   rintros ⟨m2,p⟩,
---   apply subtype.ext.2,
---   change m2 = sc.s ≫ c,
---   rw [p, ← category.assoc, sc.p1], dsimp, simp }
--- end
-
--- -- open category_theory.limits
 section
 open category_theory.limits.walking_parallel_pair category_theory.limits.walking_parallel_pair_hom
 
@@ -96,10 +49,12 @@ def colimit_of_splits {F : walking_parallel_pair.{v} ⥤ C} (c : cocone F) (s : 
   end,
   uniq' := λ s' m J,
   begin
-    rw ← J one, slice_rhs 1 2 {rw hs}, simp
-  end
-}
+    rw [← J one, reassoc_of hs]
+  end }
 end
+
+def split_coequalizer_is_coequalizer' {f g : A ⟶ B} (sc : split_coequalizer f g) : is_colimit (cofork.of_π sc.cf.π sc.cf.condition) :=
+colimit_of_splits _ sc.s sc.t sc.p1 sc.p2 sc.p3
 
 variable (C)
 def has_reflexive_coequalizers := Π ⦃A B : C⦄ ⦃f g : A ⟶ B⦄, reflexive_pair f g → has_colimit (parallel_pair f g)
@@ -146,8 +101,7 @@ open adjunction
 def algebra_pair_reflexive (α : algebras G) : reflexive_pair (((F G).map) α.a) (ε.app ((F G).obj α.A)) :=
 { back := (F G).map (η.app _),
   back_f := by { erw [← functor.map_comp, monad.algebra.unit α], simp },
-  back_g := by simp
-}
+  back_g := by simp }
 
 def other_adjunctive_coequalizer (α : algebras G) : cofork (G.map ((F G).map α.a)) (G.map (ε.app _)) :=
 cofork.of_π α.a α.assoc.symm
@@ -181,17 +135,6 @@ def adjunctive_coequalizer_split (B : D) : split_coequalizer (G.map ((F G).map (
 
 def adjunctive_coequalizer_split' (B : D) : split_coequalizer (G.map ((F G).map (G.map (ε.app B)))) (G.map (ε.app _)) :=
 other_adjunctive_coequalizer_split ⟨G.obj B, G.map (ε.app B), right_triangle_components _, by { erw [← G.map_comp, ← G.map_comp, ← ε.naturality], dsimp, refl }⟩
-
-  -- let mapped_cocone : cofork (G.map (F.map (G.map (ε.app B)))) (G.map (ε.app _)) := cofork.of_π (G.map (ε.app B)) _,
-  --   swap, rw ← G.map_comp, rw ← G.map_comp, congr' 1,
-  --   apply (ε.naturality (ε.app B)),
-  -- let sc: split_coequalizer (G.map (F.map (G.map (ε.app B)))) (G.map (ε.app _)),  -- LOOK HERE
-  -- { refine ⟨mapped_cocone,
-  --           η.app _,
-  --           η.app _,
-  --           (is_right_adjoint.adj G).right_triangle_components,
-  --           (is_right_adjoint.adj G).right_triangle_components,
-  --           (η.naturality _).symm ⟩ },
 
 omit 𝒞 𝒟
 def restrict_equivalence {A : Type u₁} {B : Type u₂} (h : A ≃ B) (p : A → Prop) (q : B → Prop) (sound : ∀ a, p a ↔ q (h a)) : {a // p a} ≃ {b // q b} :=
@@ -240,7 +183,7 @@ equiv.trans (e1 _ _ _) (equiv.trans (e2 _ _) (e3 _ _))
 
 lemma Lhe (α : algebras G) (B B' : D) (g : B ⟶ B') (h : L_obj hce α ⟶ B) : (Le hce α B') (h ≫ g) = (Le hce α B) h ≫ (monad.comparison G).map g :=
 begin
-  ext, dunfold Le e1 e2 e3 coeq_equiv restrict_equivalence, dsimp,
+  ext, dunfold Le e1 e2 e3 coeq_equiv, dsimp,
   change (is_right_adjoint.adj.hom_equiv α.A B').to_fun (coequalizer.π ((F G).map α.a) (ε.app ((F G).obj α.A)) ≫ h ≫ g) =
        (is_right_adjoint.adj.hom_equiv α.A B).to_fun (coequalizer.π ((F G).map α.a) (ε.app ((F G).obj α.A)) ≫ h) ≫ G.map g,
   conv_lhs {congr, skip, rw ← assoc},
@@ -345,7 +288,7 @@ begin
   set hce := (λ (β : monad.algebra (F G ⋙ G)), hrc (algebra_pair_reflexive β)),
   letI: has_colimit (parallel_pair ((F G).map α.a) (ε.app ((F G).obj α.A))) := hce _,
   change is_iso ((Le hce α (coequalizer ((F G).map α.a) (ε.app ((F G).obj α.A)))).to_fun (𝟙 _)),
-  dunfold Le e1 e2 e3 equiv.trans coeq_equiv restrict_equivalence,
+  dunfold Le e1 e2 e3 equiv.trans coeq_equiv,
   dsimp,
   apply @monad.algebra_iso_of_iso _ _ _ _ _ _ _ _,
 
@@ -443,7 +386,7 @@ def counit_iso
 begin
   apply nat_iso.is_iso_of_is_iso_app _, intro B,
   set F := left_adjoint G,
-  dsimp [forms_adjoint, adjunction.adjunction_of_equiv_left, adjunction.mk_of_hom_equiv, Le, equiv.trans, e1, e2, e3, coeq_equiv, restrict_equivalence, monad.comparison],
+  dsimp [forms_adjoint, adjunction.adjunction_of_equiv_left, adjunction.mk_of_hom_equiv, Le, equiv.trans, e1, e2, e3, coeq_equiv, monad.comparison],
   apply coequalizer_desc_is_iso,
   convert ε_B_is_coequalizer B hrc (λ _ _ _ _, prc) ri,
   change ((is_right_adjoint.adj).hom_equiv (G.obj B) B).inv_fun (𝟙 (G.obj B)) = _,

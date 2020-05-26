@@ -30,9 +30,6 @@ local attribute [tidy] tactic.case_bash
 
 open category
 
-def prodinl_comp (X Y : C) [has_finite_products.{v} C] : prod_functor.obj (X ⨯ Y) ≅ prod_functor.obj Y ⋙ prod_functor.obj X :=
-nat_iso.of_components (limits.prod.associator _ _) (by tidy)
-
 end
 
 class exponentiable {C : Type u} [category.{v} C] [bp : has_finite_products.{v} C] (X : C) :=
@@ -42,7 +39,7 @@ def binary_product_exponentiable {C : Type u} [category.{v} C] [bp : has_finite_
   (hX : exponentiable X) (hY : exponentiable Y) : exponentiable (X ⨯ Y) :=
 { is_adj :=
   { right := hX.is_adj.right ⋙ hY.is_adj.right,
-    adj := adjunction_of_nat_iso_left (adjunction.comp _ _ hY.is_adj.adj hX.is_adj.adj) (prodinl_comp _ _).symm } }
+    adj := adjunction_of_nat_iso_left (adjunction.comp _ _ hY.is_adj.adj hX.is_adj.adj) (prod_functor_left_comp _ _).symm } }
 
 class is_cartesian_closed (C : Type u) [category.{v} C] [has_finite_products.{v} C] :=
 (cart_closed : Π (X : C), exponentiable X)
@@ -71,9 +68,11 @@ exponentiable.is_adj.adj.unit
 /-- `B ^ A` or `A ⟹ B` -/
 def exp (A : C) (B : C) [exponentiable A] : C := (exp.functor A).obj B
 
-infixl `⟹`:20 := exp
+abbreviation pow (B : C) (A : C) [exponentiable A] := exp A B
 
--- [todo] rename as 'post compose' or similar?
+infixl `⟹`:20 := exp
+infixr `^^`:30 := pow
+
 def post (A : C) [exponentiable A] {X Y : C} (f : X ⟶ Y) : A⟹X ⟶ A⟹Y :=
 (exp.functor A).map f
 
@@ -185,6 +184,7 @@ begin
   { simp [id_comp f] }
 end
 
+/-- Probably don't want to use this construction in general, but it's provided anyway. -/
 def terminal_exponentiable : exponentiable ⊤_C :=
 { is_adj :=
   { right := 𝟭 C,
@@ -192,9 +192,7 @@ def terminal_exponentiable : exponentiable ⊤_C :=
     { hom_equiv := λ X _, have unitor : _, from prod.left_unitor X,
         ⟨λ a, unitor.inv ≫ a, λ a, unitor.hom ≫ a, by tidy, by tidy⟩ } } }
 
-attribute [instance] terminal_exponentiable
-
-def exp_terminal_iso : (⊤_C ⟹ X) ≅ X :=
+def exp_terminal_iso [exponentiable ⊤_C] : (⊤_C ⟹ X) ≅ X :=
 yoneda.ext (⊤_ C ⟹ X) X
   (λ Y f, (prod.left_unitor Y).inv ≫ uncurry f)
   (λ Y f, curry ((prod.left_unitor Y).hom ≫ f))
@@ -212,7 +210,7 @@ section pre
 
 variables [has_finite_products.{v} C] {B}
 
-def pre (X : C) (f : B ⟶ A) [exponentiable A] [exponentiable B] :  (A⟹X) ⟶ B⟹X :=
+def pre (X : C) (f : B ⟶ A) [exponentiable A] [exponentiable B] :  A⟹X ⟶ B⟹X :=
 curry (limits.prod.map f (𝟙 _) ≫ ev A X)
 
 lemma pre_id (A X : C) [exponentiable A] : pre X (𝟙 A) = 𝟙 (A⟹X) :=
@@ -222,8 +220,8 @@ by { rw [pre, prod_map_id_id, id_comp, ← uncurry_id_eq_ev], simp }
 lemma pre_map [exponentiable A] [exponentiable B] {D : C} [exponentiable D] (f : A ⟶ B) (g : B ⟶ D) :
   pre X (f ≫ g) = pre X g ≫ pre X f :=
 begin
-  rw [pre, curry_eq_iff, pre, pre, uncurry_natural_left, uncurry_curry, prod_map_comm_assoc,
-      prod_functorial, assoc, ← uncurry_id_eq_ev, ← uncurry_id_eq_ev, ← uncurry_natural_left,
+  rw [pre, curry_eq_iff, pre, pre, uncurry_natural_left, uncurry_curry, prod_map_map_assoc,
+      prod_map_comp_id, assoc, ← uncurry_id_eq_ev, ← uncurry_id_eq_ev, ← uncurry_natural_left,
       curry_natural_right, comp_id, uncurry_natural_right, uncurry_curry],
 end
 
@@ -231,7 +229,7 @@ end pre
 
 @[simps]
 def pre.functor [has_finite_products.{v} C] [is_cartesian_closed C] (X : C) : Cᵒᵖ ⥤ C :=
-{ obj := λ A, (A.unop) ⟹ X,
+{ obj := λ A, A.unop ⟹ X,
   map := λ A B f, pre X f.unop,
   map_id' := λ B, pre_id B.unop X,
   map_comp' := λ P Q R f g, pre_map g.unop f.unop }
@@ -240,7 +238,7 @@ lemma exp_natural [has_finite_products.{v} C] [is_cartesian_closed C] {A B : C} 
   (pre.functor A).map g ≫ post (opposite.unop Y) f = post (opposite.unop X) f ≫ (pre.functor B).map g :=
 begin
   dsimp [pre],
-  rw [← curry_natural_left, eq_curry_iff, uncurry_natural_right, uncurry_curry, prod_map_comm_assoc],
+  rw [← curry_natural_left, eq_curry_iff, uncurry_natural_right, uncurry_curry, prod_map_map_assoc],
   simp,
 end
 
@@ -250,6 +248,7 @@ def exp.difunctor [has_finite_products.{v} C] [is_cartesian_closed C] : C ⥤ C�
   map_id' := λ X, by { ext, apply functor.map_id },
   map_comp' := λ X Y Z f g, by { ext, apply functor.map_comp } }
 
+/-- The key point here is that the composite A ⨯ ⊥_ C ⟶ ⊥_ C ⟶ A ⨯ ⊥_ C is identity. -/
 @[simps]
 def zero_mul [has_initial.{v} C] : A ⨯ ⊥_ C ≅ ⊥_ C :=
 { hom := limits.prod.snd,
@@ -261,12 +260,12 @@ def zero_mul [has_initial.{v} C] : A ⨯ ⊥_ C ≅ ⊥_ C :=
       apply subsingleton.elim,
     rw [this, ← uncurry_natural_right, ← eq_curry_iff],
     apply subsingleton.elim
-  end,
-  }
+  end }
 
 def mul_zero [has_initial.{v} C] : ⊥_ C ⨯ A ≅ ⊥_ C :=
 limits.prod.braiding _ _ ≪≫ zero_mul
 
+/-- Show `0^X = 1`. -/
 def pow_zero [has_initial.{v} C] [is_cartesian_closed C] : ⊥_C ⟹ B ≅ ⊤_ C :=
 { hom := default _,
   inv := curry (mul_zero.hom ≫ default (⊥_ C ⟶ B)),
@@ -300,48 +299,6 @@ variables [has_finite_products.{v} C] [has_finite_products.{v} D]
 
 variables (F : C ⥤ D) [preserves_limits_of_shape (discrete walking_pair) F]
 
--- (implementation)
-def alternative_cone (A B : C) : cone (pair A B ⋙ F) :=
-{ X := F.obj A ⨯ F.obj B,
-  π := nat_trans.of_homs (λ j, walking_pair.cases_on j limits.prod.fst limits.prod.snd)}
-
--- (implementation)
-def alt_is_limit (A B : C) : is_limit (functor.map_cone F (limit.cone (pair A B))) :=
-preserves_limit.preserves (limit.is_limit (pair A B))
-
--- the multiplicative comparison isomorphism
-@[simps]
-def mult_comparison (A B : C) : F.obj (A ⨯ B) ≅ F.obj A ⨯ F.obj B :=
-{ hom := prod.lift (F.map limits.prod.fst) (F.map limits.prod.snd),
-  inv := (alt_is_limit F A B).lift (alternative_cone F A B),
-  hom_inv_id' :=
-  begin
-    apply is_limit.hom_ext (alt_is_limit F A B),
-    rintro ⟨j⟩,
-      rw assoc, rw (alt_is_limit F A B).fac,
-      erw limit.lift_π, simp,
-    rw assoc, rw (alt_is_limit F A B).fac,
-    erw limit.lift_π, simp
-  end,
-  inv_hom_id' :=
-  begin
-    ext ⟨j⟩, { simp, erw (alt_is_limit F A B).fac, refl },
-    { simp, erw (alt_is_limit F A B).fac, refl },
-  end }
-
-@[reassoc] lemma mult_comparison_natural {A A' B B'} (f : A ⟶ A') (g : B ⟶ B') :
-  F.map (limits.prod.map f g) ≫ (mult_comparison F A' B').hom = (mult_comparison F A B).hom ≫ limits.prod.map (F.map f) (F.map g) :=
-begin
-  rw [mult_comparison_hom, mult_comparison_hom, prod.lift_map],
-  apply prod.hom_ext,
-  { simp only [← F.map_comp, assoc, prod.lift_fst, limits.prod.map_fst, comp_id] },
-  { simp only [← F.map_comp, assoc, prod.lift_snd, limits.prod.map_snd, limits.prod.lift_snd_assoc] },
-end
-
-@[reassoc] lemma mult_comparison_inv_natural {A A' B B'} (f : A ⟶ A') (g : B ⟶ B') :
-  (mult_comparison F A B).inv ≫ F.map (limits.prod.map f g) = limits.prod.map (F.map f) (F.map g) ≫ (mult_comparison F A' B').inv :=
-by rw [iso.inv_comp_eq, ← assoc, iso.eq_comp_inv, mult_comparison_natural]
-
 def cartesian_closed_of_equiv (e : C ≌ D) [h : is_cartesian_closed C] : is_cartesian_closed D :=
 { cart_closed := λ X,
   { is_adj :=
@@ -351,14 +308,14 @@ def cartesian_closed_of_equiv (e : C ≌ D) [h : is_cartesian_closed C] : is_car
       have: e.functor ⋙ prod_functor.obj X ⋙ e.inverse ≅ prod_functor.obj (e.inverse.obj X),
       apply nat_iso.of_components _ _,
       intro Y,
-      apply mult_comparison e.inverse X (e.functor.obj Y) ≪≫ _,
+      apply as_iso (prod_comparison e.inverse X (e.functor.obj Y)) ≪≫ _,
       refine ⟨limits.prod.map (𝟙 _) (e.unit_inv.app _),
               limits.prod.map (𝟙 _) (e.unit.app _),
-              by simpa [← prod_functorial', prod_map_id_id],
-              by simpa [← prod_functorial', prod_map_id_id]⟩,
+              by simpa [← prod_map_id_comp, prod_map_id_id],
+              by simpa [← prod_map_id_comp, prod_map_id_id]⟩,
       intros Y Z g,
-      simp only [mult_comparison, prod.lift_map, equivalence.unit_inv, functor.comp_map,
-                 prod_functor_obj_map, assoc, comp_id, iso.trans_hom],
+      simp only [prod_comparison, thingy, thingy2, prod.lift_map, equivalence.unit_inv, functor.comp_map,
+                 prod_functor_obj_map, assoc, comp_id, iso.trans_hom, as_iso_hom],
       apply prod.hom_ext,
       rw [assoc, prod.lift_fst, prod.lift_fst, ← functor.map_comp, limits.prod.map_fst, comp_id],
       rw [assoc, prod.lift_snd, prod.lift_snd, ← functor.map_comp_assoc, limits.prod.map_snd],
@@ -390,21 +347,21 @@ The exponential comparison map.
 -/
 def exp_comparison (A B : C) :
   F.obj (A ⟹ B) ⟶ F.obj A ⟹ F.obj B :=
-curry ((mult_comparison F A _).inv ≫ F.map (ev _ _))
+curry (inv (prod_comparison F A _) ≫ F.map (ev _ _))
 
 lemma exp_comparison_natural_left (A A' B : C) (f : A' ⟶ A) :
   exp_comparison F A B ≫ pre (F.obj B) (F.map f) = F.map (pre B f) ≫ exp_comparison F A' B :=
 by rw [exp_comparison, exp_comparison, ← curry_natural_left, eq_curry_iff, uncurry_natural_left,
-       pre, uncurry_curry, prod_map_comm_assoc, curry_eq, prod_functorial', assoc, ev_nat,
-       ev_coev_assoc, ← F.map_id, ← mult_comparison_inv_natural_assoc, ← F.map_id,
-       ← mult_comparison_inv_natural_assoc, ← F.map_comp, ← F.map_comp, pre, curry_eq,
-       prod_functorial', assoc, ev_nat, ev_coev_assoc]
+       pre, uncurry_curry, prod_map_map_assoc, curry_eq, prod_map_id_comp, assoc, ev_nat,
+       ev_coev_assoc, ← F.map_id, ← prod_comparison_inv_natural_assoc, ← F.map_id,
+       ← prod_comparison_inv_natural_assoc, ← F.map_comp, ← F.map_comp, pre, curry_eq,
+       prod_map_id_comp, assoc, ev_nat, ev_coev_assoc]
 
 lemma exp_comparison_natural_right (A B B' : C) (f : B ⟶ B') :
   exp_comparison F A B ≫ post (F.obj A) (F.map f) = F.map (post A f) ≫ exp_comparison F A B' :=
 begin
   rw [exp_comparison, ← curry_natural_right, curry_eq_iff, exp_comparison, uncurry_natural_left,
-      uncurry_curry, assoc, ← F.map_comp, ← ev_nat, F.map_comp, mult_comparison_inv_natural_assoc, F.map_id],
+      uncurry_curry, assoc, ← F.map_comp, ← ev_nat, F.map_comp, prod_comparison_inv_natural_assoc, F.map_id],
 end
 
 end category_theory

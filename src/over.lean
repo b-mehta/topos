@@ -4,8 +4,6 @@ import category_theory.limits.shapes
 import category_theory.epi_mono
 import category_theory.limits.over
 import cartesian_closed
-import pullbacks
-import comma
 
 /-!
 # Properties of the over category.
@@ -32,6 +30,23 @@ include 𝒞
 section adjunction
 
 variable (B : C)
+
+section
+
+variable [has_pullbacks.{v} C]
+
+@[simps]
+def real_pullback {A B : C} (f : A ⟶ B) : over B ⥤ over A :=
+{ obj := λ g, over.mk (pullback.fst : pullback f g.hom ⟶ A),
+  map := λ g h k,
+  begin
+    apply over.hom_mk _ _,
+    { apply pullback.lift pullback.fst (pullback.snd ≫ k.left) _,
+      rw [pullback.condition, assoc, over.w k] },
+    { apply pullback.lift_fst }
+  end }
+
+end
 
 section
 variable [has_binary_products.{v} C]

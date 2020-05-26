@@ -124,10 +124,9 @@ include 𝒞 𝒟 ℰ
 def faithful_functor_right_cancel {F G : C ⥤ D} {H : D ⥤ E}
   [full H] [faithful H] (comp_iso: F ⋙ H ≅ G ⋙ H) : F ≅ G :=
 begin
-  refine nat_iso.of_components (λX, preimage_iso (comp_iso.app X)) _,
-  intros X Y f,
+  refine nat_iso.of_components (λ X, preimage_iso (comp_iso.app X)) (λ X Y f, _),
   apply functor.injectivity H,
-  simp only [preimage_iso_hom, iso.app, functor.image_preimage, functor.map_comp],
+  simp only [preimage_iso_hom, H.map_comp, H.image_preimage],
   exact comp_iso.hom.naturality f,
 end
 
@@ -147,7 +146,7 @@ begin
   { intro X,
     refine nat_iso.of_components _ _,
     { intro Y,
-      exact equiv.to_iso ((adj1.hom_equiv X.unop Y).trans ((adj2.hom_equiv X.unop Y).symm)) },
+      exact ((adj1.hom_equiv X.unop Y).trans (adj2.hom_equiv X.unop Y).symm).to_iso },
     tidy },
   tidy
 end
@@ -161,25 +160,12 @@ def left_adjoint_uniq {F F' : C ⥤ D} {G : D ⥤ C}
 def adjunction_op {F : C ⥤ D} {G : D ⥤ C} (adj : F ⊣ G) : G.op ⊣ F.op :=
 adjunction.mk_of_hom_equiv
 { hom_equiv := λ X Y,
-    { to_fun := λ f, ((adj.hom_equiv (Y.unop) (X.unop)).inv_fun f.unop).op,
-      inv_fun := λ g, ((adj.hom_equiv (Y.unop) (X.unop)).to_fun g.unop).op,
+    { to_fun := λ f, ((adj.hom_equiv _ _).inv_fun f.unop).op,
+      inv_fun := λ g, ((adj.hom_equiv _ _).to_fun g.unop).op,
       left_inv := λ f, by simp,
-      right_inv := λ f, by simp},
-  hom_equiv_naturality_left_symm' := λ X' X Y f g,
-  begin
-    dsimp,
-    apply has_hom.hom.unop_inj,
-    rw [unop_comp, has_hom.hom.unop_op],
-    apply adj.hom_equiv_naturality_right
-  end,
-  hom_equiv_naturality_right' := λ Y' Y X f g,
-  begin
-    dsimp,
-    apply has_hom.hom.unop_inj,
-    rw [unop_comp, has_hom.hom.unop_op],
-    apply adj.hom_equiv_naturality_left_symm
-  end
-}
+      right_inv := λ f, by simp },
+  hom_equiv_naturality_left_symm' := λ X' X Y f g, by simp [has_hom.hom.unop_inj.eq_iff],
+  hom_equiv_naturality_right' := λ Y' Y X f g, by simp [has_hom.hom.unop_inj.eq_iff] }
 
 def right_adjoint_uniq {F : C ⥤ D} {G G' : D ⥤ C}
   (adj1 : F ⊣ G) (adj2 : F ⊣ G') : G ≅ G' :=

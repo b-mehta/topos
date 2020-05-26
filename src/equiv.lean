@@ -1,5 +1,4 @@
 import power
-import cartesian_closed
 import category_theory.epi_mono
 import category_theory.limits.shapes.pullbacks
 import category_theory.limits.shapes.binary_products
@@ -206,14 +205,14 @@ end
 
 lemma relation_square_commutes [symmetric rel] [transitive rel] : rel.a ≫ named rel = rel.b ≫ named rel :=
 begin
-  rw [named, hat_natural_left, hat_natural_left],
+  rw [named, ← hat_natural_left, ← hat_natural_left],
   transitivity (hat (prod.lift (p rel) (q rel ≫ rel.b))),
   { apply lifting ((left_pb_square rel).lift _) (pullback.lift _ _ (left_pb_comm rel)) _ _,
-    symmetry, apply (left_pb_square rel).fac _ walking_cospan.right,
-    symmetry, apply pullback.lift_snd },
+    apply ((left_pb_square rel).fac _ walking_cospan.right),
+    apply pullback.lift_snd },
   { apply lifting (pullback.lift _ _ (right_pb_comm rel)) ((right_pb_square rel).lift _) _ _,
-    symmetry, apply pullback.lift_snd,
-    symmetry, apply (right_pb_square rel).fac _ walking_cospan.right }
+    apply pullback.lift_snd,
+    apply (right_pb_square rel).fac _ walking_cospan.right }
 end
 
 -- variable (e : equivalence_rel rel)
@@ -223,36 +222,34 @@ theorem makes_kernel_pair [reflexive rel] [symmetric rel] [transitive rel] :
 is_limit.mk' _ $ λ c,
 begin
   have frgr : c.fst ≫ hat _ = c.snd ≫ hat _ := c.condition,
-  let ab' : sub (A ⨯ A) := quotient.mk ⟨over.mk (prod.lift rel.a rel.b), category_theory.joint_mono rel⟩,
-  have subs : sub_map (limits.prod.map c.fst (𝟙 _)) ab' = sub_map (limits.prod.map c.snd (𝟙 _)) ab',
-    apply hat_sub''.right_inv.injective,
-    dsimp [hat_sub''_inv_fun],
-    rw [← hat_sub_natural_left A, ← hat_sub_natural_left A],
+  let ab' : sub (A ⨯ A) := sub.mk (prod.lift rel.a rel.b),
+  have subs : pullback_sub (limits.prod.map c.fst (𝟙 _)) ab' = pullback_sub (limits.prod.map c.snd (𝟙 _)) ab',
+    apply name_bijection.right_inv.injective,
+    change name_subobject (pullback_sub (limits.prod.map c.fst (𝟙 A)) ab') = name_subobject (pullback_sub (limits.prod.map c.snd (𝟙 A)) ab'),
+    rw [name_pullback ab', name_pullback ab'],
     exact frgr,
-  have subs2 : sub_map (prod.lift c.fst c.snd) ab' = sub_map (prod.lift c.snd c.snd) ab',
+  have subs2 : pullback_sub (prod.lift c.fst c.snd) ab' = pullback_sub (prod.lift c.snd c.snd) ab',
     have s₁ : prod.lift c.fst c.snd = prod.lift (𝟙 _) c.snd ≫ limits.prod.map c.fst (𝟙 _),
       rw [prod.lift_map, id_comp, comp_id],
     have s₂ : prod.lift c.snd c.snd = prod.lift (𝟙 _) c.snd ≫ limits.prod.map c.snd (𝟙 _),
       rw [prod.lift_map, id_comp, comp_id],
-    rw [s₁, s₂, sub_map_comp, subs, sub_map_comp],
-  have subs3 : sub_map (prod.lift c.snd c.snd) ab' = ⊤,
+    rw [s₁, s₂, pullback_sub_comp, subs, pullback_sub_comp],
+  have subs3 : pullback_sub (prod.lift c.snd c.snd) ab' = ⊤,
     have s₃ : prod.lift c.snd c.snd = c.snd ≫ prod.lift (𝟙 _) (𝟙 _),
       apply prod.hom_ext;
       simp only [prod.lift_fst, prod.lift_snd, assoc, comp_id],
     rw s₃,
-    suffices : sub_map (prod.lift (𝟙 _) (𝟙 _)) ab' = ⊤,
-      rw [sub_map_comp, this, pullback_top],
+    suffices : pullback_sub (prod.lift (𝟙 _) (𝟙 _)) ab' = ⊤,
+      rw [pullback_sub_comp, this, pullback_top],
     rw [eq_top_iff, top_eq_top],
     refine ⟨pullback.lift (reflexive.r rel) (𝟙 _) _, _⟩,
       rw [id_comp], apply reflexive_prop,
-    symmetry,
     apply pullback.lift_snd,
   rw [← subs2, eq_top_iff] at subs3,
-  let t : c.X ⟶ pullback (prod.lift _ _) (prod.lift _ _) := raise_le subs3,
-  have : t ≫ pullback.snd = 𝟙 _ := raise_le_prop subs3,
+  obtain ⟨t, ht⟩ : { t : c.X ⟶ pullback (prod.lift _ _) _ // t ≫ pullback.snd = 𝟙 _ } := raised_factors subs3,
   let u := t ≫ pullback.fst,
   have t' : u ≫ prod.lift rel.a rel.b = prod.lift c.fst c.snd,
-    rw [assoc, pullback.condition, reassoc_of this],
+    rw [assoc, pullback.condition, reassoc_of ht],
   have t₁ := t' =≫ limits.prod.fst,
     rw [assoc, prod.lift_fst, prod.lift_fst] at t₁,
   have t₂ := t' =≫ limits.prod.snd,
@@ -269,7 +266,7 @@ namespace disjoint
 lemma A242_commutes {X Y Z : C} (f : X ⟶ Y) (g : X ⟶ Z) [mono f] :
   g ≫ singleton_arrow Z = f ≫ hat (prod.lift f g) :=
 begin
-  rw [← seven_six_one, hat_natural_left],
+  rw [← seven_six_one, ← hat_natural_left],
   apply lifting (pullback.lift (𝟙 _) (prod.lift (𝟙 _) g) _) pullback.fst _ _,
   rw [id_comp, prod.lift_map, id_comp, comp_id],
   rw pullback.lift_snd,
@@ -301,7 +298,7 @@ def A242_pullback {X Y Z : C} (f : X ⟶ Y) (g : X ⟶ Z) [m : mono f] :
 is_limit.mk''' _ m $ λ c,
 begin
   have prop : c.fst ≫ _ = c.snd ≫ hat _ := c.condition,
-  rw [← seven_six_one, hat_natural_left] at prop,
+  rw [← seven_six_one, ← hat_natural_left] at prop,
   let π₂ : pullback (prod.lift f g) (limits.prod.map c.snd (𝟙 _)) ⟶ _ := pullback.snd,
   refine ⟨(how_inj_is_hat prop).hom ≫ pullback.fst, _⟩,
   have hq : _ ≫ π₂ = _ := very_inj prop,

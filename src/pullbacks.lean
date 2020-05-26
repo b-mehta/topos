@@ -7,8 +7,7 @@ Authors: Bhavik Mehta, Edward Ayers
 import category_theory.limits.shapes
 import category_theory.limits.preserves
 import category_theory.limits.over
-import creates
-import .comma
+import comma
 
 /-!
 # Pullbacks
@@ -18,12 +17,10 @@ Many, many lemmas to work with pullbacks.
 open category_theory category_theory.category category_theory.limits
 
 universes u v
-variables {C : Type u} [𝒞 : category.{v} C]
+variables {C : Type u} [category.{v} C]
 variables {J : Type v} [small_category J]
-include 𝒞
 
 variables {W X Y Z : C} {f : X ⟶ Z} {g : Y ⟶ Z}
-
 
 /-- A supremely useful structure for elementary topos theory. -/
 structure has_pullback_top (left : W ⟶ Y) (bottom : Y ⟶ Z) (right : X ⟶ Z) :=
@@ -268,6 +265,16 @@ has_pullback_top g k h :=
   comm := by rw [← cancel_mono m, assoc, all.comm, assoc, ← down_comm, assoc],
   is_pb := vpaste' _ _ _ _ _ _ _ _ _ down_pb all.is_pb }
 
+def cut_hpb_up' {U V W X Y Z : C} (g : U ⟶ W) (h : V ⟶ X) (k : W ⟶ X) (l : W ⟶ Y) (m : X ⟶ Z) (n : Y ⟶ Z)
+  (all : has_pullback_top (g ≫ l) n (h ≫ m))
+  (up_comm : all.top ≫ h = g ≫ k)
+  (down_comm : k ≫ m = l ≫ n)
+  (down_pb : is_limit (pullback_cone.mk _ _ down_comm)) :
+has_pullback_top g k h :=
+{ top := all.top,
+  comm := up_comm,
+  is_pb := vpaste' _ _ _ _ _ _ _ _ _ down_pb all.is_pb }
+
 -- Show
 -- D × A ⟶ B × A
 --   |       |
@@ -307,17 +314,24 @@ begin
     simpa using m₁ }
 end
 
+def pullback_flip {W X Y Z : C} {f : W ⟶ X} {g : W ⟶ Y} {h : X ⟶ Z} {k : Y ⟶ Z} {comm : f ≫ h = g ≫ k} (t : is_limit (pullback_cone.mk _ _ comm.symm)) :
+  is_limit (pullback_cone.mk _ _ comm) :=
+is_limit.mk' _ $ λ s,
+begin
+  refine ⟨(pullback_cone.is_limit.lift' t _ _ s.condition.symm).1,
+          (pullback_cone.is_limit.lift' t _ _ _).2.2,
+          (pullback_cone.is_limit.lift' t _ _ _).2.1, λ m m₁ m₂, t.hom_ext _⟩,
+  apply (pullback_cone.mk g f _).equalizer_ext,
+  { rw (pullback_cone.is_limit.lift' t _ _ _).2.1,
+    exact m₂ },
+  { rw (pullback_cone.is_limit.lift' t _ _ _).2.2,
+    exact m₁ },
+end
+
 def pullback_square_iso {W X Y Z : C} (f : W ⟶ X) (g : W ⟶ Y) (h : X ⟶ Z) (k : Y ⟶ Z) [mono h] [is_iso g] (comm : f ≫ h = g ≫ k) :
   is_limit (pullback_cone.mk _ _ comm) :=
-is_limit.mk' _ $
-begin
-  intro s,
-  refine ⟨pullback_cone.snd s ≫ inv g, _, _, _⟩,
-  erw [← cancel_mono h, assoc, comm, assoc, is_iso.inv_hom_id_assoc, pullback_cone.condition s],
-  erw [assoc, is_iso.inv_hom_id g, comp_id],
-  intros m m₁ m₂,
-  erw [(as_iso g).eq_comp_inv, m₂]
-end
+is_limit.mk''' _ (by dsimp [pullback_cone.mk]; apply_instance) $
+  λ s, ⟨s.snd ≫ inv g, by erw [assoc, is_iso.inv_hom_id g, comp_id] ⟩
 
 def left_iso_has_pullback_top {W X Y Z : C} (f : W ⟶ X) (g : W ⟶ Y) (h : X ⟶ Z) (k : Y ⟶ Z) [mono h] [is_iso g] (comm : f ≫ h = g ≫ k) :
   has_pullback_top g k h :=
@@ -352,13 +366,8 @@ begin
 end
 
 def pullback_of_mono {X Y : C} (f : X ⟶ Y) [hf : mono f] :
-  is_limit (pullback_cone.mk (𝟙 X) (𝟙 X) (by simp) : pullback_cone f f) :=
-is_limit.mk' _ $
-begin
-  intro s,
-  refine ⟨pullback_cone.fst s, comp_id _, _, λ m m₁ m₂, (comp_id m).symm.trans m₁⟩,
-  erw [comp_id, ← cancel_mono f, pullback_cone.condition s],
-end
+  is_limit (pullback_cone.mk (𝟙 X) (𝟙 X) rfl : pullback_cone f f) :=
+pullback_square_iso' _ _ _ _ _
 
 def mono_self_has_pullback_top {X Y : C} (f : X ⟶ Y) [hf : mono f] :
   has_pullback_top (𝟙 _) f f :=

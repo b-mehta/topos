@@ -5,10 +5,10 @@ Authors: Bhavik Mehta
 -/
 
 import category_theory.limits.shapes
-import category_theory.limits.types
 import category_theory.limits.shapes.regular_mono
 import category_theory.epi_mono
 import pullbacks
+import sub
 
 /-!
 # Subobject classifiers
@@ -16,97 +16,74 @@ import pullbacks
 Define a subobject classifier, show that it implies there's a terminal object,
 show that if there is a subobject classifier then every mono is regular.
 -/
-universes v u
+universes v u v₂ u₂
 
 open category_theory category_theory.category category_theory.limits
 
-variables {C : Type u} [𝒞 : category.{v} C]
-include 𝒞
+variables {C : Type u} [category.{v} C]
 
 -- Define what it means for χ to classify the mono f.
-abbreviation classifying {Ω Ω₀ U X : C} (true : Ω₀ ⟶ Ω) (f : U ⟶ X) (χ : X ⟶ Ω) := has_pullback_top f χ true
--- structure classifying {Ω Ω₀ U X : C} (true : Ω₀ ⟶ Ω) (f : U ⟶ X) (χ : X ⟶ Ω) :=
--- (k : U ⟶ Ω₀)
--- (commutes : k ≫ true = f ≫ χ)
--- (forms_pullback' : is_limit (pullback_cone.mk _ _ commutes))
--- restate_axiom classifying.forms_pullback'
+abbreviation classifying {Ω Ω₀ U X : C} (truth : Ω₀ ⟶ Ω) (f : U ⟶ X) (χ : X ⟶ Ω) := has_pullback_top f χ truth
+
+instance subsingleton_classifying {Ω Ω₀ U X : C} (truth : Ω₀ ⟶ Ω) [mono truth] (f : U ⟶ X) (χ : X ⟶ Ω) :
+  subsingleton (classifying truth f χ) :=
+⟨by { intros P Q, cases P, cases Q, congr, rw [← cancel_mono truth, P_comm, Q_comm] }⟩
+
+structure is_subobject_classifier {Ω Ω₀ : C} (truth : Ω₀ ⟶ Ω) :=
+(classifier_of : ∀ {U X} (f : U ⟶ X) [mono.{v} f], X ⟶ Ω)
+(classifies' : ∀ {U X} (f : U ⟶ X) [mono f], classifying truth f (classifier_of f))
+(uniquely' : ∀ {U X} (f : U ⟶ X) [mono f] (χ₁ : X ⟶ Ω), classifying truth f χ₁ → classifier_of f = χ₁)
 
 variable (C)
--- A subobject classifier is a mono which classifies every mono uniquely
 class has_subobject_classifier :=
 (Ω Ω₀ : C)
 (truth : Ω₀ ⟶ Ω)
-(truth_mono' : @mono C 𝒞 _ _ truth)
-(classifier_of : ∀ {U X} (f : U ⟶ X) [@mono C 𝒞 _ _ f], X ⟶ Ω)
-(classifies' : ∀ {U X} (f : U ⟶ X) [mono f], classifying truth f (classifier_of f))
-(uniquely' : ∀ {U X} (f : U ⟶ X) [@mono C 𝒞 _ _ f] (χ₁ : X ⟶ Ω),
-            classifying truth f χ₁ → χ₁ = classifier_of f)
+[truth_mono : mono.{v} truth]
+(is_subobj_classifier : is_subobject_classifier truth)
 
 def fork.is_limit.mk' {X Y : C} {f g : X ⟶ Y} (t : fork f g)
   (create : Π (s : fork f g), {l : s.X ⟶ t.X // l ≫ t.ι = s.ι ∧ ∀ {m : s.X ⟶ t.X}, m ≫ t.ι = s.ι → m = l}) :
 is_limit t :=
 fork.is_limit.mk t (λ s, (create s).1) (λ s, (create s).2.1) (λ s m w, (create s).2.2 (w walking_parallel_pair.zero))
 
--- variable {C}
--- lemma mono_id (A : C) : @mono _ 𝒞 _ _ (𝟙 A) := ⟨λ _ _ _ w, by simp at w; exact w⟩
+namespace classifier
 
 variables [has_subobject_classifier.{v} C]
 
-namespace subobj
-
--- convenience defs
-@[reducible]
-def Ω : C :=
-@has_subobject_classifier.Ω _ 𝒞 _
-@[reducible]
-def Ω₀ : C :=
-@has_subobject_classifier.Ω₀ _ 𝒞 _
-@[reducible]
-def truth : Ω₀ C ⟶ Ω C :=
-@has_subobject_classifier.truth _ 𝒞 _
-@[priority 10]
-instance subobj.truth_mono : mono (truth C) :=
-@has_subobject_classifier.truth_mono' _ 𝒞 _
+def Ω : C := has_subobject_classifier.Ω.{v}
+def Ω₀ : C := has_subobject_classifier.Ω₀.{v}
+def truth : Ω₀ C ⟶ Ω C := has_subobject_classifier.truth
+instance truth_mono : mono (truth C) := has_subobject_classifier.truth_mono
+def subobj_classifier_is_subobj_classifier : is_subobject_classifier (truth C) := has_subobject_classifier.is_subobj_classifier
 
 variable {C}
-def classifier_of {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] : X ⟶ Ω C :=
-has_subobject_classifier.classifier_of f
-def classifies {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] : classifying (truth C) f (classifier_of f) :=
-has_subobject_classifier.classifies' f
-def square.k {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] : U ⟶ Ω₀ C :=
-(classifies f).top
-def square.commutes {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] :
-  square.k f ≫ truth C = f ≫ classifier_of f :=
-(subobj.classifies f).comm
-def square.is_pullback {U X : C} (f : U ⟶ X) [@mono C 𝒞 _ _ f] :
-  is_limit (pullback_cone.mk _ _ (square.commutes f)) :=
-(classifies f).is_pb
-restate_axiom has_subobject_classifier.uniquely'
+def classifier_of {U X : C} (f : U ⟶ X) [mono f] : X ⟶ Ω C :=
+(subobj_classifier_is_subobj_classifier C).classifier_of f
+def classifies {U X : C} (f : U ⟶ X) [mono f] : classifying (truth C) f (classifier_of f) :=
+(subobj_classifier_is_subobj_classifier C).classifies' f
+lemma uniquely {U X : C} (f : U ⟶ X) [mono f] (χ₁ : X ⟶ Ω C) (hχ : classifying (truth C) f χ₁) : classifier_of f = χ₁ :=
+(subobj_classifier_is_subobj_classifier C).uniquely' f χ₁ hχ
 
-end subobj
+end classifier
 
-open subobj
+open classifier
 
 variable {C}
 -- Usually we would assume C has finite limits, and Ω₀ C might not be equal to it.
-instance unique_to_Ω₀ (P : C) : unique (P ⟶ Ω₀ C) :=
-{ default := square.k (𝟙 _),
+instance unique_to_Ω₀ [has_subobject_classifier.{v} C] (P : C) : unique (P ⟶ Ω₀ C) :=
+{ default := (classifies (𝟙 _)).top,
   uniq := λ a,
   begin
-    rw ← cancel_mono (truth C),
-    rw square.commutes (𝟙 _),
-    rw id_comp,
-    apply has_subobject_classifier.uniquely,
-    refine ⟨a, (id_comp _).symm, pullback_square_iso _ _ _ _ _⟩,
+    rw [← cancel_mono (truth C), (classifies (𝟙 _)).comm, id_comp, uniquely],
+    apply left_iso_has_pullback_top a (𝟙 P) (truth C) _ (id_comp _).symm,
   end }
 
 variable (C)
-instance truth_is_split : split_mono (subobj.truth C) :=
-{ retraction := subobj.square.k (𝟙 _),
-  id' := subsingleton.elim _ _ }
-
+instance truth_is_split [has_subobject_classifier.{v} C] : split_mono (truth C) :=
+{ retraction := default _ }
 variable {C}
-def regular_of_regular_pullback {P Q R S : C} {f : P ⟶ Q} {g : P ⟶ R} {h : Q ⟶ S} {k : R ⟶ S} [hr : regular_mono h]
+
+def regular_of_is_pullback_of_regular {P Q R S : C} {f : P ⟶ Q} {g : P ⟶ R} {h : Q ⟶ S} {k : R ⟶ S} [hr : regular_mono h]
   (comm : f ≫ h = g ≫ k) (t : is_limit (pullback_cone.mk _ _ comm)) : regular_mono g :=
 { Z := hr.Z,
   left := k ≫ hr.left,
@@ -131,8 +108,23 @@ def regular_of_regular_pullback {P Q R S : C} {f : P ⟶ Q} {g : P ⟶ R} {h : Q
     exact z,
   end }
 
+instance regular_of_pullback_regular {P Q R : C} (f : P ⟶ R) (g : Q ⟶ R) [has_limit (cospan f g)] [regular_mono f] : regular_mono (pullback.snd : pullback f g ⟶ Q) :=
+regular_of_is_pullback_of_regular pullback.condition (cone_is_pullback f g)
+
+variable [has_subobject_classifier.{v} C]
 def mono_is_regular {A B : C} (m : A ⟶ B) [mono m] : regular_mono m :=
-regular_of_regular_pullback _ (square.is_pullback m)
+regular_of_is_pullback_of_regular _ (classifies m).is_pb
+
+def raised_factors {X Y Z : C} {f : X ⟶ Z} {g : Y ⟶ Z} (h : factors_through f g) [mono g] : {k // k ≫ g = f} :=
+by haveI := mono_is_regular g; exact regular_mono.lift' _ _ (by { cases h, simp [← h_h, regular_mono.w] })
 
 def balanced {A B : C} (f : A ⟶ B) [ef : epi f] [mono f] : is_iso f :=
 @is_iso_limit_cone_parallel_pair_of_epi _ _ _ _ _ _ _ (mono_is_regular f).is_limit ef
+
+def reflects_isos (D : Type u₂) [category.{v₂} D] (F : C ⥤ D) [faithful F] : reflects_isomorphisms F :=
+⟨λ A B f i, by exactI
+begin
+  haveI : epi f := faithful_reflects_epi F (by apply_instance),
+  haveI : mono f := faithful_reflects_mono F (by apply_instance),
+  apply balanced
+end⟩
