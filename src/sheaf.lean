@@ -217,6 +217,9 @@ begin
   exact how_inj_is_classifier _ _ this,
 end
 
+def closure_intersection {E : C} {m m' : sub E} : closure.operator j (m ⊓ m') = closure.operator j m ⊓ closure.operator j m' :=
+by simp only [← classify_eq_iff_eq, closure.classify_op, ← property, ← prod.lift_map, assoc, topology.ax3]
+
 def monotone {B : C} (m : A ⟶ E) (n : B ⟶ E) [mono m] [mono n] (h : factors_through m n) :
   factors_through (arrow j m) (arrow j n) :=
 begin
@@ -329,9 +332,6 @@ end
 --   rw raise_le_prop, rw mediating_subobject_prop,
 --   rw lifting_square_prop,
 -- end
-
-def closure_intersection {E : C} {m m' : sub E} : closure.operator j (m ⊓ m') = closure.operator j m ⊓ closure.operator j m' :=
-by simp only [← classify_eq_iff_eq, closure.classify_op, ← property, ← prod.lift_map, assoc, topology.ax3]
 
 -- end closure
 
@@ -677,7 +677,6 @@ begin
     rw [← uncurry_natural_left, ha] }
 end
 
-set_option pp.implicit false
 instance : is_cartesian_closed (sheaf j) :=
 { cart_closed := λ A,
   { is_adj :=
@@ -696,60 +695,65 @@ instance : is_cartesian_closed (sheaf j) :=
         begin
           intros X' X Y f g,
           dsimp,
-
+          conv_lhs {congr, skip, erw uncurry_natural_left },
+          apply (prod_comparison_natural_assoc (forget j) (𝟙 A) f _).symm,
         end,
-        hom_equiv_naturality_right' := sorry }
-    } } }
+        hom_equiv_naturality_right' :=
+        begin
+          intros X Y Y' f g,
+          dsimp,
+          conv_rhs {apply_congr (curry_natural_right _ _).symm},
+          simpa
+        end } } } }
 
--- -- def subobject_of_closed_sheaf (A : sheaf C j) (m : sub' A.A) [c : closed j ⟦m⟧] : sheaf C j :=
--- -- sheaf.mk' m.1.left $
--- -- λ B n f' d, by exactI
--- -- begin
--- --   haveI := m.2,
--- --   have comm := extend_map_prop A n (f' ≫ m.1.hom),
--- --   refine ⟨closure.lifting_square j comm.symm, _, _⟩,
--- --   { rwa [← cancel_mono m.1.hom, assoc, lifting_square_prop j comm.symm] },
--- --   { rintro a ha,
--- --     rw [← cancel_mono m.1.hom, lifting_square_prop j comm.symm],
--- --     apply unique_extension A n (f' ≫ m.1.hom),
--- --     simp [← ha] }
--- -- end
+def subobject_of_closed_sheaf (A : sheaf j) (A' : C) (m : A' ⟶ A.A) [closure.closed j m] : sheaf j :=
+sheaf.mk' A' $ λ B B' n f' d, by exactI
+begin
+  obtain ⟨g, comm⟩ := extend_map' A n (f' ≫ m),
+  refine ⟨(lifting_square j comm.symm).1, _, _⟩,
+  rwa [← cancel_mono m, assoc, (lifting_square j comm.symm).2],
+  intros a ha,
+  rw [← cancel_mono m, (lifting_square j comm.symm).2],
+  apply unique_ext A n (f' ≫ m) (a ≫ m) g _ comm,
+  rw reassoc_of ha,
+end
 
--- -- def closed_of_subsheaf (E A : sheaf C j) (m : A ⟶ E) [hm : @mono C 𝒞 _ _ m] : closed j ⟦⟨over.mk m, hm⟩⟧ :=
--- -- begin
--- --   -- have hr := extend_map_prop A,
--- --   sorry,
--- --   -- have hr := extend_map_prop A (closure.less_than_closure j m) (𝟙 _),
--- --   -- refine ⟨⟨extend_map A (closure.less_than_closure j m) (𝟙 _), hr, _⟩⟩,
--- --   -- rw [auto_param_eq, ← cancel_mono_id (closure.arrow j m), assoc, closure.is_lt],
--- --   -- apply unique_ext E (closure.less_than_closure j m) m,
--- --   -- rw [← assoc, hr, id_comp],
--- --   -- rw closure.is_lt,
--- -- end
+def closed_of_subsheaf (E A : sheaf j) (m : A.A ⟶ E.A) [mono m] : closure.closed j m :=
+begin
+  obtain ⟨r, hr⟩ := extend_map' A (closure.less_than_closure j m) (𝟙 _),
+  have := unique_ext _ _ _ (r ≫ m) _ (by rw [reassoc_of hr]) (closure.is_lt _ _),
+  refine ⟨quotient.sound ⟨⟨r, this⟩, ⟨closure.less_than_closure j m, closure.is_lt j m⟩⟩⟩,
+end
 
--- -- def closed_classifier : C := equalizer j (𝟙 _)
+def closed_classifier : C := equalizer j (𝟙 _)
 
--- -- def eq_equiv (B : C) : (B ⟶ closed_classifier j) ≃ {cm : B ⟶ Ω C // cm ≫ j = cm} :=
--- -- { to_fun := λ f,
--- --   begin
--- --     refine ⟨f ≫ equalizer.ι _ _, _⟩,
--- --     rw [assoc, equalizer.condition, comp_id],
--- --   end,
--- --   inv_fun := λ f,
--- --   begin
--- --     apply equalizer.lift f.1 _,
--- --     rw [f.2, comp_id]
--- --   end,
--- --   left_inv := λ f,
--- --   begin
--- --     apply equalizer.hom_ext, rw equalizer.lift_ι,
--- --   end,
--- --   right_inv := λ ⟨f, hf⟩,
--- --   begin
--- --     rw subtype.ext,
--- --     apply equalizer.lift_ι,
--- --   end
--- -- }
+def eq_equiv (B : C) : (B ⟶ closed_classifier j) ≃ {cm : B ⟶ Ω C // cm ≫ j = cm} :=
+{ to_fun := λ f, ⟨f ≫ equalizer.ι _ _, by simp [equalizer.condition]⟩,
+  inv_fun := λ f, equalizer.lift f.1 (by rw [f.2, comp_id]),
+  left_inv := λ f, equalizer.hom_ext (equalizer.lift_ι _ _),
+  right_inv := λ ⟨f, hf⟩, subtype.eq' (equalizer.lift_ι _ _) }
+
+def closed_equiv {B B' : C} (m : B' ⟶ B) [closure.dense j m] : {cB' : B' ⟶ Ω C // cB' ≫ j = cB'} ≃ {cB : B ⟶ Ω C // cB ≫ j = cB} :=
+{ to_fun := λ k, ⟨classifier_of (closure.arrow j (get_subobject k.1 ≫ m)), closure.classifier_eq_of_closed j _⟩,
+  inv_fun := λ k, ⟨m ≫ k.1, by rw [assoc, k.2]⟩,
+  left_inv :=
+  begin
+    rintro ⟨k, hk⟩,
+    dsimp,
+    congr' 1,
+    rwa [closure.classifier, ← classify_postcompose_assoc, classify_inv],
+  end,
+  right_inv :=
+  begin
+    rintro ⟨k, hk⟩,
+    dsimp,
+    congr' 1,
+    sorry,
+  end }
+
+def closed_class_equiv {B B' : C} (m : B' ⟶ B) [closure.dense j m] :
+  (B ⟶ closed_classifier j) ≃ (B' ⟶ closed_classifier j) :=
+(eq_equiv j B).trans ((eq_equiv j B').trans (closed_equiv j m)).symm
 
 -- -- def closed_biject {A B : C} (m : A ⟶ B) [closure.dense j m] : (B ⟶ closed_classifier j) ≃ (A ⟶ closed_classifier j) :=
 -- -- equiv.trans (eq_equiv j B) (equiv.trans (eq_equiv j A) (bijection j m)).symm
@@ -773,16 +777,8 @@ instance : is_cartesian_closed (sheaf j) :=
 -- --   rw (closed_biject j m).right_inv,
 -- -- end
 
--- -- def sheaf_classifier : sheaf C j :=
--- -- sheaf.mk (closed_classifier j) $ λ B B' m f' d,
--- -- begin
--- --   haveI := d,
--- --   refine ⟨⟨⟨_, closed_biject_prop' j m f'⟩⟩, _⟩,
--- --   rintro ⟨a, ha⟩,
--- --   rw ← closed_biject_prop at ha,
--- --   congr,
--- --   rw [← ha, (closed_biject j m).left_inv],
--- -- end
+def sheaf_classifier : sheaf j :=
+sheaf.mk' (closed_classifier j) $ λ B B' m f' d, sorry
 
 -- -- -- -- Define what it means for χ to classify the mono f.
 -- -- -- structure classifying {Ω Ω₀ U X : C} (true : Ω₀ ⟶ Ω) (f : U ⟶ X) (χ : X ⟶ Ω) :=
@@ -791,19 +787,30 @@ instance : is_cartesian_closed (sheaf j) :=
 -- -- -- (forms_pullback' : is_limit (pullback_cone.mk _ _ commutes))
 -- -- -- restate_axiom classifying.forms_pullback'
 
--- -- -- variable (C)
--- -- -- -- A subobject classifier is a mono which classifies every mono uniquely
--- -- -- class has_subobject_classifier :=
--- -- -- (Ω Ω₀ : C)
--- -- -- (truth : Ω₀ ⟶ Ω)
--- -- -- (truth_mono' : @mono C 𝒞 _ _ truth)
--- -- -- (classifier_of : ∀ {U X} (f : U ⟶ X) [@mono C 𝒞 _ _ f], X ⟶ Ω)
--- -- -- (classifies' : ∀ {U X} (f : U ⟶ X) [mono f], classifying truth f (classifier_of f))
--- -- -- (uniquely' : ∀ {U X} (f : U ⟶ X) [@mono C 𝒞 _ _ f] (χ₁ : X ⟶ Ω),
--- -- --             classifying truth f χ₁ → χ₁ = classifier_of f)
 
--- -- instance : has_subobject_classifier.{v} (sheaf C j) :=
--- -- { Ω := sheaf_classifier j,
+-- This is a super dodgy proof but oh well.
+def forget_terminal_sheaf : (⊤_ (sheaf j)).A ≅ ⊤_ C :=
+begin
+  apply (cones.forget _).map_iso (lifted_limit_maps_to_original (limit.is_limit (functor.empty _ ⋙ forget j))) ≪≫ _,
+  change limit (functor.empty (sheaf j) ⋙ forget j) ≅ ⊤_ C,
+  have : functor.empty (sheaf j) ⋙ forget j = functor.empty _,
+  refine category_theory.functor.ext _ _,
+  simp, simp,
+  rw this,
+end
 
+instance : has_subobject_classifier.{v} (sheaf j) :=
+{ Ω := sheaf_classifier j,
+  Ω₀ := ⊤_ _,
+  truth :=
+  begin
+    apply (forget_terminal_sheaf j).hom ≫ _,
+    apply equalizer.lift (default (⊤_ C ⟶ Ω₀ C) ≫ truth C) _,
+    rw [assoc, comp_id, topology.ax1],
+  end,
+  truth_mono :=
+  begin
+    -- change mono ((forget_terminal_sheaf j).hom ≫ equalizer.lift (default (⊤_ C ⟶ Ω₀ C) ≫ truth C) _),
+  end
 
--- -- }
+}
