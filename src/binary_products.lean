@@ -102,7 +102,7 @@ variables [preserves_limits_of_shape (discrete walking_pair) F]
 end
 
 /-- Transfer preservation of limits along a equivalence in the shape. -/
-def preserves_limit_of_iso {J₁ J₂ : Type v} [small_category J₁] [small_category J₂] (e : J₁ ≌ J₂) (F : C ⥤ D) [preserves_limits_of_shape J₁ F] :
+def preserves_limit_of_equiv {J₁ J₂ : Type v} [small_category J₁] [small_category J₂] (e : J₁ ≌ J₂) (F : C ⥤ D) [preserves_limits_of_shape J₁ F] :
   preserves_limits_of_shape J₂ F :=
 { preserves_limit := λ K,
   begin
@@ -127,7 +127,7 @@ variables (F : C ⥤ D) [preserves_limits_of_shape (discrete walking_pair) F] [p
 
 def preserves_fin_of_preserves_binary_and_terminal  :
   Π (n : ℕ), preserves_limits_of_shape (discrete (ulift (fin n))) F
-| 0 := preserves_limit_of_iso (show pempty ≌ discrete (ulift (fin 0)), from pempty_equiv_discrete0) F
+| 0 := preserves_limit_of_equiv (show pempty ≌ discrete (ulift (fin 0)), from pempty_equiv_discrete0) F
 | (n+1) :=
   begin
     haveI p := preserves_fin_of_preserves_binary_and_terminal n,
@@ -207,7 +207,7 @@ begin
   intro e,
   replace e := e.trans equiv.ulift.symm,
   haveI := preserves_fin_of_preserves_binary_and_terminal F (fintype.card J),
-  apply preserves_limit_of_iso (discrete_equiv_of_iso e).symm,
+  apply preserves_limit_of_equiv (discrete_equiv_of_iso e).symm,
 end
 
 end

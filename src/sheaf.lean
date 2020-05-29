@@ -4,13 +4,12 @@ import category_theory.reflect_isomorphisms
 import category_theory.limits.shapes.constructions.preserve_binary_products
 import reflects
 import equiv
+import tactic.equiv_rw
 
 open category_theory category_theory.category category_theory.limits
 open classifier
 
 universes v u u₂
-
-def tag (n : ℕ) {α : Sort u} (x : α) : α := x
 
 variables (C : Type u) [category.{v} C]
 
@@ -19,7 +18,6 @@ class topos extends has_finite_limits.{v} C, has_subobject_classifier.{v} C, is_
 variables [topos.{v} C]
 
 variable {C}
-def tag' (n : ℕ) (A B : C) (f : A ⟶ B) : A ⟶ B := f
 
 lemma classifier_of_pullback {E F A : C} (m : A ⟶ E) (f : F ⟶ E) [mono m] : f ≫ classifier_of m = classifier_of (pullback.snd : pullback m f ⟶ F) :=
 begin
@@ -186,9 +184,9 @@ namespace closure
 
 variables {E A : C}
 
-def obj (m : A ⟶ E) [mono m] : C := pullback (truth C) (classifier_of m ≫ j)
-def arrow (m : A ⟶ E) [mono m] : closure.obj j m ⟶ E := pullback.snd
-instance is_sub (m : A ⟶ E) [mono m] : mono (closure.arrow j m) := pullback.snd_of_mono
+def obj (m : A ⟶ E) [mono m] : C := get_subobject_obj (classifier_of m ≫ j)
+def arrow (m : A ⟶ E) [mono m] : get_subobject_obj (classifier_of m ≫ j) ⟶ E := get_subobject (classifier_of m ≫ j)
+instance is_sub (m : A ⟶ E) [mono m] : mono (closure.arrow j m) := get_subobject_mono _
 lemma classifier (m : A ⟶ E) [mono m] : classifier_of (arrow j m) = classifier_of m ≫ j :=
 uniquely _ _ (has_pullback_top_of_pb)
 def operator (m : sub E) : sub E := classification (_root_.classify m ≫ j)
@@ -201,6 +199,10 @@ begin
 end
 lemma classify (m : A ⟶ E) [mono m] : classify (subobj j m) = classify (sub.mk m) ≫ j :=
 classifier j m
+lemma operator_idem (m : sub E) : operator j (operator j m) = operator j m :=
+begin
+  simp only [← classify_eq_iff_eq, classify_op, assoc, topology.ax2],
+end
 
 def less_than_closure (m : A ⟶ E) [mono m] : A ⟶ closure.obj j m :=
 pullback.lift (classifies m).top m $ by rw [← (classifies m).comm_assoc, topology.ax1]
@@ -227,7 +229,7 @@ begin
   rw [factors_iff_comp_and, closure.classifier, closure.classifier, ← prod.lift_map, assoc,
       ← topology.ax3, reassoc_of h],
 end
-def mono_sub : ∀ (m n : sub E), m ≤ n → operator j m ≤ operator j n :=
+def mono_sub : ∀ {m n : sub E}, m ≤ n → operator j m ≤ operator j n :=
 quotient.ind₂ $
 begin
   intros a b,
@@ -385,7 +387,7 @@ def extend_map' (A : sheaf j) {B B' : C} (m : B' ⟶ B) [closure.dense j m] (f' 
 def extend_map (A : sheaf j) {B B' : C} (m : B' ⟶ B) [closure.dense j m] (f' : B' ⟶ A.A) : B ⟶ A.A :=
 (extend_map' A m f').1
 
-lemma extend_map_prop (A : sheaf j) {B B' : C} (m : B' ⟶ B) [closure.dense j m] (f' : B' ⟶ A.A) : m ≫ extend_map A m f' = f' :=
+@[reassoc] lemma extend_map_prop (A : sheaf j) {B B' : C} (m : B' ⟶ B) [closure.dense j m] (f' : B' ⟶ A.A) : m ≫ extend_map A m f' = f' :=
 (extend_map' A m f').2
 
 lemma unique_extension (A : sheaf j) {B B' : C} (m : B' ⟶ B) [closure.dense j m] (f' : B' ⟶ A.A)
@@ -733,28 +735,63 @@ def eq_equiv (B : C) : (B ⟶ closed_classifier j) ≃ {cm : B ⟶ Ω C // cm �
   left_inv := λ f, equalizer.hom_ext (equalizer.lift_ι _ _),
   right_inv := λ ⟨f, hf⟩, subtype.eq' (equalizer.lift_ι _ _) }
 
-def closed_equiv {B B' : C} (m : B' ⟶ B) [closure.dense j m] : {cB' : B' ⟶ Ω C // cB' ≫ j = cB'} ≃ {cB : B ⟶ Ω C // cB ≫ j = cB} :=
-{ to_fun := λ k, ⟨classifier_of (closure.arrow j (get_subobject k.1 ≫ m)), closure.classifier_eq_of_closed j _⟩,
-  inv_fun := λ k, ⟨m ≫ k.1, by rw [assoc, k.2]⟩,
+def action {B B' : C} (m : B' ⟶ B) [d : closure.dense j m] : {n' : sub B // closure.operator j n' = n'} ≃ {n : sub B' // closure.operator j n = n} :=
+{ to_fun :=
+  begin
+    intro n,
+    refine ⟨pullback_sub m n.1, _⟩,
+    rw [← closure.comm_pullback, n.2],
+  end,
+  inv_fun := λ n, ⟨closure.operator j (postcompose m n.1), closure.operator_idem j _⟩,
   left_inv :=
   begin
-    rintro ⟨k, hk⟩,
+    rintro ⟨n, hn⟩,
     dsimp,
     congr' 1,
-    rwa [closure.classifier, ← classify_postcompose_assoc, classify_inv],
+    have : n ⊓ sub.mk m = postcompose m (pullback_sub m _) := intersection_eq_post_pull n (sub'.mk' m),
+    rw ← this,
+    rw closure.closure_intersection,
+    rw hn,
+    change n ⊓ closure.subobj j _ = _,
+    rw d.closure_eq_top,
+    exact inf_top_eq,
   end,
   right_inv :=
   begin
-    rintro ⟨k, hk⟩,
+    rintro ⟨n, hn⟩,
     dsimp,
     congr' 1,
-    sorry,
+    rwa [closure.comm_pullback, pullback_post],
   end }
+
+def closure_equiv {B : C} : {cB : B ⟶ Ω C // cB ≫ j = cB} ≃ {n : sub B // closure.operator j n = n} :=
+begin
+  apply classification.subtype_congr,
+  intro a,
+  rw ← classify_eq_iff_eq,
+  rw closure.classify_op,
+  change _ ↔ classification.symm _ ≫ _ = classification.symm _,
+  simp,
+end
+
+def closed_equiv {B B' : C} (m : B' ⟶ B) [closure.dense j m] : {cB : B ⟶ Ω C // cB ≫ j = cB} ≃ {cB : B' ⟶ Ω C // cB ≫ j = cB} :=
+(closure_equiv j).trans ((action j m).trans (closure_equiv j).symm)
 
 def closed_class_equiv {B B' : C} (m : B' ⟶ B) [closure.dense j m] :
   (B ⟶ closed_classifier j) ≃ (B' ⟶ closed_classifier j) :=
-(eq_equiv j B).trans ((eq_equiv j B').trans (closed_equiv j m)).symm
+(eq_equiv j B).trans ((closed_equiv j m).trans (eq_equiv j B').symm)
 
+lemma closed_class_equiv_forward {B B' : C} (m : B' ⟶ B) [closure.dense j m] (f : B ⟶ closed_classifier j) : m ≫ f = closed_class_equiv j m f :=
+begin
+  simp [closed_class_equiv, eq_equiv, closed_equiv, action, closure_equiv, equiv.subtype_congr],
+  ext1,
+  rw equalizer.lift_ι,
+  change _ = classify _,
+  rw classify_pullback,
+  change _ = m ≫ classification.symm _,
+  rw classification.symm_apply_apply,
+  rw [assoc],
+end
 -- -- def closed_biject {A B : C} (m : A ⟶ B) [closure.dense j m] : (B ⟶ closed_classifier j) ≃ (A ⟶ closed_classifier j) :=
 -- -- equiv.trans (eq_equiv j B) (equiv.trans (eq_equiv j A) (bijection j m)).symm
 
@@ -778,7 +815,13 @@ def closed_class_equiv {B B' : C} (m : B' ⟶ B) [closure.dense j m] :
 -- -- end
 
 def sheaf_classifier : sheaf j :=
-sheaf.mk' (closed_classifier j) $ λ B B' m f' d, sorry
+sheaf.mk' (closed_classifier j) $ λ B B' m f' d, by exactI
+begin
+  refine ⟨(closed_class_equiv j m).symm f', _, _⟩,
+  rw [closed_class_equiv_forward, equiv.apply_symm_apply],
+  intros a ha,
+  rwa [(closed_class_equiv j m).eq_symm_apply, ← closed_class_equiv_forward],
+end
 
 -- -- -- -- Define what it means for χ to classify the mono f.
 -- -- -- structure classifying {Ω Ω₀ U X : C} (true : Ω₀ ⟶ Ω) (f : U ⟶ X) (χ : X ⟶ Ω) :=
@@ -799,18 +842,396 @@ begin
   rw this,
 end
 
-instance : has_subobject_classifier.{v} (sheaf j) :=
-{ Ω := sheaf_classifier j,
-  Ω₀ := ⊤_ _,
-  truth :=
-  begin
-    apply (forget_terminal_sheaf j).hom ≫ _,
-    apply equalizer.lift (default (⊤_ C ⟶ Ω₀ C) ≫ truth C) _,
-    rw [assoc, comp_id, topology.ax1],
-  end,
-  truth_mono :=
-  begin
-    -- change mono ((forget_terminal_sheaf j).hom ≫ equalizer.lift (default (⊤_ C ⟶ Ω₀ C) ≫ truth C) _),
-  end
+-- instance : has_subobject_classifier.{v} (sheaf j) :=
+-- { Ω := sheaf_classifier j,
+--   Ω₀ := ⊤_ _,
+--   truth :=
+--   begin
+--     apply (forget_terminal_sheaf j).hom ≫ _,
+--     apply equalizer.lift (default (⊤_ C ⟶ Ω₀ C) ≫ truth C) _,
+--     rw [assoc, comp_id, topology.ax1],
+--   end,
+--   truth_mono := ⟨λ Z g h eq, subsingleton.elim _ _⟩,
+--   is_subobj_classifier :=
+--   { classifier_of := λ U X f hf,
+--     begin
+--       resetI,
+--       change X.A ⟶ equalizer _ _,
+--       haveI : mono ((forget j).map f) := preserves_mono_of_preserves_pullback (forget j) _ _ f,
+--       apply equalizer.lift _ _,
+--       apply classifier_of ((forget j).map f),
+--       rw [comp_id],
+--       apply closure.classifier_eq_of_closed _ _,
+--       apply closed_of_subsheaf,
+--     end,
+--     classifies' := λ U X f hf,
+--     begin
+--       resetI,
+--       dsimp,
+--       apply fully_faithful_reflects_hpb (forget j),
+--       haveI : mono ((forget j).map f) := preserves_mono_of_preserves_pullback (forget j) _ _ f,
+--       have : has_pullback_top _ _ _ := classifies ((forget j).map f),
+--       change has_pullback_top ((forget j).map f) _ ((forget_terminal_sheaf j).hom ≫ equalizer.lift _ _),
+--     end } }
 
+section close_equiv
+variables {R A : C} (rel : relation.{v} R A)
+
+abbreviation close_relation [mono rel] : relation.{v} (closure.obj j rel) A := closure.arrow j rel
+
+instance close_rel_refl [mono rel] [reflexive rel] : reflexive (close_relation j rel) :=
+{ r := reflexive.r rel ≫ closure.less_than_closure j _,
+  cancel_a := by rw [assoc, closure.is_lt_assoc, reflexive.cancel_a],
+  cancel_b := by rw [assoc, closure.is_lt_assoc, reflexive.cancel_b] }
+
+def symmetric_of_swap_eq_self [mono rel] (h : classifier_of rel = classifier_of (rel ≫ (limits.prod.braiding _ _).hom)) :
+  symmetric rel :=
+begin
+  have : (how_inj_is_classifier _ _ h).hom ≫ _ = _ := c_very_inj h,
+  have eq : prod.lift rel.a rel.b ≫ (prod.braiding A A).hom = prod.lift rel.b rel.a,
+    apply prod.hom_ext; simp,
+
+  refine ⟨(how_inj_is_classifier _ _ h).hom, _, _⟩,
+  have := (c_very_inj h) =≫ limits.prod.snd,
+    simp only [prod.lift_fst, assoc, prod.lift_snd, prod.braiding_hom] at this,
+  exact this,
+  have := (c_very_inj h) =≫ limits.prod.fst,
+    simp only [prod.lift_fst, assoc, prod.lift_snd, prod.braiding_hom] at this,
+  exact this,
+end
+def swap_eq_self_of_symmetric [mono rel] [symmetric rel] :
+  classifier_of rel = classifier_of (rel ≫ (limits.prod.braiding _ _).inv) :=
+begin
+  apply class_lift_of_iso ⟨symmetric.s rel, symmetric.s rel, symmetric_idem rel, symmetric_idem rel⟩,
+  dsimp, rw symmetric_pair_assoc rel,
+  apply prod.hom_ext; simp,
+end
+
+instance close_rel_symm [mono rel] [symmetric rel] : symmetric (close_relation j rel) :=
+begin
+  apply symmetric_of_swap_eq_self,
+  have := classify_postcompose (closure.arrow j rel) (limits.prod.braiding _ _).hom,
+  rw ← cancel_epi (prod.braiding A A).hom,
+  erw ← this,
+  rw closure.classifier,
+  have := classify_postcompose rel (limits.prod.braiding _ _).inv,
+  conv_lhs {rw this},
+  rw [assoc, (prod.braiding A A).hom_inv_id_assoc],
+  rw ← swap_eq_self_of_symmetric,
+end
+
+end close_equiv
+
+def equality (A : C) : relation A A := relation.of_pair (𝟙 A) (𝟙 A)
+instance {A : C} : mono (equality A) := category_theory.mono_prod_lift_of_left _ _
+
+
+def equality_sub (A : C) : sub (A ⨯ A) := sub.mk (equality A)
+
+def j_equal (A : C) : relation (closure.obj j (equality A)) A := close_relation j (equality A)
+instance j_equal_mono (A : C) : mono (j_equal j A) := closure.is_sub j _
+def j_equal_sub (A : C) : sub (A ⨯ A) := sub.mk (j_equal j A)
+
+lemma j_equal_sub_eq (A : C) : j_equal_sub j A = closure.operator j (equality_sub A) := rfl
+
+section
+-- Prove that if x' = x and R(x, y) then R(x', y)
+variables {A B R : C} (r : R ⟶ A ⨯ B)
+
+def x'_eq_x (A B) : C := pullback (equality A) (limits.prod.fst : A ⨯ A ⨯ B ⟶ A ⨯ A)
+def x'_eq_x_arrow (A B : C) : x'_eq_x A B ⟶ A ⨯ A ⨯ B := pullback.snd
+instance [mono r] : mono (x'_eq_x_arrow A B) := pullback.snd_of_mono
+
+def Rxy : C := pullback r (limits.prod.map limits.prod.snd (𝟙 B) : A ⨯ A ⨯ B ⟶ A ⨯ B)
+
+def Rx'y : C := pullback r (limits.prod.map limits.prod.fst (𝟙 B) : A ⨯ A ⨯ B ⟶ A ⨯ B)
+
+def Rxy_arrow : Rxy r ⟶ A ⨯ A ⨯ B := pullback.snd
+instance [mono r] : mono (Rxy_arrow r) := pullback.snd_of_mono
+def Rx'y_arrow : Rx'y r ⟶ A ⨯ A ⨯ B := pullback.snd
+instance [mono r] : mono (Rx'y_arrow r) := pullback.snd_of_mono
+def x'_eq_x_and_Rxy : C := pullback (x'_eq_x_arrow A B) (Rxy_arrow r)
+def x'_eq_x_and_Rxy_arrow : x'_eq_x_and_Rxy r ⟶ A ⨯ A ⨯ B := pullback.snd ≫ Rxy_arrow r
+instance [mono r] : mono (x'_eq_x_and_Rxy_arrow r) := mono_comp _ _
+
+def x'_eq_x_sub (A B : C) : sub (A ⨯ A ⨯ B) := pullback_sub (limits.prod.fst : A ⨯ A ⨯ B ⟶ A ⨯ A) (equality_sub A)
+def R_sub [mono r] : sub (A ⨯ B) := sub.mk r
+def Rxy_sub [mono r] : sub (A ⨯ A ⨯ B) := pullback_sub (limits.prod.map limits.prod.snd (𝟙 B) : A ⨯ A ⨯ B ⟶ A ⨯ B) (R_sub r)
+def Rx'y_sub [mono r] : sub (A ⨯ A ⨯ B) := pullback_sub (limits.prod.map limits.prod.fst (𝟙 B) : A ⨯ A ⨯ B ⟶ A ⨯ B) (R_sub r)
+
+lemma x'_eq_x_prop : x'_eq_x_arrow A B ≫ limits.prod.fst ≫ limits.prod.fst = x'_eq_x_arrow A B ≫ limits.prod.fst ≫ limits.prod.snd :=
+begin
+  have : pullback.fst ≫ (prod.lift (𝟙 A) (𝟙 A)) = x'_eq_x_arrow A B ≫ _ := pullback.condition,
+    rw [← reassoc_of this, ← reassoc_of this],
+  simp,
+end
+
+lemma factors : factors_through (x'_eq_x_and_Rxy_arrow r) (Rx'y_arrow r) :=
+begin
+  refine ⟨pullback.lift (pullback.snd ≫ pullback.fst) _ _, pullback.lift_snd _ _ _⟩,
+  rw x'_eq_x_and_Rxy_arrow,
+  apply prod.hom_ext,
+  { rw [assoc, assoc, assoc, limits.prod.map_fst, ← pullback.condition, assoc, x'_eq_x_prop,
+        pullback.condition_assoc, limits.prod.map_fst, pullback.condition_assoc], refl },
+  { simpa only [limits.prod.map_snd, pullback.condition, assoc] },
+end
+
+lemma factors_sub [mono r] : x'_eq_x_sub A B ⊓ Rxy_sub r ≤ Rx'y_sub r := factors r
+lemma closure_factors_sub [c : closure.closed j r] :
+  pullback_sub limits.prod.fst (j_equal_sub j A) ⊓ Rxy_sub r ≤ Rx'y_sub r :=
+begin
+  have := closure.mono_sub j (factors_sub r),
+    rw [closure.closure_intersection, Rxy_sub, Rx'y_sub, x'_eq_x_sub,
+        ← closure.comm_pullback, ← closure.comm_pullback, ← closure.comm_pullback] at this,
+  have r_closed : closure.operator j (R_sub r) = R_sub r := c.closure_eq_self,
+  rw r_closed at this,
+  exact this
+end
+
+end
+
+section
+open category_theory.limits.prod
+
+variables {A R : C} (r : relation R A)
+
+def transitive_of_pair (t : triples r ⟶ R) (ht : t ≫ r = prod.lift (p r ≫ r.a) (q r ≫ r.b)) : transitive r :=
+{ t := t,
+  w₁ := by simpa using ht =≫ limits.prod.fst,
+  w₂ := by simpa using ht =≫ limits.prod.snd }
+
+def transitive_of_factors_sub [mono r]
+  (fac : pullback_sub fst (sub.mk r) ⊓ pullback_sub (map snd (𝟙 _)) (sub.mk r) ≤ pullback_sub (map fst (𝟙 _)) (sub.mk r)) :
+  transitive r :=
+begin
+  obtain ⟨t, ht⟩ : {t : pullback pullback.snd pullback.snd ⟶ pullback r _ // t ≫ pullback.snd = pullback.snd ≫ pullback.snd} :=
+    raised_factors fac,
+  let big : triples r ⟶ A ⨯ A ⨯ A,
+    apply prod.lift (prod.lift (p r ≫ r.a) (q r ≫ r.a)) (q r ≫ r.b),
+  fapply transitive_of_pair,
+  refine pullback.lift (pullback.lift (p r) big _) (pullback.lift (q r) big _) _ ≫ t ≫ pullback.fst,
+  { rw prod.lift_fst,
+    apply prod.hom_ext,
+    { simp },
+    { rw [lift_snd, ← consistent r, assoc], refl } },
+  { rw [lift_map, comp_id, lift_snd],
+    apply prod.hom_ext; simp },
+  { rw [pullback.lift_snd, pullback.lift_snd] },
+  simp only [assoc],
+  rw [pullback.condition, reassoc_of ht, pullback.lift_snd_assoc, pullback.lift_snd_assoc, lift_map, comp_id],
+  apply prod.hom_ext; simp,
+end
+
+end
+
+instance eq_reflexive (A : C) : reflexive.{v} (equality A) :=
+{ r := 𝟙 A,
+  cancel_a := by simp [equality],
+  cancel_b := by simp [equality] }
+
+instance eq_symmetric (A : C) : symmetric.{v} (equality A) :=
+{ s := 𝟙 A,
+  w₁ := by simp [equality],
+  w₂ := by simp [equality] }
+
+instance j_eq_reflexive (A : C) : reflexive (j_equal j A) :=
+close_rel_refl j (equality A)
+
+instance j_eq_symmetric (A : C) : symmetric (j_equal j A) :=
+close_rel_symm j (equality A)
+
+instance j_eq_transitive (A : C) : transitive (j_equal j A) :=
+begin
+  apply transitive_of_factors_sub,
+  apply closure_factors_sub _ _,
+  rw j_equal,
+  apply_instance,
+end
+
+def sub_kernel_pair {X Y Z W : C} (a b : X ⟶ Y) (f₁ : Y ⟶ Z) (f₂ : Z ⟶ W) (comm : a ≫ f₁ = b ≫ f₁)
+  (big_kernel_pair : is_limit (pullback_cone.mk a b (by rw reassoc_of comm) : pullback_cone (f₁ ≫ f₂) (f₁ ≫ f₂))) :
+is_limit (pullback_cone.mk a b comm) :=
+is_limit.mk' _
+begin
+  intro s,
+  let s' : pullback_cone (f₁ ≫ f₂) (f₁ ≫ f₂) := pullback_cone.mk s.fst s.snd (s.condition_assoc _),
+  refine ⟨big_kernel_pair.lift s', big_kernel_pair.fac _ walking_cospan.left, big_kernel_pair.fac _ walking_cospan.right, λ m m₁ m₂, _⟩,
+  apply big_kernel_pair.hom_ext,
+  refine ((pullback_cone.mk a b _) : pullback_cone (f₁ ≫ f₂) _).equalizer_ext _ _,
+  erw m₁,
+  symmetry,
+  apply big_kernel_pair.fac _ walking_cospan.left,
+  erw m₂,
+  symmetry,
+  apply big_kernel_pair.fac _ walking_cospan.right,
+end
+
+def Pj (A : C) : sheaf j := sheaf_exponential j A (sheaf_classifier j)
+
+def named_factors (A : C) : {hat : A ⟶ (Pj j A).A // hat ≫ post _ (equalizer.ι _ _) = named (j_equal j A)} :=
+begin
+  refine ⟨cart_closed.curry (equalizer.lift ((prod.braiding A A).inv ≫ classifier_of (j_equal j A)) _), _⟩,
+  { rw [assoc, comp_id, closure.classifier_eq_of_closed _ _],
+    rw j_equal,
+    apply_instance },
+  { erw [← curry_natural_right, equalizer.lift_ι, curry_eq_iff, named, uncurry_curry] },
+end
+
+def regular_epi_is_coequalizer_of_kernel_pair {A B Y : C} (e : A ⟶ B) [he : regular_epi e] (h k : Y ⟶ A) (comm : h ≫ e = k ≫ e) (l : is_limit (pullback_cone.mk _ _ comm)) :
+  is_colimit (cofork.of_π e comm) :=
+begin
+  let t := l.lift (pullback_cone.mk _ _ he.w),
+  have ht : t ≫ h = he.left := l.fac _ walking_cospan.left,
+  have kt : t ≫ k = he.right := l.fac _ walking_cospan.right,
+  apply cofork.is_colimit.mk _ _ _ _,
+  { intro s,
+    apply (cofork.is_colimit.desc' he.is_colimit s.π _).1,
+    rw [← ht, assoc, s.condition, reassoc_of kt] },
+  { intro s,
+    apply (cofork.is_colimit.desc' he.is_colimit s.π _).2 },
+  { intros s m w,
+    apply he.is_colimit.hom_ext,
+    rintro ⟨⟩,
+    change (he.left ≫ e) ≫ m = (he.left ≫ e) ≫ _,
+    rw [assoc, assoc],
+    congr' 1,
+    erw (cofork.is_colimit.desc' he.is_colimit s.π _).2,
+    apply w walking_parallel_pair.one,
+    erw (cofork.is_colimit.desc' he.is_colimit s.π _).2,
+    apply w walking_parallel_pair.one }
+end
+-- cofork.is_colimit.mk _
+-- begin
+--   intro s,
+--   have := he.is_colimit,
+-- end
+-- _
+-- _
+
+instance mono_post_of_mono {A X Y : C} (f : X ⟶ Y) [mono f] : mono (post A f) :=
+⟨λ Z g h eq, by rw [← uncurry_injective.eq_iff, ← cancel_mono f, ← uncurry_natural_right, ← uncurry_natural_right, eq]⟩
+
+
+
+local attribute [instance] limits.has_coequalizers_of_has_finite_colimits
+
+def M (A : C) : C := image (named_factors j A).1
+def M_sub (A : C) : M j A ⟶ (Pj j A).A := mono_part _
+instance M_sub_mono (A : C) : mono (M_sub j A) := category_theory.mono_part_is_mono _
+
+def L' (A : C) : C := closure.obj j (M_sub j A)
+-- Sheafification!
+def L (A : C) : sheaf j := subobject_of_closed_sheaf j (Pj j A) (L' j A) (closure.arrow j (M_sub j A))
+
+lemma main_square_commutes (A : C) : (j_equal j A).a ≫ epi_part (named_factors j A).1 = (j_equal j A).b ≫ epi_part (named_factors j A).1 :=
+begin
+  rw [← cancel_mono (mono_part (named_factors j A).1), ← cancel_mono (post A (equalizer.ι j (𝟙 (Ω C))))],
+  simpa only [assoc, factorises_assoc, (named_factors j A).2] using relation_square_commutes (j_equal j A),
+end
+-- lemma main_square_commutes (A : C) : (j_equal j A).a ≫ (named_factors j A).1 = (j_equal j A).b ≫ (named_factors j A).1 :=
+-- by { rw [← cancel_mono (post A (equalizer.ι j (𝟙 (Ω C)))), assoc, (named_factors j A).2,
+--          relation_square_commutes (j_equal j A), assoc, assoc, (named_factors j A).2, assoc] }
+
+-- def sub_kernel_pair {X Y Z W : C} (a b : X ⟶ Y) (f₁ : Y ⟶ Z) (f₂ : Z ⟶ W) (comm : a ≫ f₁ = b ≫ f₁)
+--   (big_kernel_pair : is_limit (pullback_cone.mk a b (by rw reassoc_of comm) : pullback_cone (f₁ ≫ f₂) (f₁ ≫ f₂))) :
+-- is_limit (pullback_cone.mk a b comm) :=
+
+def main_kernel_pair (A : C) : is_limit (pullback_cone.mk _ _ (main_square_commutes j A)) :=
+begin
+  have : epi_part (named_factors j A).val ≫ mono_part (named_factors j A).val ≫ post A (equalizer.ι j (𝟙 (Ω C))) = named (j_equal j A),
+    rw [factorises_assoc, (named_factors j A).2],
+  refine sub_kernel_pair _ _ _ (mono_part _ ≫ post A (equalizer.ι j (𝟙 (Ω C)))) (main_square_commutes j A) _,
+  convert makes_kernel_pair _; apply_instance,
+end
+
+def main_coequalizer (A : C) : is_colimit (cofork.of_π (epi_part (named_factors j A).val) (main_square_commutes j A)) :=
+regular_epi_is_coequalizer_of_kernel_pair (epi_part (named_factors j A).1) _ _ _ (main_kernel_pair j A)
+
+@[simps]
+def equivalate (A : C) (B : sheaf j) : (L j A ⟶ B) ≃ (A ⟶ (forget j).obj B) :=
+{ to_fun := λ f, epi_part (named_factors j A).1 ≫ closure.less_than_closure j _ ≫ f,
+  inv_fun := λ f,
+  begin
+    have : (j_equal j A).a ≫ f = (j_equal j A).b ≫ f,
+      refine unique_ext B (closure.less_than_closure j (equality A)) f _ _ _ _;
+      simp [j_equal, closure.is_lt_assoc, equality, relation.of_pair],
+    let q : M j A ⟶ B.A := (cofork.is_colimit.desc' (main_coequalizer j A) f this).1,
+    exact extend_map B (closure.less_than_closure j (M_sub j A)) q,
+  end,
+  left_inv := λ f,
+  begin
+    dsimp,
+    symmetry,
+    apply unique_extension,
+    apply @epi.left_cancellation _ _ _ _ (epi_part (named_factors j A).val),
+    symmetry,
+    apply (cofork.is_colimit.desc' (main_coequalizer j A) _ _).2
+  end,
+  right_inv := λ f,
+  begin
+    dsimp,
+    conv_lhs {congr, skip, apply_congr extend_map_prop},
+    apply (cofork.is_colimit.desc' (main_coequalizer j A) _ _).2
+  end
 }
+
+#check adjunction.left_adjoint_of_equiv
+
+def sheafification : C ⥤ sheaf j :=
+begin
+  apply adjunction.left_adjoint_of_equiv (equivalate j),
+  intros A B B' g h,
+  dsimp [equivalate],
+  rw [assoc, assoc], refl,
+end
+
+def sheafification_is_adjoint : sheafification j ⊣ forget j :=
+adjunction.adjunction_of_equiv_left _ _
+
+instance : is_right_adjoint (forget j) :=
+{ left := sheafification j,
+  adj := adjunction.adjunction_of_equiv_left _ _ }
+
+instance : reflective (forget j) := {}.
+
+@[reducible]
+def equiv_homset_left_of_iso
+  (X X' Y : C) (i : X ≅ X') :
+  (X ⟶ Y) ≃ (X' ⟶ Y) :=
+{ to_fun := λ f, i.inv ≫ f,
+  inv_fun := λ f, i.hom ≫ f,
+  left_inv := λ f, by simp,
+  right_inv := λ f, by simp }.
+
+@[reducible]
+def equiv_homset_right_of_iso
+  (X Y Y' : C) (i : Y ≅ Y') :
+  (X ⟶ Y) ≃ (X ⟶ Y') :=
+{ to_fun := λ f, _,
+  inv_fun := λ f, _,
+  left_inv := λ f, by simp,
+  right_inv := λ f, by simp }.
+
+def b1 (A B : C) (C' : sheaf j) : (A ⨯ B ⟶ C'.A) ≃ (B ⨯ A ⟶ C'.A) := sorry
+def b2 (A B : C) (C' : sheaf j) : (B ⨯ A ⟶ C'.A) ≃ (A ⟶ C'.A ^^ B) := sorry
+def b3 (A B : C) (C' : sheaf j) : (A ⟶ C'.A ^^ B) ≃ ((sheafification j).obj A ⟶ sheaf_exponential j B C') := sorry
+def b4 (A B : C) (C' : sheaf j) : ((sheafification j).obj A ⟶ sheaf_exponential j B C') ≃ (((sheafification j).obj A).A ⟶ C'.A ^^ B) := sorry
+def b5 (A B : C) (C' : sheaf j) : (((sheafification j).obj A).A ⟶ C'.A ^^ B) ≃ (B ⨯ ((sheafification j).obj A).A ⟶ C'.A) := sorry
+def b6 (A B : C) (C' : sheaf j) : (B ⨯ ((sheafification j).obj A).A ⟶ C'.A) ≃ (B ⟶ C'.A ^^ ((sheafification j).obj A).A) := sorry
+def b7 (A B : C) (C' : sheaf j) : (B ⟶ C'.A ^^ ((sheafification j).obj A).A) ≃ ((sheafification j).obj B ⟶ sheaf_exponential j ((sheafification j).obj A).A C') := sorry
+def b8 (A B : C) (C' : sheaf j) : ((sheafification j).obj B ⟶ sheaf_exponential j ((sheafification j).obj A).A C') ≃ (((sheafification j).obj B).A ⟶ C'.A ^^ ((sheafification j).obj A).A) := sorry
+def b9 (A B : C) (C' : sheaf j) : (((sheafification j).obj B).A ⟶ C'.A ^^ ((sheafification j).obj A).A) ≃ (((sheafification j).obj A).A ⨯ ((sheafification j).obj B).A ⟶ C'.A) := sorry
+def b10 (A B : C) (C' : sheaf j) : (((sheafification j).obj A).A ⨯ ((sheafification j).obj B).A ⟶ C'.A) ≃ ((sheafification j).obj A ⨯ (sheafification j).obj B ⟶ C') := sorry
+
+def bijection (A B : C) (C' : sheaf j) : (A ⨯ B ⟶ C'.A) ≃ ((sheafification j).obj A ⨯ (sheafification j).obj B ⟶ C') :=
+begin
+end
+-- Now need to show this functor preserves finite limits.
+-- From theory proved elsewhere it suffices to show it preserves
+-- * terminal object
+-- * binary products
+-- * equalizers
+
+-- terminal object should be easy
+-- binary products should follow from theory not yet proved
+-- equalizers is hard, three possible proofs and need to pick one...

@@ -1,6 +1,7 @@
 import category_theory.comma
 import category_theory.adjunction.basic
 import category_theory.limits.shapes
+import category_theory.limits.shapes.regular_mono
 import category_theory.epi_mono
 import category_theory.limits.over
 import over
@@ -284,8 +285,18 @@ def image : C := coequalizer (pullback.fst : pullback f f ⟶ A) (pullback.snd :
 def epi_part : A ⟶ image f := coequalizer.π pullback.fst pullback.snd
 def mono_part : image f ⟶ B := coequalizer.desc f pullback.condition
 
-lemma factorises : epi_part f ≫ mono_part f = f :=
+@[reassoc] lemma factorises : epi_part f ≫ mono_part f = f :=
 by simp [epi_part, mono_part]
+
+instance epi_part_if_regular_epi : regular_epi (epi_part f) :=
+{ W := pullback f f,
+  left := pullback.fst,
+  right := pullback.snd,
+  w := coequalizer.condition _ _,
+  is_colimit := cofork.is_colimit.mk _
+    (λ s, coequalizer.desc s.π s.condition)
+    (λ s, coequalizer.π_desc _ _)
+    (λ s m w, coequalizer.hom_ext (by erw [w walking_parallel_pair.one, coequalizer.π_desc])) }
 
 lemma coequalizer_epi (g h : A ⟶ B) : epi (coequalizer.π g h) :=
 begin
@@ -295,7 +306,7 @@ begin
 end
 instance epi_part_is_epi : epi (epi_part f) := coequalizer_epi _ _
 
-lemma mono_part_is_mono : mono (mono_part f) :=
+instance mono_part_is_mono : mono (mono_part f) :=
 ⟨begin
   intros D g h gmhm,
   set q := epi_part f,
@@ -326,7 +337,7 @@ variable {f}
 def image_map {A' B' : C} {f' : A' ⟶ B'} {l : A ⟶ A'} {r : B ⟶ B'} (h : l ≫ f' = f ≫ r) : image f ⟶ image f' :=
 begin
   apply coequalizer.desc (l ≫ epi_part f'),
-  rw ← @cancel_mono _ _ _ _ _ (mono_part f') (mono_part_is_mono _),
+  rw ← cancel_mono (mono_part f'),
   rw assoc, rw assoc, rw factorises, rw assoc, rw assoc, rw factorises,
   rw h,
   rw ← factorises f, rw ← assoc, rw ← assoc, rw ← assoc, rw ← assoc,

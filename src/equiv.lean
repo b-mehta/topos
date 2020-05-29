@@ -15,24 +15,30 @@ variables {C : Type u} [category.{v} C] [has_finite_limits.{v} C]
 
 variables {A R : C}
 
--- Definitions 1.3.6
-structure relation (R A : C) :=
-(a : R ⟶ A)
-(b : R ⟶ A)
-[jointly_mono : mono (prod.lift a b)]
+-- A relation should be mono, but we restrict this at the call site instead.
+abbreviation relation (R A : C) := R ⟶ A ⨯ A
+
+namespace relation
+
+abbreviation a (r : relation R A) : R ⟶ A := r ≫ limits.prod.fst
+abbreviation b (r : relation R A) : R ⟶ A := r ≫ limits.prod.snd
+def of_pair (f : R ⟶ A) (g : R ⟶ A) : relation R A := prod.lift f g
+@[simp] lemma of_pair_a (f : R ⟶ A) (g : R ⟶ A) : (of_pair f g).a = f := prod.lift_fst _ _
+@[simp] lemma of_pair_b (f : R ⟶ A) (g : R ⟶ A) : (of_pair f g).b = g := prod.lift_snd _ _
+
+end relation
 
 variable (rel : relation.{v} R A)
-
-instance joint_mono : mono (prod.lift rel.a rel.b) :=
-rel.jointly_mono
 
 class reflexive :=
 (r : A ⟶ R)
 (cancel_a : r ≫ rel.a = 𝟙 _)
 (cancel_b : r ≫ rel.b = 𝟙 _)
 
+attribute [simp] reflexive.cancel_a reflexive.cancel_b
+
 lemma reflexive_prop [reflexive rel] :
-  reflexive.r rel ≫ prod.lift rel.a rel.b = prod.lift (𝟙 _) (𝟙 _) :=
+  reflexive.r rel ≫ rel = prod.lift (𝟙 _) (𝟙 _) :=
 begin
   apply prod.hom_ext;
   simp only [assoc, prod.lift_fst, prod.lift_snd, reflexive.cancel_a, reflexive.cancel_b],
@@ -43,14 +49,14 @@ class symmetric :=
 (w₁ : s ≫ rel.a = rel.b)
 (w₂ : s ≫ rel.b = rel.a)
 
-lemma symmetric_idem [symmetric rel] : symmetric.s rel ≫ symmetric.s rel = 𝟙 _ :=
+@[reassoc] lemma symmetric_idem [mono rel] [symmetric rel] : symmetric.s rel ≫ symmetric.s rel = 𝟙 _ :=
 begin
-  rw ← cancel_mono (prod.lift rel.a rel.b),
+  rw ← cancel_mono rel,
   apply prod.hom_ext;
   { simp only [assoc, id_comp, prod.lift_fst, prod.lift_snd, symmetric.w₁, symmetric.w₂] },
 end
-lemma symmetric_pair [symmetric rel] :
-  symmetric.s rel ≫ prod.lift rel.a rel.b = prod.lift rel.b rel.a :=
+@[reassoc] lemma symmetric_pair [symmetric rel] :
+  symmetric.s rel ≫ rel = prod.lift rel.b rel.a :=
 begin
   apply prod.hom_ext;
   simp only [assoc, prod.lift_fst, prod.lift_snd, symmetric.w₁, symmetric.w₂],
@@ -60,8 +66,8 @@ def triples : C := pullback rel.b rel.a
 
 def p : triples rel ⟶ R := pullback.fst
 def q : triples rel ⟶ R := pullback.snd
-@[reassoc]
-lemma consistent : p rel ≫ rel.b = q rel ≫ rel.a := pullback.condition
+
+@[reassoc] lemma consistent : p rel ≫ rel.b = q rel ≫ rel.a := pullback.condition
 
 class transitive :=
 (t : triples rel ⟶ R)
@@ -69,45 +75,42 @@ class transitive :=
 (w₂ : t ≫ rel.b = q rel ≫ rel.b)
 
 lemma transitive_pair [transitive rel] :
-  (transitive.t : triples rel ⟶ R) ≫ prod.lift rel.a rel.b = limits.prod.lift (p rel ≫ rel.a) (q rel ≫ rel.b) :=
+  (transitive.t : triples rel ⟶ R) ≫ rel = prod.lift (p rel ≫ rel.a) (q rel ≫ rel.b) :=
 begin
   apply prod.hom_ext,
-  rw [assoc, prod.lift_fst, prod.lift_fst, transitive.w₁],
-  rw [assoc, prod.lift_snd, prod.lift_snd, transitive.w₂],
+  rw [assoc, prod.lift_fst, transitive.w₁],
+  rw [assoc, prod.lift_snd, transitive.w₂],
 end
 
 -- Proving the note in 1.3.6(e)
-instance subsingleton_reflexive :
+instance subsingleton_reflexive [mono rel] :
   subsingleton (reflexive rel) :=
 ⟨begin
   rintros ⟨r₁, h₁r₁, h₂r₁⟩ ⟨r₂, h₁r₂, h₂r₂⟩,
   congr,
-  haveI := rel.jointly_mono,
-  rw ← cancel_mono (limits.prod.lift rel.a rel.b),
+  rw ← cancel_mono rel,
   apply prod.hom_ext,
   { simp [h₁r₁, h₁r₂] },
   { simp [h₂r₁, h₂r₂] },
 end⟩
 
-instance subsingleton_symmetric :
+instance subsingleton_symmetric [mono rel] :
   subsingleton (symmetric rel) :=
 ⟨begin
   rintros ⟨r₁, h₁r₁, h₂r₁⟩ ⟨r₂, h₁r₂, h₂r₂⟩,
   congr,
-  haveI := rel.jointly_mono,
-  rw ← cancel_mono (limits.prod.lift rel.a rel.b),
+  rw ← cancel_mono rel,
   apply prod.hom_ext,
   { simp [h₁r₁, h₁r₂] },
   { simp [h₂r₁, h₂r₂] },
 end⟩
 
-instance subsingleton_transitive :
+instance subsingleton_transitive [mono rel] :
   subsingleton (transitive rel) :=
 ⟨begin
   rintros ⟨r₁, h₁r₁, h₂r₁⟩ ⟨r₂, h₁r₂, h₂r₂⟩,
   congr,
-  haveI := rel.jointly_mono,
-  rw ← cancel_mono (limits.prod.lift rel.a rel.b),
+  rw ← cancel_mono rel,
   apply prod.hom_ext,
   { simp [h₁r₁, h₁r₂] },
   { simp [h₂r₁, h₂r₂] },
@@ -116,61 +119,67 @@ end⟩
 -- That was nice and easy!
 
 -- Show a kernel pair is an equivalence relation.
-@[simps]
-def kernel_pair_relation {A B : C} (f : A ⟶ B) : relation.{v} (pullback f f) A :=
-{ a := pullback.fst,
-  b := pullback.snd,
-  jointly_mono :=
-  ⟨λ Z g h eq, begin apply pullback.hom_ext, simpa using eq =≫ limits.prod.fst, simpa using eq =≫ limits.prod.snd end⟩ }
+def kernel_pair_relation {A B : C} (f : A ⟶ B) : relation.{v} (pullback f f) A := relation.of_pair pullback.fst pullback.snd
+instance kernel_pair_mono {A B : C} (f : A ⟶ B) : mono (kernel_pair_relation f) :=
+⟨λ Z g h eq, begin
+  apply pullback.hom_ext,
+  { simpa [kernel_pair_relation, relation.of_pair] using eq =≫ limits.prod.fst },
+  { simpa [kernel_pair_relation, relation.of_pair] using eq =≫ limits.prod.snd },
+end⟩
 
 instance {A B : C} (f : A ⟶ B) : reflexive (kernel_pair_relation f) :=
 { r := pullback.lift (𝟙 _) (𝟙 _) rfl,
-  cancel_a := pullback.lift_fst _ _ _,
-  cancel_b := pullback.lift_snd _ _ _ }
+  cancel_a := by simp [kernel_pair_relation],
+  cancel_b := by simp [kernel_pair_relation] }
 
 instance {A B : C} (f : A ⟶ B) : symmetric (kernel_pair_relation f) :=
 { s := pullback.lift pullback.snd pullback.fst pullback.condition.symm,
-  w₁ := pullback.lift_fst _ _ _,
-  w₂ := pullback.lift_snd _ _ _ }
+  w₁ := by simp [kernel_pair_relation],
+  w₂ := by simp [kernel_pair_relation] }
 
 def tag' (n : ℕ) (A B : C) (f : A ⟶ B) : A ⟶ B := f
 
 instance {A B : C} (f : A ⟶ B) : transitive (kernel_pair_relation f) :=
-{ t := pullback.lift (p _ ≫ pullback.fst) (q _ ≫ (kernel_pair_relation f).b)
-      (by { erw [assoc, assoc, pullback.condition, consistent_assoc, pullback.condition], refl }),
-  w₁ := pullback.lift_fst _ _ _,
-  w₂ := pullback.lift_snd _ _ _
+{ t := pullback.lift (p _ ≫ (kernel_pair_relation f).a) (q _ ≫ (kernel_pair_relation f).b)
+  begin
+    have : (kernel_pair_relation f).a ≫ f = (kernel_pair_relation f).b ≫ f,
+      simp [kernel_pair_relation],
+    erw [assoc, this, pullback.condition_assoc, this],
+    simp [q],
+  end,
+  w₁ := begin simp [kernel_pair_relation] end,
+  w₂ := begin simp [kernel_pair_relation] end
 }
 
 -- Now we show the converse: any equivalence relation is a kernel pair.
 
 lemma left_pb_comm [transitive rel] :
-  (transitive.t : triples rel ⟶ _) ≫ prod.lift rel.a rel.b = prod.lift (p rel) (q rel ≫ rel.b) ≫ limits.prod.map rel.a (𝟙 _) :=
+  (transitive.t : triples rel ⟶ _) ≫ rel = prod.lift (p rel) (q rel ≫ rel.b) ≫ limits.prod.map rel.a (𝟙 _) :=
 begin
   rw [prod.lift_map, comp_id, transitive_pair],
 end
 
 lemma right_pb_comm :
-  q rel ≫ prod.lift rel.a rel.b =
+  q rel ≫ rel =
 prod.lift (p rel) (q rel ≫ rel.b) ≫ limits.prod.map rel.b (𝟙 _) :=
 begin
   rw [prod.lift_map, comp_id],
   apply prod.hom_ext,
-  { rw [assoc, prod.lift_fst, prod.lift_fst, consistent] },
-  { rw [assoc, prod.lift_snd, prod.lift_snd] }
+  { rw [assoc, prod.lift_fst, consistent] },
+  { rw [assoc, prod.lift_snd] }
 end
 
 variables [has_subobject_classifier.{v} C] [is_cartesian_closed.{v} C]
 
-def named : A ⟶ P A := hat (prod.lift rel.a rel.b)
+def named [mono rel] : A ⟶ P A := hat rel
 
-def right_pb_square : is_limit (pullback_cone.mk _ _ (right_pb_comm rel)) :=
+def right_pb_square [mono rel] : is_limit (pullback_cone.mk _ _ (right_pb_comm rel)) :=
 is_limit.mk'' _ $ λ c,
 begin
   have c₁ := c.condition =≫ limits.prod.fst,
-  rw [assoc, assoc, prod.lift_fst, limits.prod.map_fst] at c₁,
+  rw [assoc, assoc, limits.prod.map_fst] at c₁,
   have c₂ := c.condition =≫ limits.prod.snd,
-  rw [assoc, assoc, prod.lift_snd, limits.prod.map_snd, comp_id] at c₂,
+  rw [assoc, assoc, limits.prod.map_snd, comp_id] at c₂,
   refine ⟨pullback.lift (c.snd ≫ limits.prod.fst) c.fst _, _, λ m m₁ m₂, _⟩,
   { rw [assoc, c₁] },
   { change pullback.lift _ _ _ ≫ prod.lift _ _ = _,
@@ -182,16 +191,16 @@ begin
     { rw pullback.lift_snd, exact m₁ } }
 end
 
-instance pbq_mono : mono (prod.lift (p rel) (q rel ≫ rel.b)) :=
+instance pbq_mono [mono rel] : mono (prod.lift (p rel) (q rel ≫ rel.b)) :=
 pullback_mono_is_mono _ (right_pb_square rel)
 
-def left_pb_square [symmetric rel] [transitive rel] : is_limit (pullback_cone.mk _ _ (left_pb_comm rel)) :=
+def left_pb_square [mono rel] [symmetric rel] [transitive rel] : is_limit (pullback_cone.mk _ _ (left_pb_comm rel)) :=
 is_limit.mk''' _ (category_theory.pbq_mono rel) $ λ c,
 begin
   have c₁ := c.condition =≫ limits.prod.fst,
-  rw [assoc, prod.lift_fst, assoc, limits.prod.map_fst] at c₁,
+  rw [assoc, assoc, limits.prod.map_fst] at c₁,
   have c₂ := c.condition =≫ limits.prod.snd,
-  rw [assoc, prod.lift_snd, assoc, limits.prod.map_snd, comp_id] at c₂,
+  rw [assoc, assoc, limits.prod.map_snd, comp_id] at c₂,
   have comm : (c.snd ≫ limits.prod.fst ≫ symmetric.s rel) ≫ rel.b = c.fst ≫ rel.a,
     rw [assoc, assoc, symmetric.w₂, c₁],
   let yRz : c.X ⟶ R := pullback.lift (c.snd ≫ limits.prod.fst ≫ symmetric.s rel) c.fst comm ≫ transitive.t,
@@ -203,7 +212,7 @@ begin
     { simp only [assoc, prod.lift_snd, q, pullback.lift_snd_assoc, transitive.w₂, c₂] } },
 end
 
-lemma relation_square_commutes [symmetric rel] [transitive rel] : rel.a ≫ named rel = rel.b ≫ named rel :=
+lemma relation_square_commutes [mono rel] [symmetric rel] [transitive rel] : rel.a ≫ named rel = rel.b ≫ named rel :=
 begin
   rw [named, ← hat_natural_left, ← hat_natural_left],
   transitivity (hat (prod.lift (p rel) (q rel ≫ rel.b))),
@@ -217,12 +226,12 @@ end
 
 -- variable (e : equivalence_rel rel)
 
-theorem makes_kernel_pair [reflexive rel] [symmetric rel] [transitive rel] :
+def makes_kernel_pair [mono rel] [reflexive rel] [symmetric rel] [transitive rel] :
   is_limit (pullback_cone.mk _ _ (relation_square_commutes rel)) :=
 is_limit.mk' _ $ λ c,
 begin
   have frgr : c.fst ≫ hat _ = c.snd ≫ hat _ := c.condition,
-  let ab' : sub (A ⨯ A) := sub.mk (prod.lift rel.a rel.b),
+  let ab' : sub (A ⨯ A) := sub.mk rel,
   have subs : pullback_sub (limits.prod.map c.fst (𝟙 _)) ab' = pullback_sub (limits.prod.map c.snd (𝟙 _)) ab',
     apply name_bijection.right_inv.injective,
     change name_subobject (pullback_sub (limits.prod.map c.fst (𝟙 A)) ab') = name_subobject (pullback_sub (limits.prod.map c.snd (𝟙 A)) ab'),
@@ -246,16 +255,16 @@ begin
       rw [id_comp], apply reflexive_prop,
     apply pullback.lift_snd,
   rw [← subs2, eq_top_iff] at subs3,
-  obtain ⟨t, ht⟩ : { t : c.X ⟶ pullback (prod.lift _ _) _ // t ≫ pullback.snd = 𝟙 _ } := raised_factors subs3,
+  obtain ⟨t, ht⟩ : { t : c.X ⟶ pullback rel _ // t ≫ pullback.snd = 𝟙 _ } := raised_factors subs3,
   let u := t ≫ pullback.fst,
-  have t' : u ≫ prod.lift rel.a rel.b = prod.lift c.fst c.snd,
+  have t' : u ≫ rel = prod.lift c.fst c.snd,
     rw [assoc, pullback.condition, reassoc_of ht],
   have t₁ := t' =≫ limits.prod.fst,
-    rw [assoc, prod.lift_fst, prod.lift_fst] at t₁,
+    rw [assoc, prod.lift_fst] at t₁,
   have t₂ := t' =≫ limits.prod.snd,
-    rw [assoc, prod.lift_snd, prod.lift_snd] at t₂,
+    rw [assoc, prod.lift_snd] at t₂,
   refine ⟨u, t₁, t₂, λ m m₁ m₂, _⟩,
-  rw [← cancel_mono (prod.lift rel.a rel.b), t'],
+  rw [← cancel_mono rel, t'],
   apply prod.hom_ext,
   { simpa only [assoc, prod.lift_fst] using m₁ },
   { simpa only [assoc, prod.lift_snd] using m₂ },

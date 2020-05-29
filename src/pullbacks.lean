@@ -30,7 +30,7 @@ structure has_pullback_top (left : W ⟶ Y) (bottom : Y ⟶ Z) (right : X ⟶ Z)
 
 attribute [reassoc] has_pullback_top.comm
 
-instance (left : W ⟶ Y) (bottom : Y ⟶ Z) (right : X ⟶ Z) [mono right] :
+instance subsingleton_hpb (left : W ⟶ Y) (bottom : Y ⟶ Z) (right : X ⟶ Z) [mono right] :
   subsingleton (has_pullback_top left bottom right) :=
 ⟨begin
   intros P Q,

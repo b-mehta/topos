@@ -75,6 +75,18 @@ end
 lemma pullback_is_le' [has_pullbacks.{v} C] (f : X ⟶ Y) [mono f] {g₁ : sub'.{v} Y} : postcompose_sub' f (pullback_sub' f g₁) ≤ g₁ :=
 ⟨pullback.fst, pullback.condition⟩
 
+lemma pullback_is_le'' [has_pullbacks.{v} C] (f : X ⟶ Y) [mono f] {g₁ : sub'.{v} X} : pullback_sub' f (postcompose_sub' f g₁) ≤ g₁ :=
+begin
+  refine ⟨pullback.fst, _⟩,
+  change pullback.fst ≫ g₁.arrow.hom = (pullback.snd : pullback (g₁.arrow.hom ≫ f) f ⟶ X),
+  rw [← cancel_mono f, assoc, pullback.condition],
+end
+lemma pullback_is_le''' [has_pullbacks.{v} C] (f : X ⟶ Y) [mono f] {g₁ : sub'.{v} X} : g₁ ≤ pullback_sub' f (postcompose_sub' f g₁) :=
+begin
+  refine ⟨pullback.lift (𝟙 _) g₁.arrow.hom _, pullback.lift_snd _ _ _⟩,
+  rw [id_comp], refl,
+end
+
 def equiv (X : C) : sub'.{v} X → sub'.{v} X → Prop := λ f g, f ≤ g ∧ g ≤ f
 
 lemma equiv_is_equivalence : _root_.equivalence (@equiv _ _ X) :=
@@ -189,6 +201,17 @@ begin
   apply quotient.ind,
   intro a,
   apply quotient.sound (postcompose_pullback_comm' t a),
+end
+
+lemma pullback_post [has_pullbacks.{v} C] (f : X ⟶ Y) [mono f] : ∀ g₁, pullback_sub f (postcompose f g₁) = g₁ :=
+begin
+  apply quotient.ind,
+  intro a,
+  apply quotient.sound,
+  refine ⟨_, _⟩,
+  exact pullback_is_le'' f,
+  exact pullback_is_le''' f,
+
 end
 
 instance over_mono {B : C} {f g : over B} (m : f ⟶ g) [mono m] : mono m.left :=
