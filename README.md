@@ -10,22 +10,21 @@ This is a WIP project to define some topos theory within the Lean theorem prover
 - (Trunc) construction of finite products from binary products and terminal
 - Locally cartesian closed categories and epi-mono factorisations
 - Many lemmas about pullbacks (for instance the pasting lemma)
-- Skeleton of a category (assuming choice)
-- Connected categories
-- Creation of limits
 - Subobject category
 - Subobject classifier
 - Power objects
-- Beck's monadicity theorem [in branch beck](https://github.com/b-mehta/topos/tree/beck)
-- (Internal) Beck-Chevalley and Pare's theorem [in branch beck](https://github.com/b-mehta/topos/tree/beck)
-
-## What's coming soon?
+- Reflexive monadicity theorem
+- (Internal) Beck-Chevalley and Pare's theorem
 - Definition of a topos
 - Every topos is finitely cocomplete
+- Local cartesian closure of toposes and Fundamental Theorem of Topos Theory
+- Lawvere-Tierney topologies and sheaves
+
+## What's coming soon?
 - Proof that category of coalgebras for a comonad form a topos
-- Every topos is locally cartesian closed, Fundamental theorem of Topos Theory
-- Lawvere-Tierney topologies, sheaves
 - Logical functors
+- Proof that Lawvere-Tierney topologies generalise Grothendieck topologies
+- Logic internal to a topos
 
 ## What might be coming?
 - Geometric morphisms
@@ -33,8 +32,6 @@ This is a WIP project to define some topos theory within the Lean theorem prover
 - The construction of the Cohen topos to show ZF doesn't prove CH
 - The construction of a topos to show ZF doesn't prove AC
 - A topos in which every function R -> R is continuous
-- Proof that Lawvere-Tierney topologies generalise Grothendieck topologies
-- Logic internal to a topos
 - Giraud's theorem
 - Classifying toposes
 
