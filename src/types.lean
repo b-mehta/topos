@@ -3,7 +3,6 @@ import category_theory.limits.types
 import category_theory.types
 import category_theory.limits.shapes.binary_products
 import subobject_classifier
-import cartesian_closed
 
 universes v v₂ u
 

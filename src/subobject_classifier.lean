@@ -7,7 +7,6 @@ Authors: Bhavik Mehta
 import category_theory.limits.shapes
 import category_theory.limits.shapes.regular_mono
 import category_theory.epi_mono
-import pullbacks
 import sub
 
 /-!

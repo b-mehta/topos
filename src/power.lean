@@ -10,7 +10,6 @@ import category_theory.limits.shapes.finite_products
 import category_theory.limits.types
 import category_theory.adjunction.limits
 import category_theory.monad.limits
-import sub
 import subobject_classifier
 import category_theory.limits.opposites
 import category_theory.limits.over
