@@ -25,10 +25,12 @@ This is a WIP project to define some topos theory within the Lean theorem prover
 - Logical functors
 - Proof that Lawvere-Tierney topologies generalise Grothendieck topologies
 - Logic internal to a topos
+- Natural number objects
 
 ## What might be coming?
 - Geometric morphisms
 - Filter/quotient construction on a topos
+- ETCS
 - The construction of the Cohen topos to show ZF doesn't prove CH
 - The construction of a topos to show ZF doesn't prove AC
 - A topos in which every function R -> R is continuous
