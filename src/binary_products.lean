@@ -23,6 +23,13 @@ section
 variables {J K : Type v} [small_category J] [small_category K]
 variables {C : Type u} [category.{v} C]
 
+instance mono_prod_map {X Y Z W : C} (f : X ⟶ Y) (g : W ⟶ Z) [has_binary_products.{v} C] [mono f] [mono g] : mono (limits.prod.map f g) :=
+⟨λ A h k l, begin
+  apply prod.hom_ext,
+  { rw [← cancel_mono f, assoc, assoc, ← limits.prod.map_fst f g, reassoc_of l] },
+  { rw [← cancel_mono g, assoc, assoc, ← limits.prod.map_snd f g, reassoc_of l] },
+end⟩
+
 variables {F : J ⥤ C}
 
 open category_theory.equivalence
@@ -112,7 +119,7 @@ def preserves_limit_of_equiv {J₁ J₂ : Type v} [small_category J₁] [small_c
       apply_instance,
     let l := is_limit_equivalence_comp e.symm this,
     let equ := e.inv_fun_id_assoc (K ⋙ F),
-    apply (is_limit.of_cone_equiv (cones.postcompose_equivalence equ.symm) l).of_iso_limit,
+    apply (is_limit.of_cone_equiv (cones.postcompose_equivalence equ.symm).inverse l).of_iso_limit,
     apply cones.ext _ _,
     { apply iso.refl _ },
     { intro j,

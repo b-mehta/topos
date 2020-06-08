@@ -226,7 +226,7 @@ begin
   change has_pullback_top _ _ _,
   rw prod_map_comp_id,
   apply left_right_hpb_to_both_hpb _ _ (hat_powerises _),
-  apply right_both_hpb_to_left_hpb _ has_pullback_top_of_pb,
+  apply right_both_hpb_to_left_hpb _ _ _ has_pullback_top_of_pb,
   rw ← prod_map_map,
   apply left_right_hpb_to_both_hpb m has_pullback_top_of_pb (hat_powerises _),
 end
@@ -355,13 +355,6 @@ end
 
 instance pfaithful [has_power_objects.{v} C] : faithful (P_functor : Cᵒᵖ ⥤ C) :=
 ⟨λ A B f g k, has_hom.hom.unop_inj (p_faithful k)⟩
-
-instance mono_prod_map {X Y Z W : C} (f : X ⟶ Y) (g : W ⟶ Z) [mono f] [mono g] : mono (limits.prod.map f g) :=
-⟨λ A h k l, begin
-  apply prod.hom_ext,
-  { rw [← cancel_mono f, assoc, assoc, ← limits.prod.map_fst f g, reassoc_of l] },
-  { rw [← cancel_mono g, assoc, assoc, ← limits.prod.map_snd f g, reassoc_of l] },
-end⟩
 
 def internal_image {A B : C} [has_power_object.{v} A] [has_power_object.{v} B] (f : A ⟶ B) [mono f] : P A ⟶ P B :=
 hat (mem A ≫ limits.prod.map (𝟙 (P A)) f)
@@ -565,7 +558,7 @@ begin
   simp [←hk, P₁_arrow, equalizer.condition],
 end
 
-section slicing
+namespace slicing
 
 -- EVERYTHING FROM HERE DOWN NEEDS TIDYING!!
 
@@ -651,7 +644,6 @@ variables {B} (f g : over B)
 --       erw m₂ },
 --   apply congr_arg comma_morphism.left this,
 -- end
-
 
 variables [has_power_object.{v} B] [has_power_object.{v} f.left]
 
@@ -952,7 +944,7 @@ def main (f : over B) [has_power_object.{v} f.left] : has_power_object.{v} f :=
 end slicing
 
 instance fundamental_theorem (B : C) [has_power_objects.{v} C] : has_power_objects.{v} (over B) :=
-{ has_power_object := λ f, main f }
+{ has_power_object := λ f, slicing.main f }
 
 def comparison [has_power_objects.{v} C]
   {D : Type u₂} [category.{v} D] [has_finite_limits.{v} D] [has_power_objects.{v} D]
@@ -1133,7 +1125,7 @@ begin
   { intro q,
     refine cut_hpb_up _ _ _ _ _ _ _ _ b_pb,
     apply over_forget_reflects_hpb,
-    refine right_both_hpb_to_left_hpb _ (has_pullback_top_of_is_pb r_pb),
+    refine right_both_hpb_to_left_hpb _ _ _ (has_pullback_top_of_is_pb r_pb),
     convert q },
   { intro q,
     have := stretch_hpb_down _ _ _ _ _ _ q _ b_pb,
@@ -1198,7 +1190,7 @@ def power_of_subobj (A : C) [exponentiable A] [has_subobject_classifier.{v} C] :
     powerises' := λ B R m hm,
     begin
       haveI := hm,
-      apply right_both_hpb_to_left_hpb _ has_pullback_top_of_pb,
+      apply right_both_hpb_to_left_hpb _ _ _ has_pullback_top_of_pb,
       rw [braid_natural_assoc, subobj_hat, curry_eq, prod_map_id_comp, assoc, ev_nat, ev_coev_assoc, iso.hom_inv_id_assoc],
       apply classifier.classifies m,
     end,

@@ -295,11 +295,9 @@ begin
       end
           ... ≅ Q : by exact iso_whisker_left Q (comparison V).fun_inv_id ≪≫ Q.right_unitor,
   suffices: is_right_adjoint (comparison U ⋙ (comparison U).inv ⋙ Q ⋙ comparison V ⋙ (comparison V).inv),
-    apply @right_adjoint_of_nat_iso _ _ _ _ _ _ i₃ this,
-  haveI : is_right_adjoint (comparison U) := right_adjoint_of_equiv,
-  haveI : is_right_adjoint (comparison V).inv := right_adjoint_of_equiv,
-  haveI : is_right_adjoint (comparison U ⋙ (comparison U).inv ⋙ Q ⋙ comparison V) := right_adjoint_of_comp,
-  apply @right_adjoint_of_comp _ _ _ _ _ _ (comparison U ⋙ (comparison U).inv ⋙ Q ⋙ comparison V),
+    apply @adjunction.right_adjoint_of_nat_iso _ _ _ _ _ _ i₃ this,
+  haveI : is_right_adjoint (comparison U) := by apply_instance,
+  apply @adjunction.right_adjoint_of_comp _ _ _ _ _ _ (comparison U ⋙ (comparison U).inv ⋙ Q ⋙ comparison V),
 end
 
 end monad

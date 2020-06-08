@@ -11,58 +11,58 @@ namespace category_theory
 
 open category_theory limits order lattice
 
-def sieve_set (C : Type u) [𝒞 : category.{v} C] :=  Π (X : C), set (sieve X)
+/-- A set of sieves for every object in the category: a candidate to be a Grothendieck topology. -/
+def sieve_set (C : Type u) [category.{v} C] := Π (X : C), set (sieve X)
 
-def arrow_set (C : Type u) [𝒞 : category.{v} C] :=  Π (X : C), set (set (over X))
+def arrow_set (C : Type u) [category.{v} C] := Π (X : C), set (set (over X))
 
-def sieve_set.trivial (C : Type u) [𝒞 : category.{v} C] : sieve_set C := λ X, {⊤}
+def sieve_set.trivial (C : Type u) [category.{v} C] : sieve_set C := λ X, {⊤}
 
-def sieve_set.dense (C : Type u) [𝒞 : category.{v} C] : sieve_set C :=
-λ X, {S | ∀ {Y : C} (f : Y ⟶ X), ∃ (Z) (g : Z ⟶ Y), (over.mk (g ≫ f)) ∈ S }
+def sieve_set.dense (C : Type u) [category.{v} C] : sieve_set C :=
+λ X, {S | ∀ {Y : C} (f : Y ⟶ X), ∃ Z (g : Z ⟶ Y), over.mk (g ≫ f) ∈ S.arrows }
 
 /-- The atomic sieve_set just contains all of the non-empty sieves. -/
-def sieve_set.atomic (C : Type u) [𝒞 : category.{v} C] : sieve_set C :=
-λ X, {S | ∃ x, x ∈ S}
+def sieve_set.atomic (C : Type u) [category.{v} C] : sieve_set C :=
+λ X, {S | ∃ x, x ∈ S.arrows}
 
-def sieve_set.generate {C : Type u} [𝒞 : category.{v} C] (K : arrow_set C) : sieve_set C :=
-λ X, {S | ∃ R ∈ K(X), R ⊆ S.arrows}
+/-- The smallest sieve set containing the given arrow set. -/
+def sieve_set.generate {C : Type u} [category.{v} C] (K : arrow_set C) : sieve_set C :=
+λ X, {S | ∃ R ∈ K X, R ⊆ S.arrows}
 
 open sieve category
 
-/-- Definition of a Grothendiek Topology. -/
-class grothendieck {C : Type u} [𝒞 : category.{v} C] (J : sieve_set C) :=
-(max : ∀ X, ⊤ ∈ J(X))
-(stab : ∀ (X Y : C) (S ∈ J(X)) (h : Y ⟶ X), sieve.pullback S h ∈ J(Y))
-(trans :
-  ∀ ⦃X : C⦄,
-  ∀ (S ∈ J(X)),
-  ∀ (R : sieve X),
-  ∀ (_ : ∀ (f : over X),
-         ∀ (_ : f ∈ S),
-           sieve.pullback R f.hom ∈ J(f.left)),
-    R ∈ J(X)
-)
+/--
+Definition of a Grothendieck Topology: a set of sieves `J X` on each object `X` satisfying three axioms:
+1. For every object `X`, the maximal sieve is in `J X`.
+2. If `S ∈ J X` then its pullback along any `h : Y ⟶ X` is in `J Y`.
+3. If `S ∈ J X` and `R` is a sieve on `X`, then provided that the pullback of `R` along any arrow
+   `f : Y ⟶ X` in `S` is in `J Y`, we have that `R` itself is in `J X`.
+-/
+class grothendieck {C : Type u} [category.{v} C] (J : sieve_set C) :=
+(max : ∀ X, ⊤ ∈ J X)
+(stab : ∀ (X Y : C) (S ∈ J X) (h : Y ⟶ X), sieve.pullback S h ∈ J(Y))
+(trans : ∀ ⦃X : C⦄ (S ∈ J X) (R : sieve X), (∀ (f : over X), f ∈ S → sieve.pullback R f.hom ∈ J f.left) → R ∈ J(X))
 
+/-- A site is a category equipped with a grothendieck topology. -/
 structure Site :=
 (C : Type u)
 [𝒞 : category.{v} C]
 (J : sieve_set C)
-[g : @grothendieck C 𝒞 J]
+[g : grothendieck J]
 
 namespace grothendieck
 
-variables {C : Type u} [𝒞 : category.{v} C]
+variables {C : Type u} [category.{v} C]
 variables {X Y : C} {S R : sieve X}
 variables {J : sieve_set C} [grothendieck J]
-include 𝒞
 
-def over.pullback [@has_pullbacks C 𝒞] {X Y : C} (f : X ⟶ Y) (g : over Y) : over X :=
+def over.pullback [has_pullbacks.{v} C] {X Y : C} (f : X ⟶ Y) (g : over Y) : over X :=
 over.mk (@pullback.fst _ _ _ _ _ f g.hom _)
 
-@[simp] lemma over_pullback_def [@has_pullbacks C 𝒞] {X Y : C} (f : X ⟶ Y) (g : over Y) :
+@[simp] lemma over_pullback_def [has_pullbacks.{v} C] {X Y : C} (f : X ⟶ Y) (g : over Y) :
   (over.pullback f g).hom = pullback.fst := rfl
 
-class basis [@category_theory.limits.has_pullbacks C 𝒞] (K : arrow_set C) :=
+class basis [has_pullbacks.{v} C] (K : arrow_set C) :=
 (has_isos      : ∀ {X Y : C} (e : X ≅ Y), {over.mk e.hom} ∈ K(Y))
 (has_pullbacks : ∀ {X Y : C} {ℱ : set (over X)} (h₁ : ℱ ∈ K(X)) (g : Y ⟶ X), set.image (over.pullback g) ℱ ∈ K(Y))
 (trans : ∀ {X} {ℱ : set (over X)},
@@ -71,7 +71,7 @@ class basis [@category_theory.limits.has_pullbacks C 𝒞] (K : arrow_set C) :=
          ∀ (h₃ : ∀ {f : over X} (hf : f ∈ ℱ), 𝒢 hf ∈ K(f.left)),
            {h : over X | ∃ (f : over X) (hf : f ∈ ℱ) (g : over f.left) (hg : g ∈ 𝒢 hf), h = over.mk (g.hom ≫ f.hom)} ∈ K(X))
 
-instance of_basis [@category_theory.limits.has_pullbacks C 𝒞] {K : arrow_set C} [basis K] : grothendieck (sieve_set.generate K) :=
+instance of_basis [has_pullbacks.{v} C] {K : arrow_set C} [basis K] : grothendieck (sieve_set.generate K) :=
 { max := λ X, ⟨{over.mk (𝟙 X)}, basis.has_isos (iso.refl X), λ f h, ⟨⟩⟩,
   stab := begin
     rintros X Y S ⟨ℱ,h₁,h₂⟩ f,
@@ -156,7 +156,8 @@ open sieve_set
 
 instance trivial.grothendieck : grothendieck (sieve_set.trivial C) :=
 { max := λ X, set.mem_singleton _,
-  stab := λ X Y S HS h , begin
+  stab := λ X Y S HS h,
+  begin
     have : S = ⊤,
       apply set.eq_of_mem_singleton, assumption,
     rw [this, sieve.pullback_top],
@@ -167,56 +168,63 @@ instance trivial.grothendieck : grothendieck (sieve_set.trivial C) :=
     apply set.mem_singleton_of_eq,
     apply top_unique,
     rintros g Hg,
-    have : sieve.pullback R (g.hom) ≥ ⊤, refine (ge_of_eq (set.eq_of_mem_singleton (HR g Hg))),
+    have : sieve.pullback R (g.hom) ≥ ⊤ := (ge_of_eq (set.eq_of_mem_singleton (HR g Hg))),
     have : over.mk (𝟙 g.left) ∈ sieve.pullback R (g.hom), refine this _, trivial,
     have : over.mk (𝟙 (g.left) ≫ g.hom) ∈ R, apply this,
     simpa,
-  end
-}
+  end }
 
 instance dense.grothendieck : grothendieck (dense C) :=
-{ max := λ X Y f, ⟨Y,𝟙 Y, ⟨⟩⟩
-, stab :=
+{ max := λ X Y f, ⟨Y, 𝟙 Y, ⟨⟩⟩,
+  stab :=
     begin
       intros X Y S H h Z f,
       rcases H (f ≫ h) with ⟨W,g,H⟩,
       refine ⟨W,g,_⟩,
-      simp, apply H
-    end
-, trans :=
-    begin intros X S H₁ R H₂ Y f,
+      simpa,
+    end,
+  trans :=
+    begin
+      intros X S H₁ R H₂ Y f,
       rcases H₁ f with ⟨Z,g,H₃⟩,
       rcases H₂ _ H₃ (𝟙 Z) with ⟨W,h,H₄⟩,
-      refine ⟨W,(h ≫ (𝟙 Z) ≫ g), _⟩,
-      simp [sieve_set.dense] at *,
-      apply H₄
-    end
-}
+      refine ⟨W, (h ≫ (𝟙 Z) ≫ g), _⟩,
+      simpa using H₄,
+    end }
 
-/-- The atomic sieveset is a grothendieck topology when it
-    satisfies the 'square' property. Which says that every span `Y ⟶ X ⟵ Z` forms a commuting
-    diagram. -/
+/--
+A category satisfies the right Ore condition if any span can be completed to a
+commutative square.
+NB. Any category with pullbacks obviously satisfies the right Ore condition.
+-/
+def right_ore_condition (C : Type u) [category.{v} C] : Prop :=
+∀ {X Y Z : C} (yx : Y ⟶ X) (zx : Z ⟶ X), ∃ W (wy : W ⟶ Y) (wz : W ⟶ Z), wy ≫ yx = wz ≫ zx
+
+/--
+The atomic sieveset is a grothendieck topology when it
+satisfies the 'square' property. Which says that every span `Y ⟶ X ⟵ Z` forms a commuting
+diagram.
+-/
 instance atomic.grothendieck
-  (square :
-    ∀ {X Y Z : C} (yx : Y ⟶ X) (zx : Z ⟶ X),
-    ∃ (W : C)     (wy : W ⟶ Y) (wz : W ⟶ Z),
-      wy ≫ yx = wz ≫ zx)
+  (hro : right_ore_condition C)
   : grothendieck (atomic C) :=
-{ max := λ X, ⟨over.mk (𝟙 _),⟨⟩⟩,
-  stab := begin
-    rintros X Y S HS h,
+{ max := λ X, ⟨over.mk (𝟙 _), ⟨⟩⟩,
+  stab :=
+  begin
+    intros X Y S HS h,
     cases HS with f HS,
-    rcases square h f.hom with ⟨a,b,c,d⟩,
-    refine ⟨over.mk b,_⟩,
-    simp, rw d,
-    apply sieve.subs, assumption
-   end,
-   trans := begin
-     rintros _ _ ⟨f,fS⟩ _ Ra,
-     rcases Ra f fS with ⟨g,h₁⟩,
-     refine ⟨_,h₁⟩
-   end
-}
+    rcases hro h f.hom with ⟨Z, zy, zf, comm⟩,
+    refine ⟨over.mk zy, _⟩,
+    erw [mem_pullback, comm],
+    apply downward_closed,
+    exact HS
+  end,
+   trans :=
+   begin
+     rintros _ _ ⟨f, fS⟩ _ Ra,
+     rcases Ra f fS with ⟨g, h₁⟩,
+     refine ⟨_, h₁⟩
+   end }
 
 open opposite
 

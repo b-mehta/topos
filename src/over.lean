@@ -37,26 +37,20 @@ variable [has_pullbacks.{v} C]
 
 @[simps]
 def real_pullback {A B : C} (f : A ⟶ B) : over B ⥤ over A :=
-{ obj := λ g, over.mk (pullback.fst : pullback f g.hom ⟶ A),
-  map := λ g h k,
-  begin
-    apply over.hom_mk _ _,
-    { apply pullback.lift pullback.fst (pullback.snd ≫ k.left) _,
-      rw [pullback.condition, assoc, over.w k] },
-    { apply pullback.lift_fst }
-  end }
+{ obj := λ g, over.mk (pullback.snd : pullback g.hom f ⟶ A),
+  map := λ g h k, over.hom_mk (pullback.lift (pullback.fst ≫ k.left) pullback.snd (by simp [pullback.condition])) (by tidy) }
 
 end
 
 section
 variable [has_binary_products.{v} C]
 
-local attribute [tidy] tactic.case_bash
-
 @[simps]
 def star : C ⥤ over B :=
 { obj := λ A, @over.mk _ _ _ (B ⨯ A) limits.prod.fst,
   map := λ X Y f, over.hom_mk (limits.prod.map (𝟙 _) f) }
+
+local attribute [tidy] tactic.case_bash
 
 def forget_adj_star : over.forget ⊣ star B :=
 adjunction.mk_of_hom_equiv

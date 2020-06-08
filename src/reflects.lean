@@ -69,7 +69,7 @@ instance reflects_iso_of_reflects_limits_of_shape [reflects_limits_of_shape puni
       apply reflects_limit.reflects this,
     have l := is_limit_of_is_iso (F.map f),
     let t : cone (point B ⋙ F) ≌ cone _ := cones.postcompose_equivalence (map_cone_point F B),
-    apply is_limit.of_iso_limit (is_limit.of_cone_equiv t l),
+    apply is_limit.of_iso_limit (is_limit.of_cone_equiv t.inverse l),
     apply cones.ext _ _,
     apply iso.refl _,
     intro j,

@@ -1,4 +1,5 @@
 import power
+import kernel_pair
 import category_theory.epi_mono
 import category_theory.limits.shapes.pullbacks
 import category_theory.limits.shapes.binary_products
@@ -13,12 +14,12 @@ namespace category_theory
 
 variables {C : Type u} [category.{v} C] [has_finite_limits.{v} C]
 
-variables {A R : C}
-
--- A relation should be mono, but we restrict this at the call site instead.
+-- A relation should be mono, but we restrict this at the use site instead.
 abbreviation relation (R A : C) := R ⟶ A ⨯ A
 
 namespace relation
+
+variables {A R : C}
 
 abbreviation a (r : relation R A) : R ⟶ A := r ≫ limits.prod.fst
 abbreviation b (r : relation R A) : R ⟶ A := r ≫ limits.prod.snd
@@ -28,7 +29,7 @@ def of_pair (f : R ⟶ A) (g : R ⟶ A) : relation R A := prod.lift f g
 
 end relation
 
-variable (rel : relation.{v} R A)
+variables {A R : C} (rel : relation.{v} R A)
 
 class reflexive :=
 (r : A ⟶ R)
@@ -118,38 +119,41 @@ end⟩
 
 -- That was nice and easy!
 
--- Show a kernel pair is an equivalence relation.
-def kernel_pair_relation {A B : C} (f : A ⟶ B) : relation.{v} (pullback f f) A := relation.of_pair pullback.fst pullback.snd
-instance kernel_pair_mono {A B : C} (f : A ⟶ B) : mono (kernel_pair_relation f) :=
+section equiv_of_kernel_pair
+
+variables {B : C} {f : A ⟶ B} {a b : R ⟶ A} (k : is_kernel_pair f a b)
+
+instance of_kernel_pair_mono (k : is_kernel_pair f a b) : mono (relation.of_pair a b) :=
 ⟨λ Z g h eq, begin
-  apply pullback.hom_ext,
-  { simpa [kernel_pair_relation, relation.of_pair] using eq =≫ limits.prod.fst },
-  { simpa [kernel_pair_relation, relation.of_pair] using eq =≫ limits.prod.snd },
+  apply k.is_limit.hom_ext,
+  apply (pullback_cone.mk a b _).equalizer_ext,
+  { simpa [relation.of_pair] using eq =≫ limits.prod.fst },
+  { simpa [relation.of_pair] using eq =≫ limits.prod.snd },
 end⟩
 
-instance {A B : C} (f : A ⟶ B) : reflexive (kernel_pair_relation f) :=
-{ r := pullback.lift (𝟙 _) (𝟙 _) rfl,
-  cancel_a := by simp [kernel_pair_relation],
-  cancel_b := by simp [kernel_pair_relation] }
+instance (k : is_kernel_pair f a b) : reflexive (relation.of_pair a b) :=
+{ r := (k.lift' (𝟙 _) (𝟙 _) rfl).1,
+  cancel_a := by rw [relation.of_pair_a, (k.lift' (𝟙 _) (𝟙 _) rfl).2.1],
+  cancel_b := by rw [relation.of_pair_b, (k.lift' (𝟙 _) (𝟙 _) rfl).2.2] }
 
-instance {A B : C} (f : A ⟶ B) : symmetric (kernel_pair_relation f) :=
-{ s := pullback.lift pullback.snd pullback.fst pullback.condition.symm,
-  w₁ := by simp [kernel_pair_relation],
-  w₂ := by simp [kernel_pair_relation] }
+instance (k : is_kernel_pair f a b) : symmetric (relation.of_pair a b) :=
+{ s := (k.lift' b a k.comm.symm).1,
+  w₁ := by rw [relation.of_pair_a, relation.of_pair_b, (k.lift' b a k.comm.symm).2.1],
+  w₂ := by rw [relation.of_pair_a, relation.of_pair_b, (k.lift' b a k.comm.symm).2.2] }
 
-def tag' (n : ℕ) (A B : C) (f : A ⟶ B) : A ⟶ B := f
-
-instance {A B : C} (f : A ⟶ B) : transitive (kernel_pair_relation f) :=
-{ t := pullback.lift (p _ ≫ (kernel_pair_relation f).a) (q _ ≫ (kernel_pair_relation f).b)
+instance (k : is_kernel_pair f a b) : transitive (relation.of_pair a b) :=
+{ t :=
   begin
-    have : (kernel_pair_relation f).a ≫ f = (kernel_pair_relation f).b ≫ f,
-      simp [kernel_pair_relation],
-    erw [assoc, this, pullback.condition_assoc, this],
-    simp [q],
+    apply (k.lift' (p _ ≫ (relation.of_pair a b).a) (q _ ≫ (relation.of_pair a b).b) _).1,
+    have : (relation.of_pair a b).a ≫ f = (relation.of_pair a b).b ≫ f,
+      simp [k.comm],
+    erw [assoc, this, pullback.condition_assoc, this, assoc, assoc, assoc],
+    refl,
   end,
-  w₁ := begin simp [kernel_pair_relation] end,
-  w₂ := begin simp [kernel_pair_relation] end
-}
+  w₁ := by simp [relation.of_pair_a, (k.lift' _ _ _).2.1],
+  w₂ := by simp [relation.of_pair_b, (k.lift' _ _ _).2.2] }
+
+end equiv_of_kernel_pair
 
 -- Now we show the converse: any equivalence relation is a kernel pair.
 
@@ -212,7 +216,8 @@ begin
     { simp only [assoc, prod.lift_snd, q, pullback.lift_snd_assoc, transitive.w₂, c₂] } },
 end
 
-lemma relation_square_commutes [mono rel] [symmetric rel] [transitive rel] : rel.a ≫ named rel = rel.b ≫ named rel :=
+lemma relation_square_commutes [mono rel] [symmetric rel] [transitive rel] :
+  rel.a ≫ named rel = rel.b ≫ named rel :=
 begin
   rw [named, ← hat_natural_left, ← hat_natural_left],
   transitivity (hat (prod.lift (p rel) (q rel ≫ rel.b))),
@@ -223,8 +228,6 @@ begin
     apply pullback.lift_snd,
     apply (right_pb_square rel).fac _ walking_cospan.right }
 end
-
--- variable (e : equivalence_rel rel)
 
 def makes_kernel_pair [mono rel] [reflexive rel] [symmetric rel] [transitive rel] :
   is_limit (pullback_cone.mk _ _ (relation_square_commutes rel)) :=
@@ -269,6 +272,11 @@ begin
   { simpa only [assoc, prod.lift_fst] using m₁ },
   { simpa only [assoc, prod.lift_snd] using m₂ },
 end
+
+def equiv_to_kernel_pair [mono rel] [reflexive rel] [symmetric rel] [transitive rel] :
+  is_kernel_pair (named rel) rel.a rel.b :=
+{ comm := relation_square_commutes rel,
+  is_limit := makes_kernel_pair rel }
 
 namespace disjoint
 

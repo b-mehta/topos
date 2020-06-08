@@ -35,11 +35,11 @@ end
 class exponentiable {C : Type u} [category.{v} C] [bp : has_finite_products.{v} C] (X : C) :=
 (is_adj : is_left_adjoint (prod_functor.obj X))
 
-def binary_product_exponentiable {C : Type u} [category.{v} C] [bp : has_finite_products.{v} C] {X Y : C}
+def binary_product_exponentiable {C : Type u} [category.{v} C] [has_finite_products.{v} C] {X Y : C}
   (hX : exponentiable X) (hY : exponentiable Y) : exponentiable (X ⨯ Y) :=
 { is_adj :=
-  { right := hX.is_adj.right ⋙ hY.is_adj.right,
-    adj := adjunction_of_nat_iso_left (adjunction.comp _ _ hY.is_adj.adj hX.is_adj.adj) (prod_functor_left_comp _ _).symm } }
+  by haveI := hX.is_adj; haveI := hY.is_adj;
+     exact adjunction.left_adjoint_of_nat_iso (prod_functor_left_comp _ _).symm }
 
 class is_cartesian_closed (C : Type u) [category.{v} C] [has_finite_products.{v} C] :=
 (cart_closed : Π (X : C), exponentiable X)
@@ -321,16 +321,13 @@ def cartesian_closed_of_equiv (e : C ≌ D) [h : is_cartesian_closed C] : is_car
       rw [assoc, prod.lift_snd, prod.lift_snd, ← functor.map_comp_assoc, limits.prod.map_snd],
       simp only [equivalence.unit, equivalence.unit_inv, nat_iso.hom_inv_id_app, assoc, equivalence.inv_fun_map, functor.map_comp, comp_id],
       erw comp_id,
-      haveI : is_left_adjoint (e.functor ⋙ prod_functor.obj X ⋙ e.inverse) := left_adjoint_of_nat_iso this.symm,
-      haveI : is_left_adjoint e.inverse := left_adjoint_of_equiv,
-      haveI : is_left_adjoint e.functor := left_adjoint_of_equiv,
-      haveI : is_left_adjoint (e.inverse ⋙ e.functor ⋙ prod_functor.obj X ⋙ e.inverse) := left_adjoint_of_comp e.inverse _,
-      haveI := left_adjoint_of_comp (e.inverse ⋙ e.functor ⋙ prod_functor.obj X ⋙ e.inverse) e.functor,
+      haveI : is_left_adjoint (e.functor ⋙ prod_functor.obj X ⋙ e.inverse) := adjunction.left_adjoint_of_nat_iso this.symm,
+      haveI : is_left_adjoint (e.inverse ⋙ e.functor ⋙ prod_functor.obj X ⋙ e.inverse) := adjunction.left_adjoint_of_comp e.inverse _,
       have : (e.inverse ⋙ e.functor ⋙ prod_functor.obj X ⋙ e.inverse) ⋙ e.functor ≅ prod_functor.obj X,
         apply iso_whisker_right e.counit_iso (prod_functor.obj X ⋙ e.inverse ⋙ e.functor) ≪≫ _,
         change prod_functor.obj X ⋙ e.inverse ⋙ e.functor ≅ prod_functor.obj X,
         apply iso_whisker_left (prod_functor.obj X) e.counit_iso,
-      apply left_adjoint_of_nat_iso this,
+      apply adjunction.left_adjoint_of_nat_iso this,
     end
   }
 }

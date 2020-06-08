@@ -20,10 +20,17 @@ def coyoneda.ext {X Y : C} (p : Π {Z : C}, (X ⟶ Z) ≃ (Y ⟶ Z))
   hom_inv_id' := by rw [← p.injective.eq_iff, n, p.apply_symm_apply, id_comp],
   inv_hom_id' := by rw [← n, id_comp, equiv.apply_symm_apply] }
 
-class in_subcategory [ir : is_right_adjoint i] (A : C) :=
+class in_subcategory (A : C) :=
+(witness : D)
+(iso : i.obj witness ≅ A)
+
+def witness_in (A : C) [in_subcategory i A] : D := in_subcategory.witness.{v₁} i A
+def witness_iso (A : C) [in_subcategory i A] : i.obj (witness_in i A) ≅ A := in_subcategory.iso.
+
+class in_subcategory' [ir : is_right_adjoint i] (A : C) :=
 ( returning : is_iso (ir.adj.unit.app A) )
 
-def containment_iso (A : C) [ir : is_right_adjoint i] [h : in_subcategory i A] : A ≅ i.obj ((left_adjoint i).obj A) :=
+def containment_iso (A : C) [ir : is_right_adjoint i] [h : in_subcategory' i A] : A ≅ i.obj ((left_adjoint i).obj A) :=
 begin
   haveI := h.returning,
   exact as_iso (ir.adj.unit.app A),
@@ -38,7 +45,11 @@ def equiv_of_fully_faithful [full i] [faithful i] {X Y} : (X ⟶ Y) ≃ (i.obj X
 
 variable {i}
 
-instance inclusion_is_in (B : D) [ir : reflective i] : in_subcategory i (i.obj B) :=
+instance inclusion_is_in (B : D) : in_subcategory i (i.obj B) :=
+{ witness := B,
+  iso := iso.refl _ }
+
+instance inclusion_is_in' (B : D) [ir : reflective i] : in_subcategory' i (i.obj B) :=
 { returning :=
   begin
     haveI := nat_iso.is_iso_app_of_is_iso ir.adj.counit B,
@@ -51,25 +62,21 @@ instance inclusion_is_in (B : D) [ir : reflective i] : in_subcategory i (i.obj B
 
 def unit_iso_of_split_mono [ir : reflective i] (A : C) [split_mono (ir.adj.unit.app A)] : is_iso (ir.adj.unit.app A) :=
 begin
-  let L := ir.left,
-  let η := ir.adj.unit,
-  let ε := ir.adj.counit,
-  let h : i.obj (L.obj A) ⟶ A := retraction (η.app A),
-  have : η.app A ≫ h = 𝟙 A := split_mono.id (η.app A),
-  haveI : is_iso (η.app (i.obj (L.obj A))) := in_subcategory.returning,
-  haveI : split_epi h := ⟨η.app A, split_mono.id (η.app A)⟩,
-  suffices : epi (η.app A),
-    refine ⟨h, split_mono.id (η.app A), _⟩,
+  let h : i.obj (ir.left.obj A) ⟶ A := retraction (ir.adj.unit.app A),
+  haveI : is_iso (ir.adj.unit.app (i.obj (ir.left.obj A))) := in_subcategory'.returning,
+  haveI : split_epi h := ⟨ir.adj.unit.app A, split_mono.id (ir.adj.unit.app A)⟩,
+  suffices : epi (ir.adj.unit.app A),
+    refine ⟨h, split_mono.id (ir.adj.unit.app A), _⟩,
     dsimp,
-    erw [← cancel_epi (η.app A), split_mono.id_assoc (η.app A), comp_id],
-  suffices : epi (η.app _ ≫ i.map (L.map h)),
-    erw [← η.naturality h, functor.id_map] at this,
+    erw [← cancel_epi (ir.adj.unit.app A), split_mono.id_assoc (ir.adj.unit.app A), comp_id],
+  suffices : epi (ir.adj.unit.app _ ≫ i.map (ir.left.map h)),
+    erw [← ir.adj.unit.naturality h, functor.id_map] at this,
     apply epi_of_epi h,
   apply epi_comp,
 end
 
 -- Some of the stuff here doesn't need reflectiveness, need to untangle what assumptions are actually used
-def in_subcategory_of_has_iso [ir : reflective i] (A : C) (B : D) (h : i.obj B ≅ A) : in_subcategory i A :=
+def in_subcategory_of_has_iso [ir : reflective i] (A : C) (B : D) (h : i.obj B ≅ A) : in_subcategory' i A :=
 { returning :=
   begin
     apply unit_iso_of_split_mono _,
@@ -96,14 +103,14 @@ def equiv_homset_right_of_iso
   right_inv := λ f, by simp }.
 
 variable (i)
-def biject_inclusion [ir : reflective i] {A B : C} [in_subcategory i B] : (A ⟶ B) ≃ (i.obj ((left_adjoint i).obj A) ⟶ B) :=
+def biject_inclusion [ir : reflective i] {A B : C} [in_subcategory' i B] : (A ⟶ B) ≃ (i.obj ((left_adjoint i).obj A) ⟶ B) :=
 calc (A ⟶ B) ≃ (A ⟶ i.obj ((left_adjoint i).obj B)) : equiv_homset_right_of_iso _ (containment_iso _ _)
     ... ≃ ((left_adjoint i).obj A ⟶ (left_adjoint i).obj B) : (ir.adj.hom_equiv _ _).symm
     ... ≃ (i.obj ((left_adjoint i).obj A) ⟶ i.obj ((left_adjoint i).obj B)) : equiv_of_fully_faithful i
     ... ≃ (i.obj ((left_adjoint i).obj A) ⟶ B) : equiv_homset_right_of_iso _ (containment_iso _ _).symm
 variable {i}
 
-lemma biject_inclusion_natural [ir : reflective i] {A B B' : C} [h : in_subcategory i B] [h' : in_subcategory i B'] (f : A ⟶ B) (g : B ⟶ B') :
+lemma biject_inclusion_natural [ir : reflective i] {A B B' : C} [h : in_subcategory' i B] [h' : in_subcategory' i B'] (f : A ⟶ B) (g : B ⟶ B') :
   biject_inclusion i (f ≫ g) = biject_inclusion i f ≫ g :=
 begin
   dsimp [biject_inclusion, containment_iso],
@@ -124,7 +131,7 @@ begin
   rw [← ir.adj.hom_equiv_naturality_right_symm, assoc], refl,
 end .
 
-lemma biject_inclusion_natural_left [ir : reflective i] {A A' B : C} [h : in_subcategory i B] (f : A ⟶ A') (g : A' ⟶ B) :
+lemma biject_inclusion_natural_left [ir : reflective i] {A A' B : C} [h : in_subcategory' i B] (f : A ⟶ A') (g : A' ⟶ B) :
   biject_inclusion i (f ≫ g) = i.map ((left_adjoint i).map f) ≫ biject_inclusion i g :=
 begin
   dsimp [biject_inclusion],
@@ -150,7 +157,7 @@ begin
        ← i.map_comp, ir.adj.left_triangle_components, i.map_id],
 end
 
-lemma biject_inclusion_is_comp_unit [ir : reflective i] {A B : C} [h : in_subcategory i B] (f : i.obj ((left_adjoint i).obj A) ⟶ B) :
+lemma biject_inclusion_is_comp_unit [ir : reflective i] {A B : C} [h : in_subcategory' i B] (f : i.obj ((left_adjoint i).obj A) ⟶ B) :
   (biject_inclusion i).symm f = ir.adj.unit.app _ ≫ f :=
 by rw [← biject_inclusion_symm_id_eq A, (biject_inclusion i).symm_apply_eq,
        biject_inclusion_natural _ _, equiv.apply_symm_apply, id_comp]
@@ -158,9 +165,9 @@ by rw [← biject_inclusion_symm_id_eq A, (biject_inclusion i).symm_apply_eq,
 variables [has_finite_products.{v₁} C] [has_finite_products.{v₁} D] [is_cartesian_closed C] (i)
 
 class exponential_ideal extends reflective i :=
-[ strength (A) {B} [in_subcategory i B] : in_subcategory i (B ^^ A) ]
+[ strength (A) {B} [in_subcategory' i B] : in_subcategory' i (B ^^ A) ]
 
-def exponential_ideal_of [reflective i] (h : ∀ (A : C) (B : D), in_subcategory i ((i.obj B) ^^ A)) : exponential_ideal i :=
+def exponential_ideal_of [reflective i] (h : ∀ (A : C) (B : D), in_subcategory' i ((i.obj B) ^^ A)) : exponential_ideal i :=
 { strength := λ A B inst,
   begin
     resetI,

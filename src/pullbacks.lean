@@ -97,6 +97,27 @@ is_limit.mk' _ $ λ s,
   pullback.lift_snd _ _ _,
   λ m m₁ m₂, pullback.hom_ext (by simpa using m₁) (by simpa using m₂) ⟩
 
+def is_limit_as_pullback_cone_mk (s : pullback_cone f g) (t : is_limit (pullback_cone.mk s.fst s.snd s.condition)) :
+  is_limit s :=
+{ lift := λ c, t.lift c,
+  fac' := λ c j,
+  begin
+    cases j,
+    simp [← t.fac c none, ← s.w walking_cospan.hom.inl],
+    cases j,
+    exact t.fac c walking_cospan.left,
+    exact t.fac c walking_cospan.right,
+  end,
+  uniq' := λ c m w,
+  begin
+    apply t.uniq,
+    intro j,
+    rw ← w,
+    cases j,
+    simp [← t.fac c none, ← s.w walking_cospan.hom.inl],
+    cases j; refl,
+  end }
+
 def has_pullback_top_of_pb [has_limit (cospan f g)] :
   has_pullback_top (pullback.snd : pullback f g ⟶ Y) g f :=
 { top := pullback.fst,
@@ -165,7 +186,7 @@ def left_hpb_right_pb_to_both_hpb {U V W X Y Z : C}
   is_pb := left_pb_to_both_pb left.top g h k l m n left.comm right_comm left.is_pb right_pb }
 
 def right_both_hpb_to_left_hpb {U V W X Y Z : C}
-  {h : U ⟶ X} {k : V ⟶ Y} {l : W ⟶ Z} {m : X ⟶ Y} {n : Y ⟶ Z}
+  {h : U ⟶ X} {k : V ⟶ Y} (l : W ⟶ Z) {m : X ⟶ Y} (n : Y ⟶ Z)
   (both : has_pullback_top h (m ≫ n) l)
   (right : has_pullback_top k n l) :
   has_pullback_top h m k :=
@@ -400,11 +421,11 @@ is_limit (F.map_cone (pullback_cone.mk _ _ comm)) ≅ is_limit (pullback_cone.mk
 { hom := λ p,
   begin
     apply is_limit.of_iso_limit _ (convert_pb F comm),
-    apply is_limit.of_cone_equiv (cones.postcompose_equivalence ((diagram_iso_cospan _).symm)) p,
+    apply is_limit.of_cone_equiv (cones.postcompose_equivalence ((diagram_iso_cospan _).symm)).inverse p,
   end,
   inv := λ p,
   begin
-    have := is_limit.of_cone_equiv (cones.postcompose_equivalence (diagram_iso_cospan (cospan g k ⋙ F))) p,
+    have := is_limit.of_cone_equiv (cones.postcompose_equivalence (diagram_iso_cospan (cospan g k ⋙ F))).inverse p,
     apply is_limit.of_iso_limit this _,
     apply cones.ext _ _,
       refl,

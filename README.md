@@ -10,6 +10,7 @@ This is a WIP project to define some topos theory within the Lean theorem prover
 - (Trunc) construction of finite products from binary products and terminal
 - Locally cartesian closed categories and epi-mono factorisations
 - Many lemmas about pullbacks (for instance the pasting lemma)
+- Skeleton of a category (assuming choice)
 - Subobject category
 - Subobject classifier
 - Power objects
@@ -19,6 +20,7 @@ This is a WIP project to define some topos theory within the Lean theorem prover
 - Every topos is finitely cocomplete
 - Local cartesian closure of toposes and Fundamental Theorem of Topos Theory
 - Lawvere-Tierney topologies and sheaves
+- Sheafification
 
 ## What's coming soon?
 - Proof that category of coalgebras for a comonad form a topos
