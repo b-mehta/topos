@@ -80,11 +80,10 @@ adjunction.mk_of_hom_equiv
 
 theorem F_T_U_T_eq_T : F_T T ⋙ U_T T = T :=
 functor.ext
-  (λ X, by simp only [F_T_obj, U_T_obj, functor.comp_obj])
+  (λ X, rfl)
   (λ X Y f, begin
-    simp,
-    slice_lhs 2 3 { erw [monad.right_unit], },
-    exact category.comp_id _,
+    erw [functor.comp_map, F_T_map, U_T_map, eq_to_hom_refl, eq_to_hom_refl, category.id_comp,
+         category.comp_id, T.map_comp, category.assoc, monad.right_unit, category.comp_id],
   end)
 
 end adjunction

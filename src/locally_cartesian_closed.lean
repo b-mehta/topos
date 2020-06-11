@@ -137,14 +137,26 @@ begin
     { simp only [assoc, pullback.lift_snd, ← over.comp_left, limits.prod.map_fst, comp_id] } },
 end
 
-def ladj {A B : C} (f : A ⟶ B) : pullback_along f ⊣ _ ⋙ Pi_functor (over.mk f) :=
+def dependent_product {A B : C} (f : A ⟶ B) : over A ⥤ over B :=
+(over.iterated_slice_equiv (over.mk f)).inverse ⋙ Pi_functor (over.mk f)
+
+def dependent_sum {A B : C} (f : A ⟶ B) : over A ⥤ over B :=
+(over.iterated_slice_equiv (over.mk f)).inverse ⋙ over.forget
+
+def ladj {A B : C} (f : A ⟶ B) : pullback_along f ⊣ dependent_product f :=
 adjunction.comp _ _ (star_adj_pi_of_exponentiable (over.mk f)) (equivalence.to_adjunction _)
 
-def ladj' {A B : C} (f : A ⟶ B) : real_pullback f ⊣ (over.iterated_slice_equiv (over.mk f)).inverse ⋙ Pi_functor (over.mk f) :=
+def ladj' {A B : C} (f : A ⟶ B) : real_pullback f ⊣ dependent_product f :=
 adjunction.of_nat_iso_left (ladj f) (iso_pb f)
 
+def radj {A B : C} (f : A ⟶ B) : dependent_sum f ⊣ real_pullback f :=
+adjunction.of_nat_iso_right (adjunction.comp _ _ (over.mk f).iterated_slice_equiv.symm.to_adjunction (forget_adj_star _)) (iso_pb f)
+
 instance other_thing {A B : C} (f : A ⟶ B) : is_left_adjoint (real_pullback f) :=
-⟨(over.iterated_slice_equiv (over.mk f)).inverse ⋙ Pi_functor (over.mk f), adjunction.of_nat_iso_left (ladj f) (iso_pb f)⟩
+⟨dependent_product f, adjunction.of_nat_iso_left (ladj f) (iso_pb f)⟩
+
+instance thing {A B : C} (f : A ⟶ B) : is_right_adjoint (real_pullback f) :=
+⟨dependent_sum f, radj f⟩
 
 /--
  P ⟶ D
