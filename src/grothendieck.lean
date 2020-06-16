@@ -2,7 +2,6 @@
    This section roughly follows Chapter 3, §1, §2 of Sheaves in Geology and Logic by Saunders Maclane and Ieke M.
  -/
 
-import category_theory.whiskering
 import sieve
 import pullbacks
 
@@ -18,12 +17,17 @@ def arrow_set (C : Type u) [category.{v} C] := Π (X : C), set (set (over X))
 
 def sieve_set.trivial (C : Type u) [category.{v} C] : sieve_set C := λ X, {⊤}
 
+lemma mem_trivial (C : Type u) [category.{v} C] {X : C} (S : sieve X) :
+  S ∈ sieve_set.trivial C X ↔ S = ⊤ :=
+set.mem_singleton_iff
+
+/-- A sieve on `X` is dense if for any arrow `f : Y ⟶ X`, there is a `g : Z ⟶ Y` with `g ≫ f ∈ S`. -/
 def sieve_set.dense (C : Type u) [category.{v} C] : sieve_set C :=
 λ X, {S | ∀ {Y : C} (f : Y ⟶ X), ∃ Z (g : Z ⟶ Y), over.mk (g ≫ f) ∈ S.arrows }
 
 /-- The atomic sieve_set just contains all of the non-empty sieves. -/
 def sieve_set.atomic (C : Type u) [category.{v} C] : sieve_set C :=
-λ X, {S | ∃ x, x ∈ S.arrows}
+λ X, {S | ∃ {Y} (f : Y ⟶ X), over.mk f ∈ S.arrows}
 
 /-- The smallest sieve set containing the given arrow set. -/
 def sieve_set.generate {C : Type u} [category.{v} C] (K : arrow_set C) : sieve_set C :=
@@ -40,8 +44,8 @@ Definition of a Grothendieck Topology: a set of sieves `J X` on each object `X` 
 -/
 class grothendieck {C : Type u} [category.{v} C] (J : sieve_set C) :=
 (max : ∀ X, ⊤ ∈ J X)
-(stab : ∀ (X Y : C) (S ∈ J X) (h : Y ⟶ X), sieve.pullback S h ∈ J(Y))
-(trans : ∀ ⦃X : C⦄ (S ∈ J X) (R : sieve X), (∀ (f : over X), f ∈ S → sieve.pullback R f.hom ∈ J f.left) → R ∈ J(X))
+(stab : ∀ {X Y} (S ∈ J X) (h : Y ⟶ X), sieve.pullback S h ∈ J Y)
+(trans : ∀ ⦃X⦄ (S : sieve X) (hS : S ∈ J X) (R : sieve X), (∀ {Y} (f : Y ⟶ X), over.mk f ∈ S.arrows → R.pullback f ∈ J Y) → R ∈ J X)
 
 /-- A site is a category equipped with a grothendieck topology. -/
 structure Site :=
@@ -51,105 +55,131 @@ structure Site :=
 [g : grothendieck J]
 
 namespace grothendieck
-
 variables {C : Type u} [category.{v} C]
 variables {X Y : C} {S R : sieve X}
 variables {J : sieve_set C} [grothendieck J]
 
 def over.pullback [has_pullbacks.{v} C] {X Y : C} (f : X ⟶ Y) (g : over Y) : over X :=
-over.mk (@pullback.fst _ _ _ _ _ f g.hom _)
+over.mk (pullback.fst : pullback f g.hom ⟶ _)
 
 @[simp] lemma over_pullback_def [has_pullbacks.{v} C] {X Y : C} (f : X ⟶ Y) (g : over Y) :
   (over.pullback f g).hom = pullback.fst := rfl
 
 class basis [has_pullbacks.{v} C] (K : arrow_set C) :=
-(has_isos      : ∀ {X Y : C} (e : X ≅ Y), {over.mk e.hom} ∈ K(Y))
-(has_pullbacks : ∀ {X Y : C} {ℱ : set (over X)} (h₁ : ℱ ∈ K(X)) (g : Y ⟶ X), set.image (over.pullback g) ℱ ∈ K(Y))
+(has_isos      : ∀ {X Y : C} (e : Y ⟶ X) [is_iso e], {over.mk e} ∈ K X)
+(has_pullbacks : ∀ {X Y : C} {ℱ : set (over Y)} (h₁ : ℱ ∈ K Y) (g : X ⟶ Y), over.pullback g '' ℱ ∈ K X)
 (trans : ∀ {X} {ℱ : set (over X)},
-         ∀ (h₁ : ℱ ∈ K(X)),
-         ∀ (𝒢 : ∀ {f : over X} (hf :f ∈ ℱ), set (over f.left)),
-         ∀ (h₃ : ∀ {f : over X} (hf : f ∈ ℱ), 𝒢 hf ∈ K(f.left)),
-           {h : over X | ∃ (f : over X) (hf : f ∈ ℱ) (g : over f.left) (hg : g ∈ 𝒢 hf), h = over.mk (g.hom ≫ f.hom)} ∈ K(X))
+         ∀ (h₁ : ℱ ∈ K X),
+         ∀ (𝒢 : ∀ {Y} {f : Y ⟶ X}, over.mk f ∈ ℱ → set (over Y)),
+         ∀ (h₃ : ∀ {Y} {f : Y ⟶ X} (hf : over.mk f ∈ ℱ), 𝒢 hf ∈ K Y),
+         {h : over X | ∃ {Y Z} (f : Y ⟶ X) (g : Z ⟶ Y) (hf : over.mk f ∈ ℱ) (hg : over.mk g ∈ 𝒢 hf), over.mk (g ≫ f) = h} ∈ K X)
 
+/-- Uses choice! -/
 instance of_basis [has_pullbacks.{v} C] {K : arrow_set C} [basis K] : grothendieck (sieve_set.generate K) :=
-{ max := λ X, ⟨{over.mk (𝟙 X)}, basis.has_isos (iso.refl X), λ f h, ⟨⟩⟩,
-  stab := begin
-    rintros X Y S ⟨ℱ,h₁,h₂⟩ f,
-    refine ⟨_,basis.has_pullbacks h₁ f,_⟩,
-    rintros g ⟨h,h₃,rfl⟩,
-    show over.mk (_ ≫ f) ∈ S,
-    simp,
-    rw limits.pullback.condition,
-    apply sieve.subs,
-    apply h₂,
-    apply h₃
+{ max := λ X, ⟨{over.mk (𝟙 X)}, basis.has_isos _, λ f h, ⟨⟩⟩,
+  stab :=
+  begin
+    rintros X Y S ⟨R, hR, RS⟩ h,
+    refine ⟨over.pullback h '' R, basis.has_pullbacks hR _, _⟩,
+    rintros g ⟨f, hf, rfl⟩,
+    rw [over.pullback, mem_pullback],
+    rw pullback.condition,
+    apply downward_closed,
+    apply RS,
+    rwa over.mk_hom_id,
   end,
-  trans := begin
-    rintros X S ⟨ℱ,h₁,h₂⟩ R h₃,
-    have h₄ :  ∀ (f : over X), f ∈ S → ∃ T, T ∈ K f.left ∧ T ⊆ {sl : over f.left | (over.mk $ sl.hom ≫ f.hom) ∈ R },
-      rw [sieve_set.generate] at h₃, simp at h₃,
-      exact h₃,
-    rw [sieve_set.generate],
+  trans :=
+  begin
+    rintros X S ⟨F, hF, FS⟩ R hR,
     show ∃ (T : set (over X)) (H : T ∈ K X), T ⊆ R.arrows,
-    refine ⟨_,basis.trans h₁ _ _,_⟩,
-    { intros f hf, apply (classical.some (h₄ f (h₂ hf)))},
-    { intros f hf, rcases classical.some_spec (h₄ f (h₂ hf)) with ⟨h10,h11⟩, apply h10 },
-    {
-      rintros f ⟨g,h₅,h,h₆,rfl⟩,
-      rcases classical.some_spec (h₄ g (h₂ h₅)) with ⟨h11,h12⟩,
-      apply h12,
-      assumption
-    }
-  end,
-}
+    refine ⟨_, basis.trans hF _ _, _⟩,
+    intros Y f hf,
+    apply classical.some (hR f (FS hf)),
+    intros Y f hf,
+    dsimp,
+    obtain ⟨_, _⟩ := classical.some_spec (hR f (FS hf)),
+    apply w,
+    rintros _ ⟨Y, Z, f, g, hf, hg, rfl⟩,
+    obtain ⟨_, _⟩ := classical.some_spec (hR f (FS hf)),
+    dsimp at hg,
+    rw ← mem_pullback,
+    apply h hg,
+  end }
 
-def superset_covers (Hss : S ⊆ R) (sjx : S ∈ J(X)) : (R ∈ J(X)) :=
+def superset_covering (Hss : S ≤ R) (sjx : S ∈ J X) : R ∈ J X :=
 begin
-  apply grothendieck.trans,
-    apply sjx,
-  rintros h H2,
-  have : over.mk (𝟙 h.left) ∈ (sieve.pullback R h.hom),
-    apply Hss,
-    simp, rw [@category.id_comp _ _ h.left _ h.hom], simp,
-    apply H2,
-  have : sieve.pullback R h.hom = ⊤,
-    apply top_of_has_id this,
+  apply grothendieck.trans _ sjx,
+  intros Y h hh,
+  dsimp,
+  have : S.pullback h ≤ R.pullback h,
+    apply pullback_le_map Hss,
+  have : S.pullback h = ⊤,
+    rw ← id_mem_iff_eq_top,
+    simpa,
+  have : R.pullback h = ⊤,
+    apply top_unique,
+    rwa ← this,
   rw this,
-  apply grothendieck.max
+  apply grothendieck.max,
 end
 
-def trans2
-  (sjx : S ∈ J(X))
-  (R : Π (f : over X), sieve f.left)
-  (hR : Π f (H:f ∈ S), (R f) ∈ J(f.left))
-  : comps R S ∈ J(X) :=
-  begin
-    apply grothendieck.trans,
-      apply sjx,
-    rintros f Hf,
-    apply superset_covers,
-      apply sieve.pullback_le_map,
-      apply comp_le_comps,
-      apply Hf,
-    apply superset_covers,
-      apply le_pullback_comp,
-    apply hR,
-    apply Hf,
-  end
+-- def trans2
+--   (sjx : S ∈ J(X))
+--   (R : Π (f : over X), sieve f.left)
+--   (hR : Π f (H : f ∈ S.arrows), R f ∈ J f.left)
+--   : comps R S ∈ J(X) :=
+--   begin
+--     apply grothendieck.trans,
+--       apply sjx,
+--     rintros f Hf,
+--     apply superset_covers,
+--       apply sieve.pullback_le_map,
+--       apply comp_le_comps,
+--       apply Hf,
+--     apply superset_covers,
+--       apply le_pullback_comp,
+--     apply hR,
+--     apply Hf,
+--   end
 
-def covers (J : sieve_set C) (S : sieve X) (f : Y ⟶ X) :=
-sieve.pullback S f ∈ J(Y)
-
-lemma intersection_covers (rj : R ∈ J(X)) (sj : S ∈ J(X)) : R ⊓ S ∈ J(X) :=
+def covers (J : sieve_set C) (S : sieve X) (f : Y ⟶ X) : Prop := S.pullback f ∈ J Y
+lemma arrow_max (f : Y ⟶ X) (S : sieve X) [grothendieck J] (hf : over.mk f ∈ S.arrows) : covers J S f :=
 begin
-  apply grothendieck.trans R, assumption,
-  intros f Hf,
-  apply superset_covers,
-  show sieve.pullback S (f.hom) ⊆ sieve.pullback (R ⊓ S) (f.hom),
-    intros g gys, refine ⟨_,gys⟩,
-    apply sieve.subs,
-    assumption,
-  apply grothendieck.stab, assumption, apply_instance
+  rw [covers, (pullback_eq_top_iff_mem f).1 hf],
+  apply grothendieck.max,
+end
+lemma arrow_stab (f : Y ⟶ X) (S : sieve X) (h : covers J S f) {Z : C} (g : Z ⟶ Y) : covers J S (g ≫ f) :=
+begin
+  rw [covers, pullback_comp],
+  apply grothendieck.stab,
+  apply h,
+end
+lemma arrow_trans (f : Y ⟶ X) (S R : sieve X) (h : covers J S f) : (∀ {Z : C} (g : Z ⟶ X), over.mk g ∈ S.arrows → covers J R g) → covers J R f :=
+begin
+  intro k,
+  apply grothendieck.trans (S.pullback f) h,
+  intros Z g hg,
+  rw ← pullback_comp,
+  apply k (g ≫ f) hg,
+end
+
+lemma intersection_covering (rj : R ∈ J X) (sj : S ∈ J X) : R ⊓ S ∈ J X :=
+begin
+  apply grothendieck.trans R rj,
+  intros Y f Hf,
+  have : S.pullback f ≤ (R ⊓ S).pullback f,
+    intros Z g hg,
+    refine ⟨downward_closed _ Hf _, hg⟩,
+  apply superset_covering this,
+  apply grothendieck.stab _ sj,
+  apply_instance,
+end
+
+lemma arrow_intersect (f : Y ⟶ X) (S R : sieve X) (hS : covers J S f) (hR : covers J R f) : covers J (S ⊓ R) f :=
+begin
+  rw [covers, pullback_inter],
+  apply intersection_covering;
+  assumption
 end
 
 open sieve_set
@@ -158,20 +188,15 @@ instance trivial.grothendieck : grothendieck (sieve_set.trivial C) :=
 { max := λ X, set.mem_singleton _,
   stab := λ X Y S HS h,
   begin
-    have : S = ⊤,
-      apply set.eq_of_mem_singleton, assumption,
-    rw [this, sieve.pullback_top],
-    apply set.mem_singleton
+    rw mem_trivial at *,
+    rw [HS, pullback_top],
   end,
-  trans := λ X S HS R HR, begin
-    have : S = ⊤, apply set.eq_of_mem_singleton, assumption, subst this,
-    apply set.mem_singleton_of_eq,
-    apply top_unique,
-    rintros g Hg,
-    have : sieve.pullback R (g.hom) ≥ ⊤ := (ge_of_eq (set.eq_of_mem_singleton (HR g Hg))),
-    have : over.mk (𝟙 g.left) ∈ sieve.pullback R (g.hom), refine this _, trivial,
-    have : over.mk (𝟙 (g.left) ≫ g.hom) ∈ R, apply this,
-    simpa,
+  trans := λ X S HS R HR,
+  begin
+    rw [mem_trivial, ← id_mem_iff_eq_top, pullback_eq_top_iff_mem],
+    simp only [mem_trivial] at HR,
+    apply HR,
+    rwa [id_mem_iff_eq_top, ← mem_trivial],
   end }
 
 instance dense.grothendieck : grothendieck (dense C) :=
@@ -179,8 +204,8 @@ instance dense.grothendieck : grothendieck (dense C) :=
   stab :=
     begin
       intros X Y S H h Z f,
-      rcases H (f ≫ h) with ⟨W,g,H⟩,
-      refine ⟨W,g,_⟩,
+      rcases H (f ≫ h) with ⟨W, g, H⟩,
+      refine ⟨W, g, _⟩,
       simpa,
     end,
   trans :=
@@ -188,7 +213,7 @@ instance dense.grothendieck : grothendieck (dense C) :=
       intros X S H₁ R H₂ Y f,
       rcases H₁ f with ⟨Z,g,H₃⟩,
       rcases H₂ _ H₃ (𝟙 Z) with ⟨W,h,H₄⟩,
-      refine ⟨W, (h ≫ (𝟙 Z) ≫ g), _⟩,
+      refine ⟨W, (h ≫ 𝟙 Z ≫ g), _⟩,
       simpa using H₄,
     end }
 
@@ -208,23 +233,20 @@ diagram.
 instance atomic.grothendieck
   (hro : right_ore_condition C)
   : grothendieck (atomic C) :=
-{ max := λ X, ⟨over.mk (𝟙 _), ⟨⟩⟩,
+{ max := λ X, ⟨_, 𝟙 _, ⟨⟩⟩,
   stab :=
   begin
-    intros X Y S HS h,
-    cases HS with f HS,
-    rcases hro h f.hom with ⟨Z, zy, zf, comm⟩,
-    refine ⟨over.mk zy, _⟩,
-    erw [mem_pullback, comm],
-    apply downward_closed,
-    exact HS
+    rintros X Y S ⟨Z, f, hf⟩ h,
+    rcases hro h f with ⟨W, g, k, comm⟩,
+    refine ⟨_, g, _⟩,
+    simp [mem_pullback, comm, hf],
   end,
-   trans :=
-   begin
-     rintros _ _ ⟨f, fS⟩ _ Ra,
-     rcases Ra f fS with ⟨g, h₁⟩,
-     refine ⟨_, h₁⟩
-   end }
+  trans :=
+  begin
+    rintros X S ⟨Y, f, hf⟩ R h,
+    rcases h f hf with ⟨Z, g, hg⟩,
+    exact ⟨_, _, hg⟩,
+  end }
 
 open opposite
 

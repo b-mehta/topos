@@ -15,6 +15,23 @@ open category_theory category_theory.category category_theory.limits
 section reflects
 variables {C : Type u} [category.{v} C]
 
+def make_exponential [has_finite_products.{v} C] (A : C) (expo : C → C) (ev : Π B, A ⨯ expo B ⟶ B) (trans : Π {B B'} (φ : A ⨯ B ⟶ B'), B ⟶ expo B')
+  (comm : ∀ {B B' : C} (φ : A ⨯ B ⟶ B'), limits.prod.map (𝟙 _) (trans φ) ≫ ev B' = φ)
+  (unique_trans : ∀ {B B' : C} {φ : A ⨯ B ⟶ B'} {t : B ⟶ expo B'}, limits.prod.map (𝟙 A) t ≫ ev B' = φ → trans φ = t) :
+  exponentiable A :=
+{ is_adj :=
+  { right :=
+    begin
+      refine @adjunction.right_adjoint_of_equiv _ _ _ _ (prod_functor.obj A) expo _ _,
+      intros B B',
+      refine ⟨trans, λ g, limits.prod.map (𝟙 _) g ≫ ev _, comm, λ g, unique_trans rfl⟩,
+      dsimp,
+      intros,
+      apply unique_trans,
+      rw [prod_map_id_comp, assoc, comm],
+    end,
+    adj := adjunction.adjunction_of_equiv_right _ _ } }
+
 variables {J K : Type v} [small_category J] [small_category K]
 
 variables {F : J ⥤ K ⥤ C}
@@ -120,180 +137,249 @@ begin
   dsimp [diagram_iso_cospan], simp,
 end
 
-@[simps]
-def exponential_functor (F G : C ⥤ Type u) : C ⥤ Type u :=
-{ obj := λ A, coyoneda.obj (opposite.op A) ⨯ F ⟶ G,
-  map := λ X Y f g, limits.prod.map (coyoneda.map f.op) (𝟙 _) ≫ g,
-  map_comp' := λ X Y Z f g,
-  begin
-    ext1,
-    simp [prod_map_comp_id],
-  end }.
 
 variable (C)
-@[simps]
-def presheaf.classifier : Cᵒᵖ ⥤ Type u :=
-{ obj := λ A, sieve A.unop,
-  map := λ A B f S, S.pullback f.unop,
-  map_id' := λ A,
-  begin
-    ext1 S,
-    dsimp,
-    ext1,
-    ext1,
-    erw [sieve.mem_pullback2, category.comp_id],
-    simpa,
-  end,
-  map_comp' := λ X Y Z f g,
-  begin
-    ext1 S,
-    dsimp,
-    ext1,
-    ext1,
-    erw [sieve.mem_pullback2],
-    simp only [sieve.mem_pullback2, sieve.mem_pullback],
-    rw ← assoc,
-    apply iff.rfl, -- it should be possible to shuffle definitions so both of these are simp
-  end }
+-- @[simps]
+-- def presheaf.classifier : Cᵒᵖ ⥤ Type u :=
+-- { obj := λ A, sieve A.unop,
+--   map := λ A B f S, S.pullback f.unop,
+--   map_id' := λ A,
+--   begin
+--     ext1 S,
+--     dsimp,
+--     ext1,
+--     ext1,
+--     erw [sieve.mem_pullback2, category.comp_id, over.mk_hom_id],
+--   end,
+--   map_comp' := λ X Y Z f g,
+--   begin
+--     ext1 S,
+--     dsimp,
+--     ext1,
+--     ext1,
+--     erw [sieve.mem_pullback2],
+--     simp only [sieve.mem_pullback2, sieve.mem_pullback],
+--     rw ← assoc,
+--      -- it should be possible to shuffle definitions so both of these are simp
+--   end }
 
 @[simps]
 def one : Cᵒᵖ ⥤ Type u :=
 { obj := λ T, punit,
   map := λ T₁ T₂ f, id }
 
-@[simps]
-def presheaf.truth : one C ⟶ presheaf.classifier C :=
-{ app := λ X _, (⊤ : sieve _) }
+-- @[simps]
+-- def presheaf.truth : one C ⟶ presheaf.classifier C :=
+-- { app := λ X _, (⊤ : sieve _) }
 
-instance : mono (presheaf.truth C) :=
-begin
-  refine ⟨λ Z g h eq, _⟩,
-  ext,
-  apply subsingleton.elim _ _,
-  dsimp,
-  apply_instance,
-end
-
-@[simps]
-def presheaf.classify (Q P : Cᵒᵖ ⥤ Type u) (i : Q ⟶ P) [mono i] : P ⟶ presheaf.classifier C :=
-{ app := λ c x,
-  begin
-    refine ⟨λ f, ∃ y, i.app (opposite.op f.left) y = P.map f.hom.op x, _⟩,
-    rintros f ⟨_, _⟩ Z g,
-    refine ⟨Q.map g.op w, _⟩,
-    dsimp,
-    rw P.map_comp,
-    change _ = P.map _ _,
-    rw ← h,
-    exact congr_fun (i.naturality g.op) w,
-  end }.
-
--- lemma set_classifier_u {U X : Type u} {f : U ⟶ X} {χ₁ : X ⟶ ulift Prop} (q : classifying truth f χ₁) :
-  -- ∀ x, (χ₁ x).down ↔ ∃ (a : U), f a = x :=
+-- instance : mono (presheaf.truth C) :=
 -- begin
-  -- obtain ⟨ka, la, ma⟩ := q,
-  -- intro x,
-  -- split, rintro,
-  -- { let g := ma.lift (pullback_cone.mk (𝟙 _) (λ _, x) (by simp [ulift.ext_iff, function.funext_iff, a, truth])),
-    -- refine ⟨g punit.star, _⟩,
-    -- have : (g ≫ f) _ = (λ _, x) _ := congr_fun (ma.fac _ walking_cospan.right) punit.star,
-    -- exact this },
-  -- rintro ⟨t, rfl⟩, have : _ = _ := congr_fun la t, simp at this, rw ← this, trivial,
+--   refine ⟨λ Z g h eq, _⟩,
+--   ext,
+--   apply subsingleton.elim _ _,
+--   dsimp,
+--   apply_instance,
 -- end
 
-noncomputable def presheaf.is_classifier : is_subobject_classifier (presheaf.truth C) :=
-{ classifier_of := presheaf.classify C,
-  classifies' := λ Q P i hi,
-  { top := { app := λ _ _, punit.star },
-    comm :=
-    begin
-      ext A x f,
-      change true ↔ _,
-      rw true_iff,
-      exact ⟨Q.map f.hom.op x, congr_fun (i.naturality f.hom.op) x⟩,
-    end,
-    is_pb :=
-    begin
-      apply jointly_reflects_pullback,
-      intro c,
-      apply is_limit.mk''' _ _ _,
-      refine ⟨λ Z g h eq, _⟩,
-      funext, apply subsingleton.elim _ _,
-      dsimp, apply_instance,
-      change mono (i.app (opposite.op c)),
-      resetI,
-      exact preserves_mono_of_preserves_pullback ((evaluation _ (Type u)).obj (opposite.op c)) Q P i,
-      intro s,
-      refine ⟨_, _⟩,
-      intro z,
-      dsimp,
-      have := congr_fun s.condition z,
-      dsimp only [types_comp_apply, presheaf.classify] at this,
-      have := congr_arg sieve.arrows this,
-      dsimp at this,
-      have q : _ = _ := congr_fun this_1 (over.mk (𝟙 c)),
-      dsimp at q,
-      change true = _ at q,
-      rw [eq_iff_iff, P.map_id, true_iff, types_id_apply] at q,
-      apply (classical.indefinite_description _ q).1,
-      dsimp,
-      change _ ≫ i.app _ = _,
-      funext z,
-      dsimp,
-      refine (classical.indefinite_description (λ x, i.app (opposite.op c) x = s.snd z) _).2,
-    end },
-  uniquely' := λ Q P i hi χ hχ,
+-- @[simps]
+-- def presheaf.classify (Q P : Cᵒᵖ ⥤ Type u) (i : Q ⟶ P) [mono i] : P ⟶ presheaf.classifier C :=
+-- { app := λ c x,
+--   begin
+--     refine ⟨λ f, ∃ y, i.app (opposite.op f.left) y = P.map f.hom.op x, _⟩,
+--     rintros f ⟨_, _⟩ Z g,
+--     refine ⟨Q.map g.op w, _⟩,
+--     dsimp,
+--     rw P.map_comp,
+--     change _ = P.map _ _,
+--     rw ← h,
+--     exact congr_fun (i.naturality g.op) w,
+--   end }.
+
+-- noncomputable def presheaf.is_classifier : is_subobject_classifier (presheaf.truth C) :=
+-- { classifier_of := presheaf.classify C,
+--   classifies' := λ Q P i hi,
+--   { top := { app := λ _ _, punit.star },
+--     comm :=
+--     begin
+--       ext A x f,
+--       change true ↔ _,
+--       rw true_iff,
+--       exact ⟨Q.map f.hom.op x, congr_fun (i.naturality f.hom.op) x⟩,
+--     end,
+--     is_pb :=
+--     begin
+--       apply jointly_reflects_pullback,
+--       intro c,
+--       apply is_limit.mk''' _ _ _,
+--       refine ⟨λ Z g h eq, _⟩,
+--       funext, apply subsingleton.elim _ _,
+--       dsimp, apply_instance,
+--       change mono (i.app (opposite.op c)),
+--       resetI,
+--       exact preserves_mono_of_preserves_pullback ((evaluation _ (Type u)).obj (opposite.op c)) Q P i,
+--       intro s,
+--       refine ⟨_, _⟩,
+--       intro z,
+--       dsimp,
+--       have := congr_fun s.condition z,
+--       dsimp only [types_comp_apply, presheaf.classify] at this,
+--       have := congr_arg sieve.arrows this,
+--       dsimp at this,
+--       have q : _ = _ := congr_fun this_1 (over.mk (𝟙 c)),
+--       dsimp at q,
+--       change true = _ at q,
+--       rw [eq_iff_iff, P.map_id, true_iff, types_id_apply] at q,
+--       apply (classical.indefinite_description _ q).1,
+--       dsimp,
+--       change _ ≫ i.app _ = _,
+--       funext z,
+--       dsimp,
+--       refine (classical.indefinite_description (λ x, i.app (opposite.op c) x = s.snd z) _).2,
+--     end },
+--   uniquely' := λ Q P i hi χ hχ,
+--   begin
+--     ext1,
+--     ext1 c,
+--     change has_pullback_top _ _ _ at hχ,
+--     ext1,
+--     ext1,
+--     ext1 f,
+--     have hχc : has_pullback_top (i.app c) (χ.app c) ((presheaf.truth C).app c) := preserves_hpb ((evaluation _ (Type u)).obj c) hχ,
+--     dsimp at hχc,
+--     have hχf := preserves_hpb ((evaluation _ (Type u)).obj (opposite.op f.left)) hχ,
+--     dsimp at hχf,
+--     dsimp [presheaf.classify],
+--     change (∃ (y : Q.obj (opposite.op f.left)), i.app (opposite.op f.left) y = P.map f.hom.op x) ↔ f ∈ (χ.app c x).arrows,
+--     obtain ⟨kac, lac, mac⟩ := hχc,
+--     obtain ⟨kaf, laf, maf⟩ := hχf,
+--     split,
+--       rintro ⟨y, hy⟩,
+--       have hy₂ := congr_fun laf y,
+--       dsimp at hy₂,
+--       rw hy at hy₂,
+--       have hy₃ := congr_fun (χ.naturality f.hom.op) x,
+--       dsimp at hy₃,
+--       rw hy₃ at hy₂,
+--       have : over.mk (𝟙 f.left) ∈ (sieve.pullback (χ.app c x) f.hom).arrows,
+--         rw ←hy₂,
+--         trivial,
+--       change over.mk (𝟙 f.left ≫ f.hom) ∈ (χ.app c x).arrows at this,
+--       rwa [id_comp, over.mk_hom_id] at this,
+--     intro hf,
+--     obtain ⟨l, hl₁, hl₂⟩ := pullback_cone.is_limit.lift' maf (𝟙 _) (λ _, P.map f.hom.op x) _,
+--     refine ⟨l punit.star, _⟩,
+--     have := congr_fun hl₂ punit.star,
+--     exact this,
+--     ext1 ⟨⟩,
+--     dsimp,
+--     have hy₃ := congr_fun (χ.naturality f.hom.op) x,
+--     dsimp at hy₃,
+--     rw hy₃,
+--     symmetry,
+--     rw eq_top_iff,
+--     intros t ht,
+--     rw sieve.mem_pullback2,
+--     apply sieve.subs,
+--     exact hf,
+--   end }.
+
+-- noncomputable def presheaf_has_subobj_classifier : has_subobject_classifier.{u} (Cᵒᵖ ⥤ Type u) :=
+-- { Ω := _, Ω₀ := _, truth := _, is_subobj_classifier := presheaf.is_classifier C }
+
+variables {C} (P Q R : Cᵒᵖ ⥤ Type u)
+
+@[simps]
+def exponential_functor : Cᵒᵖ ⥤ Type u :=
+{ obj := λ A, yoneda.obj A.unop ⨯ P ⟶ Q,
+  map := λ A A' f g, limits.prod.map (yoneda.map f.unop) (𝟙 _) ≫ g,
+  map_comp' := λ A A' A'' f g,
   begin
     ext1,
-    ext1 c,
-    change has_pullback_top _ _ _ at hχ,
-    ext1,
-    ext1,
-    ext1 f,
-    have hχc : has_pullback_top (i.app c) (χ.app c) ((presheaf.truth C).app c) := preserves_hpb ((evaluation _ (Type u)).obj c) hχ,
-    dsimp at hχc,
-    have hχf := preserves_hpb ((evaluation _ (Type u)).obj (opposite.op f.left)) hχ,
-    dsimp at hχf,
-    dsimp [presheaf.classify],
-    change (∃ (y : Q.obj (opposite.op f.left)), i.app (opposite.op f.left) y = P.map f.hom.op x) ↔ f ∈ (χ.app c x).arrows,
-    obtain ⟨kac, lac, mac⟩ := hχc,
-    obtain ⟨kaf, laf, maf⟩ := hχf,
-    split,
-      rintro ⟨y, hy⟩,
-      have hy₂ := congr_fun laf y,
-      dsimp at hy₂,
-      rw hy at hy₂,
-      have hy₃ := congr_fun (χ.naturality f.hom.op) x,
-      dsimp at hy₃,
-      rw hy₃ at hy₂,
-      have : over.mk (𝟙 f.left) ∈ sieve.pullback (χ.app c x) f.hom,
-        rw ←hy₂,
-        trivial,
-      change over.mk (𝟙 f.left ≫ f.hom) ∈ (χ.app c x).arrows at this,
-      rwa [id_comp, over.mk_hom_id] at this,
-    intro hf,
-    obtain ⟨l, hl₁, hl₂⟩ := pullback_cone.is_limit.lift' maf (𝟙 _) (λ _, P.map f.hom.op x) _,
-    refine ⟨l punit.star, _⟩,
-    have := congr_fun hl₂ punit.star,
-    exact this,
-    ext1 ⟨⟩,
-    dsimp,
-    have hy₃ := congr_fun (χ.naturality f.hom.op) x,
-    dsimp at hy₃,
-    rw hy₃,
-    symmetry,
-    rw eq_top_iff,
-    intros t ht,
-    rw sieve.mem_pullback2,
-    apply sieve.subs,
-    exact hf,
+    simp [prod_map_comp_id],
   end }.
 
-noncomputable def presheaf_has_subobj_classifier : has_subobject_classifier.{u} (Cᵒᵖ ⥤ Type u) :=
-{ Ω := _, Ω₀ := _, truth := _, is_subobj_classifier := presheaf.is_classifier C }
+-- def eval : exponential_functor P Q ⨯ P ⟶ Q :=
+-- { app := λ c θy,
+--   begin
+--     refine ((θy.1 walking_pair.left).app c) ⟨λ j, walking_pair.cases_on j (𝟙 _) (θy.1 walking_pair.right), _⟩,
+--     rintros ⟨j₁ | j₁⟩ _ ⟨⟨rfl⟩⟩; refl
+--   end,
+--   naturality' := λ c c' f,
+--   begin
+--     ext1 ⟨_, _⟩,
+--     dsimp,
+--     change _ = ((x_val walking_pair.left).app c ≫ Q.map f) ⟨λ j, walking_pair.cases_on j (𝟙 c.unop) (x_val walking_pair.right), _⟩,
+--     rw ← (x_val walking_pair.left).naturality f,
+--     change (x_val walking_pair.left).app c' _ = (x_val walking_pair.left).app c' _,
+--     congr' 1,
+--     rw subtype.ext,
+--     ext ⟨j⟩,
+--     change 𝟙 _ ≫ _ = _ ≫ 𝟙 _,
+--     rw [id_comp, comp_id],
+--     refl,
+--   end }
 
--- def subfunctor (P : Cᵒᵖ ⥤ Type u)
--- def make_subfunctor (P R : Cᵒᵖ ⥤ Type u) (θ : R ⟶ P) [mono θ] : Cᵒᵖ ⥤ Type u
+@[simps]
+def eval : P ⨯ exponential_functor P Q ⟶ Q :=
+{ app := λ c θy,
+  begin
+    refine ((θy.1 walking_pair.right).app c) ⟨λ j, walking_pair.cases_on j (𝟙 _) (θy.1 walking_pair.left), _⟩,
+    rintros ⟨j₁ | j₁⟩ _ ⟨⟨rfl⟩⟩; refl
+  end,
+  naturality' := λ c c' f,
+  begin
+    ext1 ⟨_, _⟩,
+    dsimp,
+    change _ = ((x_val walking_pair.right).app c ≫ Q.map f) ⟨λ j, walking_pair.cases_on j (𝟙 c.unop) (x_val walking_pair.left), _⟩,
+    rw ← (x_val walking_pair.right).naturality f,
+    change (x_val walking_pair.right).app c' _ = (x_val walking_pair.right).app c' _,
+    congr' 1,
+    rw subtype.ext,
+    ext ⟨j⟩,
+    change 𝟙 _ ≫ _ = _ ≫ 𝟙 _,
+    rw [id_comp, comp_id],
+    refl,
+  end }
+
+@[simps]
+def transpose (φ : P ⨯ R ⟶ Q) : R ⟶ exponential_functor P Q :=
+{ app := λ c u,
+  { app := λ D,
+    begin
+      intro fx,
+      apply φ.app D,
+      refine ⟨λ j, walking_pair.cases_on j _ _, _⟩,
+      exact fx.1 walking_pair.right,
+      exact R.map (fx.1 walking_pair.left).op u,
+      rintros ⟨_ | _⟩ _ ⟨⟨rfl⟩⟩; refl
+    end,
+    naturality' := λ D₁ D₂ k,
+    begin
+      ext1 ⟨x, hx⟩,
+      change φ.app D₂ _ = (φ.app D₁ ≫ Q.map k) _,
+      rw ← φ.naturality k,
+      dsimp [types_comp_apply],
+      congr' 1,
+      rw subtype.ext,
+      ext ⟨j⟩,
+      dsimp,
+      refl,
+      apply congr_fun (R.map_comp (has_hom.hom.op (x walking_pair.left)) k) u,
+    end
+    },
+  naturality' := λ X Y f,
+  begin
+    ext x c ⟨_, _⟩,
+    change φ.app c ⟨_, _⟩ = φ.app c ⟨_, _⟩,
+    congr' 2,
+    ext ⟨j⟩,
+    refl,
+    change R.map (has_hom.hom.op (x_1_val walking_pair.left)) (R.map f x) = R.map (f ≫ has_hom.hom.op (x_1_val walking_pair.left)) x,
+    rw R.map_comp, refl,
+  end }.
+
+-- def make_exponential
+-- dunfold pair limit functor.map limits.prod.map yoneda limits.prod limit.cone has_limit.cone functor_category_limit_cone functor.of_function lim functor.flip types.limit_ limit.lift has_limit.is_limit limit.is_limit functor_category_is_limit_cone types.limit_is_limit_ limit.π,
 
 -- def make_equivalence (F G H : C ⥤ Type u₁) : ((prod_functor.obj F).obj H ⟶ G) ≃ (H ⟶ exponential_functor G F) :=
 -- { to_fun := λ f,
@@ -309,18 +395,30 @@ noncomputable def presheaf_has_subobj_classifier : has_subobject_classifier.{u} 
 
 -- }
 
--- def exponentiables (F : C ⥤ Type u₁) : exponentiable F :=
--- { is_adj :=
---   { right := adjunction.right_adjoint_of_equiv (λ H G, make_equivalence F G H)
---       begin
---         intros X' X Y f g,
+def exponentiables (P : Cᵒᵖ ⥤ Type u) : exponentiable P :=
+begin
+  apply make_exponential P (exponential_functor P) (eval P) (λ R Q, transpose _ _ _) _ _,
+  intros R Q φ,
+  ext _ ⟨uy, _⟩,
+  change φ.app x ⟨_, _⟩ = φ.app x ⟨_, _⟩,
+  congr' 2,
+  ext1 ⟨j⟩,
+  refl,
+  change R.map (𝟙 x) (uy walking_pair.right) = uy walking_pair.right,
+  rw [R.map_id, types_id_apply],
+  intros R Q φ t ht,
+  ext c u D ⟨fx, _⟩,
+  dsimp,
+  rw ← ht,
+  change (((R.map (has_hom.hom.op (fx walking_pair.left)) ≫ t.app _) u)).app D _ = (t.app c u).app D _,
+  rw t.naturality,
+  change (t.app c u).app D _ = (t.app c u).app D _,
+  congr' 1,
+  rw subtype.ext,
+  ext1 ⟨j⟩,
+  apply id_comp,
+  refl,
+end
 
---       end
-
---   }
-
--- }
--- instance : is_cartesian_closed.{u} (C ⥤ Type u) :=
--- { cart_closed := λ F, _
-
--- }
+instance : is_cartesian_closed.{u} (Cᵒᵖ ⥤ Type u) :=
+{ cart_closed := λ P, exponentiables P }

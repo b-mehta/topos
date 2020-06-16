@@ -83,18 +83,6 @@ end
 
 end equalizers
 
--- def equalizer_of_iso_point
-  -- let A := equalizer f g,
-  -- let L := sheafification j,
-  -- let E := equalizer (L.map f) (L.map g),
-  -- let e : A ⟶ B := equalizer.ι _ _,
-  -- let d : E ⟶ L.obj B := equalizer.ι _ _,
-  -- let k : L.obj A ⟶ E := equalizer.lift (L.map e) (by simp only [← L.map_comp, equalizer.condition]),
-  -- have hk : k ≫ d = L.map e := equalizer.lift_ι (L.map e) _,
-  -- let η := (sheafification_is_adjoint j).unit,
-  -- suffices : is_iso k,
-  --   sorry,
-
 class topos extends has_finite_limits.{v} C, has_subobject_classifier.{v} C, is_cartesian_closed.{v} C.
 
 variables [topos.{v} C]
