@@ -173,7 +173,7 @@ begin
   { rw [assoc, prod.lift_snd] }
 end
 
-variables [has_subobject_classifier.{v} C] [is_cartesian_closed.{v} C]
+variables [has_subobject_classifier.{v} C] [cartesian_closed.{v} C]
 
 def named [mono rel] : A ⟶ P A := hat rel
 

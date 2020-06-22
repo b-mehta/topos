@@ -1166,8 +1166,8 @@ begin
   apply comp_natural' (star B) infer_instance X.unop Y.unop g.unop,
 end
 
-def cc_of_pow [has_power_objects.{v} C] : is_cartesian_closed.{v} C :=
-{ cart_closed := λ B,
+def cc_of_pow [has_power_objects.{v} C] : cartesian_closed.{v} C :=
+{ closed := λ B,
   begin
     haveI : is_right_adjoint (star B) := ⟨over.forget, forget_adj_star B⟩,
     have := monad.adjoint_lifting (logical_star B).symm (λ f g X Y r, by apply_instance),
@@ -1179,11 +1179,11 @@ def lcc_of_pow [has_power_objects.{v} C] : is_locally_cartesian_closed.{v} C :=
 
 def subobj_hat {A B R : C} [exponentiable A] [has_subobject_classifier.{v} C] (m : R ⟶ B ⨯ A) [mono m] :
   B ⟶ A ⟹ classifier.Ω C :=
-cart_closed.curry ((limits.prod.braiding _ _).inv ≫ classifier.classifier_of m)
+is_cartesian_closed.curry ((limits.prod.braiding _ _).inv ≫ classifier.classifier_of m)
 
 def power_of_subobj (A : C) [exponentiable A] [has_subobject_classifier.{v} C] : has_power_object.{v} A :=
 { PA := A ⟹ classifier.Ω C,
-  niA := pullback (classifier.truth C) ((limits.prod.braiding _ _).hom ≫ ev A _),
+  niA := pullback (classifier.truth C) ((limits.prod.braiding _ _).hom ≫ (ev A).app _),
   memA := pullback.snd,
   is_power :=
   { hat := λ B R m hm, by exactI subobj_hat m,
@@ -1191,7 +1191,8 @@ def power_of_subobj (A : C) [exponentiable A] [has_subobject_classifier.{v} C] :
     begin
       haveI := hm,
       apply right_both_hpb_to_left_hpb _ _ _ has_pullback_top_of_pb,
-      rw [braid_natural_assoc, subobj_hat, curry_eq, prod_map_id_comp, assoc, ev_nat, ev_coev_assoc, iso.hom_inv_id_assoc],
+      erw [braid_natural_assoc, subobj_hat, curry_eq, prod_map_id_comp, assoc, (ev _).naturality,
+           ev_coev_assoc, iso.hom_inv_id_assoc],
       apply classifier.classifies m,
     end,
     uniquely' := λ B R m hm hat' p,
@@ -1203,17 +1204,17 @@ def power_of_subobj (A : C) [exponentiable A] [has_subobject_classifier.{v} C] :
       apply left_right_hpb_to_both_hpb pullback.snd p has_pullback_top_of_pb,
     end } }
 
-instance topos_has_power [has_subobject_classifier.{v} C] [is_cartesian_closed.{v} C] : has_power_objects.{v} C :=
+instance topos_has_power [has_subobject_classifier.{v} C] [cartesian_closed.{v} C] : has_power_objects.{v} C :=
 ⟨λ A, power_of_subobj A⟩
 
-instance topos_has_some_colims (J : Type v) [small_category J] [has_subobject_classifier.{v} C] [is_cartesian_closed.{v} C] [has_limits_of_shape Jᵒᵖ C] :
+instance topos_has_some_colims (J : Type v) [small_category J] [has_subobject_classifier.{v} C] [cartesian_closed.{v} C] [has_limits_of_shape Jᵒᵖ C] :
   has_colimits_of_shape J C :=
 some_colims J
 
-instance topos_has_finite_colimits [has_subobject_classifier.{v} C] [is_cartesian_closed.{v} C] : has_finite_colimits.{v} C :=
+instance topos_has_finite_colimits [has_subobject_classifier.{v} C] [cartesian_closed.{v} C] : has_finite_colimits.{v} C :=
 { has_colimits_of_shape := λ J 𝒥₁ 𝒥₂, by { resetI, apply_instance } }
 
-instance topos_is_lcc [has_subobject_classifier.{v} C] [is_cartesian_closed.{v} C] : is_locally_cartesian_closed.{v} C :=
+instance topos_is_lcc [has_subobject_classifier.{v} C] [cartesian_closed.{v} C] : is_locally_cartesian_closed.{v} C :=
 lcc_of_pow
 
 end category_theory

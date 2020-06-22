@@ -128,7 +128,7 @@ instance type_exponentiable (A : Type u) : exponentiable A :=
     end),
     adj := adjunction.adjunction_of_equiv_right _ _ } }
 
-instance type_cc : is_cartesian_closed (Type u) :=
+instance type_cc : cartesian_closed (Type u) :=
 begin
   split,
   intro A,

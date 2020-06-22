@@ -44,7 +44,7 @@ lemma coe_eq_val (a : pfin n) : (a : ℕ) = a.val := rfl
 @[simp] lemma coe_two  {n : ℕ} : ((2 : pfin (n+3)) : ℕ) = 2 := rfl
 
 instance {n : ℕ} : decidable_linear_order (pfin n) :=
-decidable_linear_order.lift pfin.val (@pfin.eq_of_veq _) (by apply_instance)
+decidable_linear_order.lift pfin.val (@pfin.eq_of_veq _)
 
 lemma exists_iff {p : pfin n → Prop} : (∃ i, p i) ↔ ∃ i h, p ⟨i, h⟩ :=
 ⟨λ h, exists.elim h (λ ⟨i, hi⟩ hpi, ⟨i, hi, hpi⟩),

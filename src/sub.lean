@@ -9,6 +9,7 @@ import category_theory.limits.shapes.finite_products
 import category_theory.limits.shapes.terminal
 import category_theory.full_subcategory
 import category_theory.limits.shapes.regular_mono
+import category_theory.closed.cartesian
 import cartesian_closed
 
 universes v u
@@ -422,7 +423,7 @@ begin
 end
 
 def exponentiate' (B : C) [exponentiable B] (A : sub'.{v} (⊤_ C)) : sub'.{v} (⊤_ C) :=
-{ arrow := over.mk (default (A.1.left ^^ B ⟶ ⊤_ C)),
+{ arrow := over.mk (default (B ⟹ A.1.left ⟶ ⊤_ C)),
   is_mono :=
   ⟨begin
     intros Z f g eq,
@@ -436,31 +437,31 @@ def exponentiate' (B : C) [exponentiable B] (A : sub'.{v} (⊤_ C)) : sub'.{v} (
 @[mono] def exponentiate'_le (B : C) [exponentiable B] {A₁ A₂ : sub'.{v} (⊤_ C)} (h : A₁ ≤ A₂) : exponentiate' B A₁ ≤ exponentiate' B A₂ :=
 begin
   cases h,
-  refine ⟨post B h_w, _⟩,
+  refine ⟨(exp B).map h_w, _⟩,
   change (_ : _ ⟶ ⊤_ C) = _,
   apply subsingleton.elim,
 end
 
-def exponentiate₂' [is_cartesian_closed C] (B A : sub'.{v} (⊤_ C)) : sub' (⊤_ C) :=
+def exponentiate₂' [cartesian_closed C] (B A : sub'.{v} (⊤_ C)) : sub' (⊤_ C) :=
 exponentiate' B.1.left A
 
-lemma universal [is_cartesian_closed C] {A₁ A₂ A₃ : sub'.{v} (⊤_ C)} : intersection' A₁ A₂ ≤ A₃ ↔ A₂ ≤ exponentiate₂' A₁ A₃ :=
+lemma universal [cartesian_closed C] {A₁ A₂ A₃ : sub'.{v} (⊤_ C)} : intersection' A₁ A₂ ≤ A₃ ↔ A₂ ≤ exponentiate₂' A₁ A₃ :=
 begin
   refine ⟨λ k, _, λ k, _⟩,
   { cases k,
     dsimp [intersection'] at k_w k_h,
-    refine ⟨cart_closed.curry (pullback.lift limits.prod.fst limits.prod.snd _ ≫ k_w), _⟩,
+    refine ⟨is_cartesian_closed.curry (pullback.lift limits.prod.fst limits.prod.snd _ ≫ k_w), _⟩,
     change (_ : _ ⟶ ⊤_ C) = _,
     apply subsingleton.elim,
     change (_ : _ ⟶ ⊤_ C) = _,
     apply subsingleton.elim },
   { cases k,
-    refine ⟨prod.lift pullback.fst pullback.snd ≫ cart_closed.uncurry k_w, _⟩,
+    refine ⟨prod.lift pullback.fst pullback.snd ≫ is_cartesian_closed.uncurry k_w, _⟩,
     change (_ : _ ⟶ ⊤_ C) = _,
     apply subsingleton.elim }
 end
 
-@[mono] def exponentiate₂'_ge [is_cartesian_closed C] {B₁ B₂ A : sub'.{v} (⊤_ C)} (h : B₁ ≤ B₂) :
+@[mono] def exponentiate₂'_ge [cartesian_closed C] {B₁ B₂ A : sub'.{v} (⊤_ C)} (h : B₁ ≤ B₂) :
   exponentiate₂' B₂ A ≤ exponentiate₂' B₁ A :=
 begin
   cases h,
@@ -469,7 +470,7 @@ begin
   apply subsingleton.elim,
 end
 
-def exponential [is_cartesian_closed C] : sub (⊤_ C) → sub (⊤_ C) → sub (⊤_ C) :=
+def exponential [cartesian_closed C] : sub (⊤_ C) → sub (⊤_ C) → sub (⊤_ C) :=
 begin
   refine quotient.map₂ exponentiate₂' _,
   rintros a₁ a₂ ⟨a₁₂, a₂₁⟩ b₁ b₂ ⟨b₁₂, b₂₁⟩,
@@ -477,7 +478,7 @@ begin
   refine (le_trans (exponentiate'_le _ ‹_›) (exponentiate₂'_ge ‹_›)),
 end
 
-def exp_e [is_cartesian_closed C] (B X Y : sub (⊤_ C)) : ((prod_functor.obj B).obj X ⟶ Y) ≃ (X ⟶ exponential B Y) :=
+def exp_e [cartesian_closed C] (B X Y : sub (⊤_ C)) : ((prod_functor.obj B).obj X ⟶ Y) ≃ (X ⟶ exponential B Y) :=
 { to_fun := λ k,
   ⟨⟨begin
     rcases k with ⟨⟨_⟩⟩,
@@ -501,16 +502,16 @@ def exp_e [is_cartesian_closed C] (B X Y : sub (⊤_ C)) : ((prod_functor.obj B)
   left_inv := λ f, by ext,
   right_inv := λ f, by ext }
 
-def exp_e_nat [is_cartesian_closed C] (B : sub (⊤_ C)) (X' X Y : sub (⊤_ C)) (f : X' ⟶ X) (g : (prod_functor.obj B).obj X ⟶ Y) :
+def exp_e_nat [cartesian_closed C] (B : sub (⊤_ C)) (X' X Y : sub (⊤_ C)) (f : X' ⟶ X) (g : (prod_functor.obj B).obj X ⟶ Y) :
     (exp_e B X' Y).to_fun ((prod_functor.obj B).map f ≫ g) = f ≫ (exp_e B X Y).to_fun g :=
 by ext
 
-def exponentiable_sub [is_cartesian_closed C] (B : sub (⊤_ C)) : exponentiable B :=
+def exponentiable_sub [cartesian_closed C] (B : sub (⊤_ C)) : exponentiable B :=
 { is_adj :=
   { right := adjunction.right_adjoint_of_equiv (exp_e B) (λ _ _ _ _ _, subsingleton.elim _ _),
     adj := adjunction.adjunction_of_equiv_right _ _ } }
 
-instance cart_closed_one [is_cartesian_closed C] : is_cartesian_closed (sub (⊤_ C)) :=
-{ cart_closed := exponentiable_sub }
+instance cart_closed_one [cartesian_closed C] : cartesian_closed (sub (⊤_ C)) :=
+{ closed := exponentiable_sub }
 
 end category_theory

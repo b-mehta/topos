@@ -3,6 +3,8 @@ import category_theory.limits.creates
 import category_theory.reflect_isomorphisms
 import category_theory.limits.shapes.constructions.preserve_binary_products
 import category_theory.adjunction.fully_faithful
+import category_theory.closed.cartesian
+import cartesian_closed
 import reflects
 import equiv
 import pempty
@@ -83,7 +85,14 @@ end
 
 end equalizers
 
-class topos extends has_finite_limits.{v} C, has_subobject_classifier.{v} C, is_cartesian_closed.{v} C.
+class topos :=
+[lim : has_finite_limits.{v} C]
+[sub : has_subobject_classifier.{v} C]
+[cc : cartesian_closed.{v} C]
+
+attribute [instance] topos.lim
+attribute [instance] topos.sub
+attribute [instance] topos.cc
 
 variables [topos.{v} C]
 
@@ -573,8 +582,8 @@ sheaf.mk' (A ⟹ s.A) $ λ B B' m f' d,
 begin
   haveI := d,
   haveI := dense_prod_map_id j A m,
-  refine ⟨cart_closed.curry _, _, _⟩,
-  { exact extend_map s (limits.prod.map (𝟙 A) m) (cart_closed.uncurry f') },
+  refine ⟨is_cartesian_closed.curry _, _, _⟩,
+  { exact extend_map s (limits.prod.map (𝟙 A) m) (is_cartesian_closed.uncurry f') },
   { rw [← curry_natural_left, extend_map_prop s, curry_uncurry] },
   { rintro a ha,
     rw eq_curry_iff,
@@ -582,18 +591,18 @@ begin
     rw [← uncurry_natural_left, ha] }
 end
 
-instance : is_cartesian_closed (sheaf j) :=
-{ cart_closed := λ A,
+instance : cartesian_closed (sheaf j) :=
+{ closed := λ A,
   { is_adj :=
     { right :=
       { obj := λ s, sheaf_exponential j A.A s,
-        map := λ s₁ s₂ f, post A.A f,
-        map_id' := λ s, (exp.functor A.A).map_id _,
-        map_comp' := λ _ _ _ _ _, (exp.functor A.A).map_comp _ _ },
+        map := λ s₁ s₂ f, (exp A.A).map f,
+        map_id' := λ s, (exp A.A).map_id _,
+        map_comp' := λ _ _ _ _ _, (exp A.A).map_comp _ _ },
       adj := adjunction.mk_of_hom_equiv
       { hom_equiv := λ X Y,
-        { to_fun := λ f, cart_closed.curry (inv (prod_comparison (forget j) A X) ≫ f),
-          inv_fun := λ g, by apply (prod_comparison (forget j) A X) ≫ cart_closed.uncurry g,
+        { to_fun := λ f, is_cartesian_closed.curry (inv (prod_comparison (forget j) A X) ≫ f),
+          inv_fun := λ g, by apply (prod_comparison (forget j) A X) ≫ is_cartesian_closed.uncurry g,
           left_inv := λ f, by simp,
           right_inv := λ g, by simp },
         hom_equiv_naturality_left_symm' :=
@@ -776,7 +785,7 @@ def sheaf_has_subobj_classifier : has_subobject_classifier.{v} (sheaf j) :=
     end } }
 
 /-- The topos of sheaves! -/
-instance : topos.{v} (sheaf j) := { to_has_subobject_classifier := sheaf_has_subobj_classifier j }
+instance : topos.{v} (sheaf j) := { sub := sheaf_has_subobj_classifier j }
 
 section close_equiv
 variables {R A : C} (rel : relation.{v} R A)
@@ -974,9 +983,9 @@ end
 
 def Pj (A : C) : sheaf j := sheaf_exponential j A (sheaf_classifier j)
 
-def named_factors (A : C) : {hat : A ⟶ (Pj j A).A // hat ≫ post _ (equalizer.ι _ _) = named (j_equal j A)} :=
+def named_factors (A : C) : {hat : A ⟶ (Pj j A).A // hat ≫ (exp _).map (equalizer.ι _ _) = named (j_equal j A)} :=
 begin
-  refine ⟨cart_closed.curry (equalizer.lift ((limits.prod.braiding A A).inv ≫ classifier_of (j_equal j A)) _), _⟩,
+  refine ⟨is_cartesian_closed.curry (equalizer.lift ((limits.prod.braiding A A).inv ≫ classifier_of (j_equal j A)) _), _⟩,
   { rw [assoc, comp_id, closure.classifier_eq_of_closed _ _],
     rw j_equal,
     apply_instance },
@@ -1008,7 +1017,7 @@ end
 --     apply w walking_parallel_pair.one }
 -- end
 
-instance mono_post_of_mono {A X Y : C} (f : X ⟶ Y) [mono f] : mono (post A f) :=
+instance mono_post_of_mono {A X Y : C} (f : X ⟶ Y) [mono f] : mono ((exp A).map f) :=
 ⟨λ Z g h eq, by rw [← uncurry_injective.eq_iff, ← cancel_mono f, ← uncurry_natural_right, ← uncurry_natural_right, eq]⟩
 
 local attribute [instance] limits.has_coequalizers_of_has_finite_colimits

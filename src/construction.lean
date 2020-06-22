@@ -4,6 +4,7 @@ import category_theory.adjunction
 import category_theory.monad.adjunction
 import category_theory.adjunction.fully_faithful
 import cartesian_closed
+import category_theory.closed.cartesian
 
 universes v₁ v₂ u₁ u₂
 
@@ -162,12 +163,12 @@ lemma biject_inclusion_is_comp_unit [ir : reflective i] {A B : C} [h : in_subcat
 by rw [← biject_inclusion_symm_id_eq A, (biject_inclusion i).symm_apply_eq,
        biject_inclusion_natural _ _, equiv.apply_symm_apply, id_comp]
 
-variables [has_finite_products.{v₁} C] [has_finite_products.{v₁} D] [is_cartesian_closed C] (i)
+variables [has_finite_products.{v₁} C] [has_finite_products.{v₁} D] [cartesian_closed C] (i)
 
 class exponential_ideal extends reflective i :=
-[ strength (A) {B} [in_subcategory' i B] : in_subcategory' i (B ^^ A) ]
+[ strength (A) {B} [in_subcategory' i B] : in_subcategory' i (A ⟹ B) ]
 
-def exponential_ideal_of [reflective i] (h : ∀ (A : C) (B : D), in_subcategory' i ((i.obj B) ^^ A)) : exponential_ideal i :=
+def exponential_ideal_of [reflective i] (h : ∀ (A : C) (B : D), in_subcategory' i (A ⟹ i.obj B)) : exponential_ideal i :=
 { strength := λ A B inst,
   begin
     resetI,
@@ -176,18 +177,17 @@ def exponential_ideal_of [reflective i] (h : ∀ (A : C) (B : D), in_subcategory
     let η := ir.adj.unit,
     haveI := h A (L.obj B),
     let i₁ : B ≅ i.obj (L.obj B) := containment_iso i B,
-    let i₂ : (i.obj (L.obj B))^^A ≅ i.obj (L.obj ((i.obj (L.obj B))^^A)) := containment_iso i (i.obj (L.obj B)^^A),
-    let : B ^^ A ≅ i.obj (L.obj (B^^A)),
-      apply (exp.functor A).map_iso i₁ ≪≫ i₂ ≪≫ (exp.functor A ⋙ L ⋙ i).map_iso i₁.symm,
+    let i₂ : A ⟹ i.obj (L.obj B) ≅ i.obj (L.obj (A ⟹ (i.obj (L.obj B)))) := containment_iso i (A ⟹ i.obj (L.obj B)),
+    let : A ⟹ B ≅ i.obj (L.obj (A ⟹ B)),
+      apply (exp A).map_iso i₁ ≪≫ i₂ ≪≫ (exp A ⋙ L ⋙ i).map_iso i₁.symm,
     refine ⟨_⟩,
     convert is_iso.of_iso this,
-    change is_right_adjoint.adj.unit.app (B^^A) =
-    post _ (containment_iso _ _).hom ≫ (η.app _) ≫ i.map (L.map (post _ (containment_iso _ _).inv)),
+    change η.app (A ⟹ B) =
+      (exp _).map (containment_iso _ _).hom ≫ η.app _ ≫ i.map (L.map ((exp _).map (containment_iso _ _).inv)),
     erw η.naturality_assoc,
-    erw [← i.map_comp],
-    rw ← L.map_comp,
-    erw [← post.map_comp, iso.hom_inv_id, post, functor.map_id, functor.map_id, functor.map_id, comp_id],
-    refl,
+    change η.app (A ⟹ B) = η.app (A ⟹ B) ≫ (exp A ⋙ L ⋙ _).map _ ≫ (exp A ⋙ L ⋙ _).map _,
+    rw [← (exp A ⋙ L ⋙ _).map_comp, iso.hom_inv_id, functor.map_id],
+    erw comp_id,
   end,
   ..reflective.to_faithful
 
@@ -197,16 +197,16 @@ variables [exponential_ideal i]
 def bijection (A B : C) (C' : D) : ((left_adjoint i).obj (A ⨯ B) ⟶ C') ≃ ((left_adjoint i).obj A ⨯ (left_adjoint i).obj B ⟶ C') :=
 calc _ ≃ (A ⨯ B ⟶ i.obj C') : _inst_6.to_reflective.adj.hom_equiv _ _
 ... ≃ (B ⨯ A ⟶ i.obj C') : equiv_homset_left_of_iso _ (limits.prod.braiding _ _)
-... ≃ (A ⟶ (i.obj C') ^^ B) : (exp.adjunction _).hom_equiv _ _
-... ≃ (i.obj ((left_adjoint i).obj A) ⟶ (i.obj C') ^^ B) :
+... ≃ (A ⟶ B ⟹ i.obj C') : (exp.adjunction _).hom_equiv _ _
+... ≃ (i.obj ((left_adjoint i).obj A) ⟶ B ⟹ i.obj C') :
   begin
     apply biject_inclusion i,
     apply exponential_ideal.strength,
   end
 ... ≃ (B ⨯ i.obj ((left_adjoint i).obj A) ⟶ i.obj C') : ((exp.adjunction _).hom_equiv _ _).symm
 ... ≃ (i.obj ((left_adjoint i).obj A) ⨯ B ⟶ i.obj C') : equiv_homset_left_of_iso _ (limits.prod.braiding _ _)
-... ≃ (B ⟶ i.obj C' ^^ (i.obj ((left_adjoint i).obj A))) : (exp.adjunction _).hom_equiv _ _
-... ≃ (i.obj ((left_adjoint i).obj B) ⟶ i.obj C' ^^ (i.obj ((left_adjoint i).obj A))) :
+... ≃ (B ⟶ i.obj ((left_adjoint i).obj A) ⟹ i.obj C') : (exp.adjunction _).hom_equiv _ _
+... ≃ (i.obj ((left_adjoint i).obj B) ⟶ i.obj ((left_adjoint i).obj A) ⟹ i.obj C') :
   begin
     apply biject_inclusion _,
     apply exponential_ideal.strength,
@@ -242,9 +242,9 @@ begin
   let ε : i ⋙ L ⟶ _ := adj.counit,
   change ((adj.hom_equiv (A ⨯ B) (L.obj A ⨯ L.obj B)).symm)
       (prod.lift limits.prod.snd limits.prod.fst ≫
-         cart_closed.uncurry (η.app A ≫
-              cart_closed.curry (prod.lift limits.prod.snd limits.prod.fst ≫
-                   cart_closed.uncurry (η.app B ≫ cart_closed.curry _)))) =
+         is_cartesian_closed.uncurry (η.app A ≫
+              is_cartesian_closed.curry (prod.lift limits.prod.snd limits.prod.fst ≫
+                   is_cartesian_closed.uncurry (η.app B ≫ is_cartesian_closed.curry _)))) =
     prod_comparison L A B,
   rw [uncurry_natural_left, uncurry_curry, uncurry_natural_left, uncurry_curry,
       ← adjunction.eq_hom_equiv_apply, prod.lift_map_assoc, prod.lift_map_assoc,
