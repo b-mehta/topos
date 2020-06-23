@@ -397,9 +397,8 @@ def mono_self_has_pullback_top {X Y : C} (f : X ⟶ Y) [hf : mono f] :
   is_pb := pullback_of_mono f }
 
 universe u₂
-variables {D : Type u₂} [𝒟 : category.{v} D] (F : C ⥤ D)
+variables {D : Type u₂} [category.{v} D] (F : C ⥤ D)
 
-include 𝒟
 
 def cone_cospan_equiv :
   cone (cospan (F.map f) (F.map g)) ≌ cone (cospan f g ⋙ F) :=
@@ -462,6 +461,14 @@ begin
   convert preserves_pullback_cone F (𝟙 _) f (𝟙 _) f rfl (pullback_of_mono f),
 end
 
+def preserves_walking_cospan_of_preserves_pb_cone {h : W ⟶ _} {k} (comm : h ≫ f = k ≫ g) (is_lim : is_limit (pullback_cone.mk _ _ comm))
+  (t : is_limit (pullback_cone.mk (F.map h) (F.map k) (by rw [← F.map_comp, comm, F.map_comp]) : pullback_cone (F.map f) (F.map g))) :
+  preserves_limit (cospan f g) F :=
+begin
+  apply preserves_limit_of_preserves_limit_cone is_lim,
+  apply ((thing2 _ _).inv t),
+end
+
 def preserves_hpb [preserves_limits_of_shape walking_cospan F] {g : X ⟶ Z} {h : W ⟶ Y} {k : Y ⟶ Z} (t : has_pullback_top h k g) :
 has_pullback_top (F.map h) (F.map k) (F.map g) :=
 { top := F.map t.top,
@@ -480,7 +487,6 @@ has_pullback_top h k g :=
     simp,
   end }
 
-omit 𝒟
 -- Strictly we don't need the assumption that C has pullbacks but oh well
 def over_forget_preserves_hpb [has_pullbacks.{v} C] {B : C} {X Y Z W : over B} (g : X ⟶ Z) (h : Z ⟶ W) (k : Y ⟶ W) (t : has_pullback_top g h k) :
   has_pullback_top g.left h.left k.left :=

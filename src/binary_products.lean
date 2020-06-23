@@ -68,12 +68,10 @@ begin
   refine ⟨λ x, x.elim, λ ⟨t⟩, t.elim0, λ t, t.elim, λ ⟨t⟩, t.elim0⟩,
 end
 
-variables {C : Type u} [𝒞 : category.{v} C]
-include 𝒞
+variables {C : Type u} [category.{v} C]
 
 section
-variables {D : Type u₂} [𝒟 : category.{v} D]
-include 𝒟
+variables {D : Type u₂} [category.{v} D]
 
 section
 
