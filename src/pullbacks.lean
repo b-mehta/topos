@@ -479,7 +479,7 @@ def fully_faithful_reflects_hpb [reflects_limits_of_shape walking_cospan F] [ful
   (t : has_pullback_top (F.map h) (F.map k) (F.map g)) :
 has_pullback_top h k g :=
 { top := F.preimage t.top,
-  comm := by { apply F.injectivity, simp [t.comm] },
+  comm := by { apply F.map_injective, simp [t.comm] },
   is_pb :=
   begin
     refine reflects_pullback_cone F _ _,

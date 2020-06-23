@@ -542,7 +542,7 @@ instance sheaf_forget_creates_limits : creates_limits (forget j) :=
     { lifts := λ c t,
       { lifted_cone :=
         { X := sheaf.mk' c.X $
-          λ B B' m f' d,
+          λ B B' m f' d, by exactI
             begin
               refine ⟨t.lift (alt_cone m f'), _, _⟩,
               { apply t.hom_ext,
@@ -582,8 +582,8 @@ sheaf.mk' (A ⟹ s.A) $ λ B B' m f' d,
 begin
   haveI := d,
   haveI := dense_prod_map_id j A m,
-  refine ⟨is_cartesian_closed.curry _, _, _⟩,
-  { exact extend_map s (limits.prod.map (𝟙 A) m) (is_cartesian_closed.uncurry f') },
+  refine ⟨cartesian_closed.curry _, _, _⟩,
+  { exact extend_map s (limits.prod.map (𝟙 A) m) (cartesian_closed.uncurry f') },
   { rw [← curry_natural_left, extend_map_prop s, curry_uncurry] },
   { rintro a ha,
     rw eq_curry_iff,
@@ -601,8 +601,8 @@ instance : cartesian_closed (sheaf j) :=
         map_comp' := λ _ _ _ _ _, (exp A.A).map_comp _ _ },
       adj := adjunction.mk_of_hom_equiv
       { hom_equiv := λ X Y,
-        { to_fun := λ f, is_cartesian_closed.curry (inv (prod_comparison (forget j) A X) ≫ f),
-          inv_fun := λ g, by apply (prod_comparison (forget j) A X) ≫ is_cartesian_closed.uncurry g,
+        { to_fun := λ f, cartesian_closed.curry (inv (prod_comparison (forget j) A X) ≫ f),
+          inv_fun := λ g, by apply (prod_comparison (forget j) A X) ≫ cartesian_closed.uncurry g,
           left_inv := λ f, by simp,
           right_inv := λ g, by simp },
         hom_equiv_naturality_left_symm' :=
@@ -755,11 +755,10 @@ def sheaf_has_subobj_classifier : has_subobject_classifier.{v} (sheaf j) :=
   end,
   truth_mono := ⟨λ Z g h eq, subsingleton.elim _ _⟩,
   is_subobj_classifier :=
-  { classifier_of := λ U X f hf,
+  { classifier_of := λ U X f hf, by exactI
     begin
-      resetI,
-      have := preserves_mono_of_preserves_pullback (forget j) _ _ f,
-      have := closed_of_subsheaf j X U ((forget j).map f),
+      haveI := preserves_mono_of_preserves_pullback (forget j) _ _ f,
+      haveI := closed_of_subsheaf j X U ((forget j).map f),
       apply (forget j).preimage,
       apply sheaf_classify j ((forget j).map f),
     end,
@@ -770,7 +769,7 @@ def sheaf_has_subobj_classifier : has_subobject_classifier.{v} (sheaf j) :=
     end,
     uniquely' := λ U X f hf χ hχ,
     begin
-      apply (forget j).injectivity,
+      apply (forget j).map_injective,
       rw [functor.image_preimage],
       rw ← cancel_mono (equalizer.ι j (𝟙 _)),
       rw [sheaf_classify, equalizer.lift_ι],
@@ -985,7 +984,7 @@ def Pj (A : C) : sheaf j := sheaf_exponential j A (sheaf_classifier j)
 
 def named_factors (A : C) : {hat : A ⟶ (Pj j A).A // hat ≫ (exp _).map (equalizer.ι _ _) = named (j_equal j A)} :=
 begin
-  refine ⟨is_cartesian_closed.curry (equalizer.lift ((limits.prod.braiding A A).inv ≫ classifier_of (j_equal j A)) _), _⟩,
+  refine ⟨cartesian_closed.curry (equalizer.lift ((limits.prod.braiding A A).inv ≫ classifier_of (j_equal j A)) _), _⟩,
   { rw [assoc, comp_id, closure.classifier_eq_of_closed _ _],
     rw j_equal,
     apply_instance },
@@ -1219,7 +1218,7 @@ variables {B c : C} (f g : B ⟶ c)
 def k : (forget j).obj ((sheafification j).obj (equalizer f g)) ⟶ (forget j).obj (equalizer ((sheafification j).map f) ((sheafification j).map g)) :=
 (forget j).map (equalizing_map (sheafification j) f g)
 
-instance : mono (k j f g) :=
+instance mono_k : mono (k j f g) :=
 begin
   let A := equalizer f g,
   let L := sheafification j,
@@ -1229,7 +1228,7 @@ begin
   let k : L.obj A ⟶ E := k j f g,
   have hk : k ≫ d = L.map e := equalizer.lift_ι (L.map e) _,
   let η := (sheafification_is_adjoint j).unit,
-  change mono k,
+  change @mono C _ _ _ k,
   refine ⟨λ X u v eq, _⟩,
   let P := pullback (limits.prod.map (η.app A) (η.app A)) (prod.lift u v),
   let r : P ⟶ X := pullback.snd,

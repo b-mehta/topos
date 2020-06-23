@@ -30,7 +30,7 @@ prod.lift (F.map prod.fst) (F.map prod.snd)
 @[simps]
 def alternative_cone' : cone (pair A B ⋙ F) :=
 { X := F.obj A ⨯ F.obj B,
-  π := nat_trans.of_homs (λ j, walking_pair.cases_on j limits.prod.fst limits.prod.snd)}
+  π := discrete.nat_trans (λ j, walking_pair.cases_on j limits.prod.fst limits.prod.snd)}
 
 /-- (Implementation). Show that we have a limit for the shape `pair A B ⋙ F`. -/
 def alternative_cone_is_limit' : is_limit (alternative_cone' F A B) :=

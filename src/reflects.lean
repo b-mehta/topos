@@ -16,10 +16,10 @@ variables (F : C ⥤ D)
 instance cones_functoriality_full {J : Type v} [full F] [faithful F] [category J] (K : J ⥤ C) : full (cones.functoriality K F) :=
 { preimage := λ X Y t,
   { hom := F.preimage t.hom,
-    w' := λ j, F.injectivity (by simpa using t.w j) } }
+    w' := λ j, F.map_injective (by simpa using t.w j) } }
 
 instance cones_functoriality_faithful {J : Type v} [faithful F] [category J] (K : J ⥤ C) : faithful (cones.functoriality K F) :=
-{ injectivity' := λ X Y f g e, by { ext1, injection e, apply F.injectivity h_1 } }
+{ map_injective' := λ X Y f g e, by { ext1, injection e, apply F.map_injective h_1 } }
 
 instance fully_faithful_reflects_limits [full F] [faithful F] : reflects_limits F :=
 { reflects_limits_of_shape := λ J 𝒥₁, by exactI
@@ -27,7 +27,7 @@ instance fully_faithful_reflects_limits [full F] [faithful F] : reflects_limits 
     { reflects := λ c t,
       is_limit.mk_cone_morphism (λ s, (cones.functoriality K F).preimage (t.lift_cone_morphism _)) $
       begin
-        apply (λ s m, (cones.functoriality K F).injectivity _),
+        apply (λ s m, (cones.functoriality K F).map_injective _),
         rw [functor.image_preimage],
         apply t.uniq_cone_morphism,
       end } } }

@@ -84,12 +84,12 @@ def isequiv : C ≌ skeleton sr :=
     refine @preimage_iso _ _ _ _ (forget sr) _ _ _ _ _,
     refine (sr.repr_iso X.val),
     intros,
-    apply (forget sr).injectivity,
+    apply (forget sr).map_injective,
     dsimp, simp,
   end,
   functor_unit_iso_comp' := λ X,
   begin
-    apply (forget sr).injectivity,
+    apply (forget sr).map_injective,
     dsimp,
     simp,
   end }

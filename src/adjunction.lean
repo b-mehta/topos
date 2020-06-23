@@ -70,7 +70,7 @@ def faithful_functor_right_cancel {F G : C ⥤ D} {H : D ⥤ E}
   [full H] [faithful H] (comp_iso: F ⋙ H ≅ G ⋙ H) : F ≅ G :=
 begin
   refine nat_iso.of_components (λ X, preimage_iso (comp_iso.app X)) (λ X Y f, _),
-  apply H.injectivity,
+  apply H.map_injective,
   simp only [preimage_iso_hom, H.map_comp, H.image_preimage],
   exact comp_iso.hom.naturality f,
 end

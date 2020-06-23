@@ -68,10 +68,12 @@ begin
   haveI : split_epi h := ⟨ir.adj.unit.app A, split_mono.id (ir.adj.unit.app A)⟩,
   suffices : epi (ir.adj.unit.app A),
     refine ⟨h, split_mono.id (ir.adj.unit.app A), _⟩,
+    resetI,
     dsimp,
     erw [← cancel_epi (ir.adj.unit.app A), split_mono.id_assoc (ir.adj.unit.app A), comp_id],
   suffices : epi (ir.adj.unit.app _ ≫ i.map (ir.left.map h)),
     erw [← ir.adj.unit.naturality h, functor.id_map] at this,
+    resetI,
     apply epi_of_epi h,
   apply epi_comp,
 end
@@ -242,9 +244,9 @@ begin
   let ε : i ⋙ L ⟶ _ := adj.counit,
   change ((adj.hom_equiv (A ⨯ B) (L.obj A ⨯ L.obj B)).symm)
       (prod.lift limits.prod.snd limits.prod.fst ≫
-         is_cartesian_closed.uncurry (η.app A ≫
-              is_cartesian_closed.curry (prod.lift limits.prod.snd limits.prod.fst ≫
-                   is_cartesian_closed.uncurry (η.app B ≫ is_cartesian_closed.curry _)))) =
+         cartesian_closed.uncurry (η.app A ≫
+              cartesian_closed.curry (prod.lift limits.prod.snd limits.prod.fst ≫
+                   cartesian_closed.uncurry (η.app B ≫ cartesian_closed.curry _)))) =
     prod_comparison L A B,
   rw [uncurry_natural_left, uncurry_curry, uncurry_natural_left, uncurry_curry,
       ← adjunction.eq_hom_equiv_apply, prod.lift_map_assoc, prod.lift_map_assoc,

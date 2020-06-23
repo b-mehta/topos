@@ -441,6 +441,7 @@ instance p_reflects_iso [has_power_objects.{v} C] : reflects_isomorphisms (P_fun
 { reflects := λ A B f i, by exactI
 begin
   suffices : is_iso f.unop,
+    resetI,
     refine ⟨this.inv.op,
             has_hom.hom.unop_inj (is_iso.inv_hom_id f.unop),
             has_hom.hom.unop_inj (is_iso.hom_inv_id f.unop)⟩,
@@ -457,9 +458,9 @@ def exists_power {A B : C} [has_power_object.{v} A] [has_power_object.{v} B] (f 
 by rw [beck_chevalley _ (pullback_of_mono f), P_map_id, internal_image_map_id, comp_id]
 
 instance fin_category_op (J : Type v) [small_category J] [fcj : fin_category J] : fin_category Jᵒᵖ :=
-{ decidable_eq_obj := λ x y, decidable_of_decidable_of_iff infer_instance opposite.unop_inj.eq_iff,
+{ decidable_eq_obj := λ x y, decidable_of_decidable_of_iff infer_instance opposite.unop_injective.eq_iff,
   fintype_obj :=
-    { elems := finset.map ⟨opposite.op, opposite.op_inj⟩ _,
+    { elems := finset.map ⟨opposite.op, opposite.op_injective⟩ _,
       complete := λ x, finset.mem_map_of_mem _ (fintype.complete x.unop) },
   decidable_eq_hom := λ x y f g, decidable_of_decidable_of_iff infer_instance has_hom.hom.unop_inj.eq_iff,
   fintype_hom := λ X Y,
@@ -476,7 +477,7 @@ instance pare [has_power_objects.{v} C] : monadic_right_adjoint (P_functor : C�
       refine { preserves := λ c t, _ },
       let e : c.X.unop ⟶ A'.unop := (cofork.π c).unop,
       haveI : split_mono g'.unop := ⟨r'.unop, by { rw [auto_param_eq, ← unop_comp, rg], refl }⟩,
-      have : epi (cofork.π c) := epi_of_is_colimit_parallel_pair t,
+      haveI : epi (cofork.π c) := epi_of_is_colimit_parallel_pair t,
       haveI mono_e : mono e := category_theory.unop_mono_of_epi _,
       have : internal_image g'.unop ≫ P_map f'.unop = P_map e ≫ internal_image e := beck_chevalley _ _,
       apply colimit_of_splits (P_functor.map_cocone c) _ (internal_image g'.unop) (exists_power e) (exists_power g'.unop) this,
@@ -495,9 +496,11 @@ def some_colims (J : Type v) [small_category J] [has_power_objects.{v} C] [has_l
 { has_colimit := λ F, by exactI
   begin
     suffices: has_colimit (F ⋙ op_op_equivalence.inverse),
+      resetI,
       apply adjunction.has_colimit_of_comp_equivalence F op_op_equivalence.inverse,
     let F'' : Jᵒᵖ ⥤ Cᵒᵖ := (F ⋙ op_op_equivalence.inverse).left_op,
     suffices : has_limit F'',
+      resetI,
       apply limits.has_colimit_of_has_limit_left_op,
     suffices : has_limit (F'' ⋙ P_functor),
       apply monadic_creates_limits F'' P_functor,
@@ -1170,7 +1173,7 @@ def cc_of_pow [has_power_objects.{v} C] : cartesian_closed.{v} C :=
 { closed := λ B,
   begin
     haveI : is_right_adjoint (star B) := ⟨over.forget, forget_adj_star B⟩,
-    have := monad.adjoint_lifting (logical_star B).symm (λ f g X Y r, by apply_instance),
+    haveI := monad.adjoint_lifting (logical_star B).symm (λ f g X Y r, by apply_instance),
     exact exponentiable_of_star_is_left_adj B left_adjoint_of_right_adjoint_op,
   end }
 
@@ -1179,7 +1182,7 @@ def lcc_of_pow [has_power_objects.{v} C] : is_locally_cartesian_closed.{v} C :=
 
 def subobj_hat {A B R : C} [exponentiable A] [has_subobject_classifier.{v} C] (m : R ⟶ B ⨯ A) [mono m] :
   B ⟶ A ⟹ classifier.Ω C :=
-is_cartesian_closed.curry ((limits.prod.braiding _ _).inv ≫ classifier.classifier_of m)
+cartesian_closed.curry ((limits.prod.braiding _ _).inv ≫ classifier.classifier_of m)
 
 def power_of_subobj (A : C) [exponentiable A] [has_subobject_classifier.{v} C] : has_power_object.{v} A :=
 { PA := A ⟹ classifier.Ω C,

@@ -56,15 +56,15 @@ let e' := cones.postcompose (e.inv_fun_id_assoc F).hom in
 
 end
 
-def discrete_equiv_of_iso {J : Type u} {K : Type u₂} (h : J ≃ K) : discrete J ≌ discrete K :=
-{ functor := functor.of_function h.to_fun,
-  inverse := functor.of_function h.inv_fun,
-  unit_iso := nat_iso.of_components (λ X, eq_to_iso (h.left_inv X).symm) (λ X Y f, dec_trivial),
-  counit_iso := nat_iso.of_components (λ X, eq_to_iso (h.right_inv X)) (λ X Y f, dec_trivial) }
+-- def discrete_equiv_of_iso {J : Type u} {K : Type u₂} (h : J ≃ K) : discrete J ≌ discrete K :=
+-- { functor := discrete.functor h.to_fun,
+--   inverse := functor.of_function h.inv_fun,
+--   unit_iso := nat_iso.of_components (λ X, eq_to_iso (h.left_inv X).symm) (λ X Y f, dec_trivial),
+--   counit_iso := nat_iso.of_components (λ X, eq_to_iso (h.right_inv X)) (λ X Y f, dec_trivial) }
 
 def pempty_equiv_discrete0 : pempty ≌ discrete (ulift (fin 0)) :=
 begin
-  apply (functor.empty (discrete pempty)).as_equivalence.trans (discrete_equiv_of_iso _),
+  apply (functor.empty (discrete pempty)).as_equivalence.trans (discrete.equivalence _),
   refine ⟨λ x, x.elim, λ ⟨t⟩, t.elim0, λ t, t.elim, λ ⟨t⟩, t.elim0⟩,
 end
 
@@ -138,12 +138,12 @@ def preserves_fin_of_preserves_binary_and_terminal  :
     haveI p := preserves_fin_of_preserves_binary_and_terminal n,
     refine ⟨λ K, _⟩,
 
-    let K' : discrete (ulift (fin n)) ⥤ C := functor.of_function (λ (i : ulift _), K.obj ⟨i.down.succ⟩),
+    let K' : discrete (ulift (fin n)) ⥤ C := discrete.functor (λ (i : ulift _), K.obj ⟨i.down.succ⟩),
     have p' : preserves_limit K' F,
       apply_instance,
     let c : cone K,
       refine ⟨K.obj ⟨0⟩ ⨯ limit K', _⟩,
-      apply nat_trans.of_homs _,
+      apply discrete.nat_trans _,
       rintro ⟨i⟩,
       revert i,
       refine fin.cases _ _,
@@ -153,7 +153,7 @@ def preserves_fin_of_preserves_binary_and_terminal  :
     have : is_limit c,
     { refine ⟨λ s, prod.lift (s.π.app ⟨0⟩) _, λ s, _, _⟩,
       { refine limit.lift K' ⟨s.X, _⟩,
-        apply nat_trans.of_homs (λ i, _),
+        apply discrete.nat_trans (λ i, _),
         apply s.π.app ⟨i.down.succ⟩ },
       { rintro ⟨j⟩,
         revert j,
@@ -177,7 +177,7 @@ def preserves_fin_of_preserves_binary_and_terminal  :
     haveI := category_theory.limits.prod_comparison_iso_of_preserves_binary_prods F (K.obj ⟨0⟩) (limit K'),
     refine ⟨λ s, _, _, _⟩,
     { apply _ ≫ inv (prod_comparison F (K.obj ⟨0⟩) (limit K')),
-      apply prod.lift (s.π.app ⟨0⟩) (q.lift ⟨_, nat_trans.of_homs (λ i, _)⟩),
+      apply prod.lift (s.π.app ⟨0⟩) (q.lift ⟨_, discrete.nat_trans (λ i, _)⟩),
       exact s.π.app ⟨i.down.succ⟩ },
     { rintro s ⟨j⟩,
       revert j,
@@ -212,7 +212,7 @@ begin
   intro e,
   replace e := e.trans equiv.ulift.symm,
   haveI := preserves_fin_of_preserves_binary_and_terminal F (fintype.card J),
-  apply preserves_limit_of_equiv (discrete_equiv_of_iso e).symm,
+  apply preserves_limit_of_equiv (discrete.equivalence e).symm,
 end
 
 end

@@ -86,13 +86,13 @@ def Pi_obj [exponentiable B] (f : over B) : C := pullback ((exp B).map f.hom) (i
 @[simps]
 private def pi_obj.equiv [exponentiable B] (X : C) (Y : over B) :
   ((star B).obj X ⟶ Y) ≃ (X ⟶ Pi_obj B Y) :=
-{ to_fun := λ f, pullback.lift (is_cartesian_closed.curry f.left) (terminal.from _)
+{ to_fun := λ f, pullback.lift (cartesian_closed.curry f.left) (terminal.from _)
     (by { rw [internalize_hom, comp_id, ← curry_natural_left, ← curry_natural_right,
               limits.prod.map_fst, comp_id, over.w f], refl }),
   inv_fun := λ g,
     begin
       apply over.hom_mk _ _,
-      { apply (is_cartesian_closed.uncurry (g ≫ pullback.fst)) },
+      { apply (cartesian_closed.uncurry (g ≫ pullback.fst)) },
       { rw [← uncurry_natural_right, assoc, pullback.condition, ← assoc, uncurry_natural_left],
         dsimp [internalize_hom],
         rw [uncurry_curry, limits.prod.map_fst_assoc, comp_id, comp_id] }

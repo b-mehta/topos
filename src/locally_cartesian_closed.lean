@@ -120,7 +120,7 @@ begin
   have : ((real_pullback f).map g'').left ≫ pullback.snd = pullback.snd := pullback.lift_snd _ pullback.snd _,
   rw ← this,
   have : epi ((real_pullback f).map g'').left := over_epi' _,
-  have : split_epi (pullback.snd : pullback (𝟙 B) f ⟶ A) := ⟨pullback.lift f (𝟙 A) (by simp), pullback.lift_snd _ _ _⟩,
+  haveI : split_epi (pullback.snd : pullback (𝟙 B) f ⟶ A) := ⟨pullback.lift f (𝟙 A) (by simp), pullback.lift_snd _ _ _⟩,
   apply epi_comp,
 end
 
@@ -351,8 +351,8 @@ begin
     { simp },
     { apply pullback.hom_ext; simp [pullback.condition] },
   haveI := this,
-  haveI : regular_epi green := by apply_instance,
-  have : strong_epi (green_to_red ≫ green) := strong_epi_comp _ _,
+  have : regular_epi green := by apply_instance,
+  haveI : strong_epi (green_to_red ≫ green) := strong_epi_comp _ _,
   apply unique_factorise _ _ (green_to_red ≫ green) pullback.snd _,
   simp,
 end
@@ -414,8 +414,8 @@ begin
   haveI : regular_epi (factor_thru_image f) := by apply_instance,
   have : strong_epi (factor_thru_image f ≫ image.ι f),
     rwa image.fac f,
-  have : strong_epi (image.ι f),
-    apply strong_epi_of_strong_epi (factor_thru_image f),
+  haveI := this,
+  haveI : strong_epi (image.ι f) := strong_epi_of_strong_epi (factor_thru_image f) _,
   haveI : is_iso (image.ι f) := is_iso_of_mono_of_strong_epi _,
   rw ← image.fac f,
   apply regular_epi_of_comp_iso,

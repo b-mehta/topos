@@ -450,13 +450,13 @@ begin
   refine ⟨λ k, _, λ k, _⟩,
   { cases k,
     dsimp [intersection'] at k_w k_h,
-    refine ⟨is_cartesian_closed.curry (pullback.lift limits.prod.fst limits.prod.snd _ ≫ k_w), _⟩,
+    refine ⟨cartesian_closed.curry (pullback.lift limits.prod.fst limits.prod.snd _ ≫ k_w), _⟩,
     change (_ : _ ⟶ ⊤_ C) = _,
     apply subsingleton.elim,
     change (_ : _ ⟶ ⊤_ C) = _,
     apply subsingleton.elim },
   { cases k,
-    refine ⟨prod.lift pullback.fst pullback.snd ≫ is_cartesian_closed.uncurry k_w, _⟩,
+    refine ⟨prod.lift pullback.fst pullback.snd ≫ cartesian_closed.uncurry k_w, _⟩,
     change (_ : _ ⟶ ⊤_ C) = _,
     apply subsingleton.elim }
 end

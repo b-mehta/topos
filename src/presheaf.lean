@@ -115,13 +115,13 @@ def coalgebra_to_presheaf_obj (w : coalgebra (W C)) : Cᵒᵖ ⥤ Type u :=
   map := λ X Y f a,
   begin
     refine ⟨_, _⟩,
-    apply (w.a a.1).2 _ (f.unop ≫ eq_to_hom (opposite.op_inj a.2.symm)),
+    apply (w.a a.1).2 _ (f.unop ≫ eq_to_hom (opposite.op_injective a.2.symm)),
     have t := congr_fun w.coassoc a.1,
     dsimp [comonad.δ, W] at t,
     injection t with t₁ t₂,
     rw heq_iff_eq at t₂,
     replace t₂ := congr_fun t₂ Y.unop,
-    replace t₂ := congr_fun t₂ (f.unop ≫ eq_to_hom (opposite.op_inj a.2.symm)),
+    replace t₂ := congr_fun t₂ (f.unop ≫ eq_to_hom (opposite.op_injective a.2.symm)),
     replace t₂ := congr_arg sigma.fst t₂,
     apply t₂.symm
   end,
@@ -351,8 +351,8 @@ begin
   rw heq_iff_eq at m₆,
   cases m₆,
   congr' 1,
-  dsimp,
   ext T h,
+  dsimp,
   simp,
 end
 
