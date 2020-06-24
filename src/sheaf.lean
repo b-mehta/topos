@@ -4,7 +4,6 @@ import category_theory.reflect_isomorphisms
 import category_theory.limits.shapes.constructions.preserve_binary_products
 import category_theory.adjunction.fully_faithful
 import category_theory.closed.cartesian
-import cartesian_closed
 import reflects
 import equiv
 import pempty

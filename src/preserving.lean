@@ -147,6 +147,140 @@ def preserves_equalizers_of_preserves_pullbacks_and_prods :
 
 end equalizer_of_pb_prod
 
+section lim_of_prod_equalizer
+
+variables {J : Type v} [small_category J]
+variables (F : J ⥤ C)
+
+-- variables {c₁ : cone (discrete.functor F.obj)}
+-- variables {c₂ : cone (discrete.functor (λ f, F.obj f.1.2) : discrete (Σ (p : J × J), p.fst ⟶ p.snd) ⥤ C)}
+-- variables (t₁ : is_limit c₁)
+-- variables (t₂ : is_limit c₂)
+-- -- variables [has_limit (discrete.functor F.obj)]
+-- -- variables [has_limit (discrete.functor (λ f, F.obj f.1.2) : discrete (Σ (p : J × J), p.fst ⟶ p.snd) ⥤ C)]
+-- variables [preserves_limit (discrete.functor F.obj) T]
+-- variables [preserves_limit (discrete.functor (λ f, F.obj f.1.2) : discrete (Σ (p : J × J), p.fst ⟶ p.snd) ⥤ C) T]
+
+-- include t₁ t₂
+
+-- def diagram : walking_parallel_pair ⥤ C :=
+-- begin
+--   let s : c₁.X ⟶ c₂.X,
+--     refine t₂.lift (fan.mk (λ f, _ ≫ F.map f.2)),
+--     exact c₁.π.app f.1.1,
+--   let t : c₁.X ⟶ c₂.X,
+--     refine t₂.lift (fan.mk (λ f, _)),
+--     exact c₁.π.app f.1.2,
+--   exact parallel_pair s t,
+-- end
+
+-- variables {c₃ : cone (diagram F t₁ t₂)}
+
+-- @[simps] def cones_hom : (diagram F t₁ t₂).cones ⟶ F.cones :=
+-- { app := λ X c,
+--   { app := λ j, c.app walking_parallel_pair.zero ≫ c₁.π.app j,
+--     naturality' := λ j j' f,
+--     begin
+--       have L := c.naturality walking_parallel_pair_hom.left,
+--       have R := c.naturality walking_parallel_pair_hom.right,
+--       have := R.symm.trans L,
+--       have q := this =≫ c₂.π.app ⟨⟨j, j'⟩, f⟩,
+--       dsimp [diagram] at q,
+--       rw [assoc, assoc, t₂.fac, t₂.fac] at q,
+--       dsimp at q,
+--       rw q,
+--       dsimp,
+--       rw [id_comp, assoc],
+--     end } }.
+
+-- local attribute [semireducible] opposite.op opposite.unop opposite
+
+-- @[simps] def cones_inv : F.cones ⟶ (diagram F t₁ t₂).cones :=
+-- { app := λ X c,
+--   begin
+--     let π : X.unop ⟶ (diagram F t₁ t₂).obj walking_parallel_pair.zero,
+--       apply t₁.lift {X := _, π := { app := c.app }},
+--     let s := (diagram F t₁ t₂).map walking_parallel_pair_hom.left,
+--     let t := (diagram F t₁ t₂).map walking_parallel_pair_hom.right,
+--     have : π ≫ s = π ≫ t,
+--       apply t₂.hom_ext,
+--       rintros ⟨⟨A, B⟩, f⟩,
+--       erw [assoc, assoc, t₂.fac, t₂.fac],
+--       dsimp,
+--       change t₁.lift _ ≫ _ ≫ _ = t₁.lift _ ≫ _,
+--       rw t₁.fac,
+--       rw t₁.fac_assoc,
+--       change c.app A ≫ F.map f = c.app B,
+--       rw ← c.naturality f,
+--       apply id_comp,
+--     refine ⟨_, _⟩,
+--     rintro ⟨j⟩,
+--     exact π,
+--     exact π ≫ s,
+--     dsimp,
+--     rintros _ _ ⟨_ | _⟩,
+--     apply id_comp,
+--     rw [id_comp, this],
+--     dsimp,
+--     rw [functor.map_id, id_comp, comp_id],
+--   end,
+--   naturality' := λ X Y f,
+--   begin
+--     ext c j,
+--     cases j,
+--     apply t₁.hom_ext,
+--     intro j,
+--     dsimp,
+--     rw [t₁.fac, assoc, t₁.fac],
+--     refl,
+--     dsimp,
+--     rw ← assoc,
+--     congr' 1,
+--     apply t₁.hom_ext,
+--     intro j,
+--     dsimp,
+--     rw [t₁.fac, assoc, t₁.fac],
+--     refl,
+--   end }
+
+-- def cones_iso : (diagram F t₁ t₂).cones ≅ F.cones :=
+-- { hom := cones_hom F t₁ t₂,
+--   inv := cones_inv F t₁ t₂,
+--   hom_inv_id' :=
+--   begin
+--     ext X c j,
+--     cases j,
+--     dsimp,
+--     apply t₁.hom_ext,
+--     intro j,
+--     dsimp, rw t₁.fac, refl,
+--     have : 𝟙 X.unop ≫ c.app walking_parallel_pair.one = c.app walking_parallel_pair.zero ≫ _ := c.naturality walking_parallel_pair_hom.left,
+--       rw [id_comp] at this,
+--     dsimp,
+--     rw this,
+--     congr' 1,
+--     apply t₁.hom_ext,
+--     intro j,
+--     dsimp, rw t₁.fac, refl,
+--   end }.
+
+
+variables [has_limit F]
+variables [has_limit (discrete.functor F.obj)]
+variables [has_limit (discrete.functor (λ f : (Σ p : J × J, p.1 ⟶ p.2), F.obj f.1.2))]
+variables [preserves_limit (discrete.functor F.obj) T]
+variables [preserves_limit (discrete.functor (λ f : (Σ p : J × J, p.1 ⟶ p.2), F.obj f.1.2)) T]
+
+-- instance [has_equalizers C] : preserves_limit F T :=
+-- begin
+--   let q := has_limit.of_cones_iso (has_limit_of_has_products_of_has_equalizers.diagram F) F (has_limit_of_has_products_of_has_equalizers.cones_iso F),
+--   apply preserves_limit_of_preserves_limit_cone,
+--   apply q.2,
+
+-- end
+
+end lim_of_prod_equalizer
+
 -- section factorisation
 
 -- variable [has_finite_limits.{v} C]

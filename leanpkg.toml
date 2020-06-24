@@ -1,8 +1,8 @@
 [package]
 name = "topos"
 version = "0.1"
-lean_version = "leanprover-community/lean:3.16.2"
+lean_version = "leanprover-community/lean:3.16.4"
 path = "src"
 
 [dependencies]
-mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "ae6bf56270c3922aafe529e0f0672765022f2dce"}
+mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "421ed70350b1fc1adb7ac14f4b11e733a59178fb"}
