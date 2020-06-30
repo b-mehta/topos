@@ -3,7 +3,6 @@ import category_theory.limits.shapes.constructions.preserve_binary_products
 import category_theory.adjunction
 import category_theory.monad.adjunction
 import category_theory.adjunction.fully_faithful
-import cartesian_closed
 import category_theory.closed.cartesian
 
 universes v₁ v₂ u₁ u₂

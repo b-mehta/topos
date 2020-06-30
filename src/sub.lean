@@ -10,7 +10,9 @@ import category_theory.limits.shapes.terminal
 import category_theory.full_subcategory
 import category_theory.limits.shapes.regular_mono
 import category_theory.closed.cartesian
-import cartesian_closed
+import category_theory.limits.shapes.pullbacks
+import category_theory.limits.over
+import pullbacks
 
 universes v u
 

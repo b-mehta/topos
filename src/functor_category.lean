@@ -14,10 +14,12 @@ open category_theory category_theory.category category_theory.limits
 section reflects
 variables {C : Type u} [category.{v} C]
 
-def make_exponential [has_finite_products.{v} C] (A : C) (expo : C → C) (ev : Π B, A ⨯ expo B ⟶ B) (trans : Π {B B'} (φ : A ⨯ B ⟶ B'), B ⟶ expo B')
+def make_exponential [has_finite_products.{v} C] (A : C) (expo : C → C)
+  (ev : Π B, A ⨯ expo B ⟶ B)
+  (trans : Π {B B'} (φ : A ⨯ B ⟶ B'), B ⟶ expo B')
   (comm : ∀ {B B' : C} (φ : A ⨯ B ⟶ B'), limits.prod.map (𝟙 _) (trans φ) ≫ ev B' = φ)
   (unique_trans : ∀ {B B' : C} {φ : A ⨯ B ⟶ B'} {t : B ⟶ expo B'}, limits.prod.map (𝟙 A) t ≫ ev B' = φ → trans φ = t) :
-  exponentiable A :=
+exponentiable A :=
 { is_adj :=
   { right :=
     begin

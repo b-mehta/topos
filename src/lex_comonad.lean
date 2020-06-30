@@ -6,7 +6,6 @@ import category_theory.limits.shapes.equalizers
 import category_theory.comma
 import category_theory.limits.over
 import category_theory.limits.shapes.constructions.equalizers
-import pullbacks
 import over
 import pempty
 

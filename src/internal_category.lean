@@ -3,7 +3,6 @@ import category_theory.limits.limits
 import category_theory.types
 import category_theory.limits.types
 import category_theory.monad.algebra
-import pullbacks
 import locally_cartesian_closed
 
 namespace category_theory
