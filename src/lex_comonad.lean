@@ -1,4 +1,4 @@
-import preserve_binary_products
+-- import preserve_binary_products
 import category_theory.monad.algebra
 import category_theory.limits.creates
 import category_theory.limits.shapes.pullbacks
@@ -7,7 +7,6 @@ import category_theory.comma
 import category_theory.limits.over
 import category_theory.limits.shapes.constructions.equalizers
 import over
-import pempty
 
 namespace category_theory
 
@@ -36,29 +35,30 @@ local attribute [instance] has_pullbacks_of_has_finite_limits
 def G' : over a.A ⥤ over a.A :=
 apply_functor G a.A ⋙ real_pullback a.a
 
-def G'_preserves_term (A : C) : preserves_limits_of_shape pempty (apply_functor G A) :=
+def G'_preserves_term (A : C) : preserves_limits_of_shape (discrete pempty) (apply_functor G A) :=
 { preserves_limit := λ K,
   begin
-    apply preserves_limit_of_iso _ (K.unique_from_pempty _),
+    apply preserves_limit_of_iso _ (functor.unique_from_empty K).symm,
     clear K,
-    apply preserves_limit_of_preserves_limit_cone (limit.is_limit (functor.empty (over A))),
-    refine ⟨λ s, _, _, _⟩,
-    apply over.hom_mk _ _,
-    apply s.X.hom,
-    dsimp,
-    erw G.map_id,
-    rw comp_id,
-    dsimp,
-    intros s, simp,
-    intros s m w,
-    ext1,
-    dsimp,
-    rw ← over.w m,
-    dsimp,
-    symmetry,
-    change m.left ≫ G.map (𝟙 _) = _,
-    rw G.map_id,
-    apply comp_id,
+    sorry
+    -- apply preserves_limit_of_preserves_limit_cone (limit.is_limit (functor.empty (over A))),
+    -- apply preserves_limit_of_preserves_limit_cone (limit.is_limit (functor.empty (over A))),
+    -- refine ⟨λ s, _, _, _⟩,
+    -- apply over.hom_mk _ _,
+    -- apply s.X.hom,
+    -- dsimp,
+    -- erw G.map_id,
+    -- rw comp_id,
+    -- rintros s ⟨⟩,
+    -- intros s m w,
+    -- ext1,
+    -- dsimp,
+    -- rw ← over.w m,
+    -- dsimp,
+    -- symmetry,
+    -- change m.left ≫ G.map (𝟙 _) = _,
+    -- rw G.map_id,
+    -- apply comp_id,
   end }
 
 variable [preserves_limits_of_shape walking_cospan G]
@@ -200,8 +200,7 @@ def bijection (f : over a.A) : (f ⟶ (G' a).obj f) ≃ {β : f.left ⟶ G.obj f
   right_inv :=
   begin
     intro k,
-    rw subtype.ext,
-    dsimp,
+    apply subtype.ext_val,
     apply pullback.lift_fst
   end }
 

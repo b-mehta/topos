@@ -7,7 +7,7 @@ Authors: Bhavik Mehta, Edward Ayers
 import category_theory.limits.shapes
 import category_theory.limits.preserves
 import category_theory.limits.over
-import comma
+import tactic
 
 /-!
 # Pullbacks
@@ -78,6 +78,25 @@ begin
   refine ⟨(create s).1, _, (create s).2, λ m _ m₂, _⟩,
   rw [← cancel_mono f, assoc, t.condition, s.condition, reassoc_of (create s).2],
   rw [← cancel_mono t.snd, m₂, (create s).2],
+end
+
+def construct_type_pb {W X Y Z : Type u} {f : X ⟶ Z} {g : Y ⟶ Z} {h : W ⟶ _} {k} (comm : h ≫ f = k ≫ g) :
+  (∀ (x : X) (y : Y), f x = g y → {t // h t = x ∧ k t = y ∧ ∀ t', h t' = x → k t' = y → t' = t}) → is_limit (pullback_cone.mk _ _ comm) :=
+begin
+  intro z,
+  apply is_limit.mk' _ _,
+  intro s,
+  refine ⟨λ t, _, _, _, _⟩,
+  refine (z (s.fst t) (s.snd t) (congr_fun s.condition t)).1,
+  ext t,
+  apply (z (s.fst t) (s.snd t) (congr_fun s.condition t)).2.1,
+  ext t,
+  apply (z (s.fst t) (s.snd t) (congr_fun s.condition t)).2.2.1,
+  intros m m₁ m₂,
+  ext t,
+  apply (z (s.fst t) (s.snd t) (congr_fun s.condition t)).2.2.2,
+  apply congr_fun m₁ t,
+  apply congr_fun m₂ t,
 end
 
 def pullback_mono_is_mono (c : pullback_cone f g) [mono f] (t : is_limit c) : mono c.snd :=
@@ -426,9 +445,9 @@ is_limit (F.map_cone (pullback_cone.mk _ _ comm)) ≅ is_limit (pullback_cone.mk
   begin
     have := is_limit.of_cone_equiv (cones.postcompose_equivalence (diagram_iso_cospan (cospan g k ⋙ F))).inverse p,
     apply is_limit.of_iso_limit this _,
-    apply cones.ext _ _,
-      refl,
-    dsimp [diagram_iso_cospan], simp_rw [id_comp],
+    refine cones.ext (iso.refl _) _,
+    dsimp [diagram_iso_cospan],
+    simp_rw [id_comp],
     rintro (_ | _ | _),
     { dsimp, rw [comp_id, F.map_comp] },
     { dsimp, rw [comp_id] },

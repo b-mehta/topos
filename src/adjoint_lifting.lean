@@ -4,6 +4,7 @@ import category_theory.monad
 import category_theory.limits.shapes.equalizers
 import beck2
 import adjunction
+import tactic
 
 universes v₁ v₂ v₃ v₄ u₁ u₂ u₃ u₄
 

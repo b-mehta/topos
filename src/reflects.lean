@@ -13,22 +13,6 @@ variables {D : Type u₂} [category.{v} D]
 
 variables (F : C ⥤ D)
 
-instance cones_functoriality_full {J : Type v} [full F] [faithful F] [category J] (K : J ⥤ C) : full (cones.functoriality K F) :=
-{ preimage := λ X Y t,
-  { hom := F.preimage t.hom,
-    w' := λ j, F.map_injective (by simpa using t.w j) } }
-
-instance cones_functoriality_faithful {J : Type v} [faithful F] [category J] (K : J ⥤ C) : faithful (cones.functoriality K F) :=
-{ map_injective' := λ X Y f g e, by { ext1, injection e, apply F.map_injective h_1 } }
-
-instance cocones_functoriality_full {J : Type v} [full F] [faithful F] [category J] (K : J ⥤ C) : full (cocones.functoriality K F) :=
-{ preimage := λ X Y t,
-  { hom := F.preimage t.hom,
-    w' := λ j, F.map_injective (by simpa using t.w j) } }
-
-instance cocones_functoriality_faithful {J : Type v} [faithful F] [category J] (K : J ⥤ C) : faithful (cocones.functoriality K F) :=
-{ map_injective' := λ X Y f g e, by { ext1, injection e, apply F.map_injective h_1 } }
-
 instance fully_faithful_reflects_limits [full F] [faithful F] : reflects_limits F :=
 { reflects_limits_of_shape := λ J 𝒥₁, by exactI
   { reflects_limit := λ K,
@@ -52,15 +36,12 @@ instance fully_faithful_reflects_colimits [full F] [faithful F] : reflects_colim
       end } } }
 
 @[simps]
-def point (A : C) : punit ⥤ C := { obj := λ _, A, map := λ _ _ _, 𝟙 A }
-
-@[simps]
-def punit_cone_of_morphism {A B : C} (f : A ⟶ B) : cone (point B) :=
+def punit_cone_of_morphism {A B : C} (f : A ⟶ B) : cone (functor.from_punit B) :=
 { X := A,
   π := { app := λ _, f } }
 
 @[simps]
-def punit_cocone_of_morphism {A B : C} (f : A ⟶ B) : cocone (point A) :=
+def punit_cocone_of_morphism {A B : C} (f : A ⟶ B) : cocone (functor.from_punit A) :=
 { X := B,
   ι := { app := λ _, f } }
 
@@ -82,7 +63,7 @@ def is_colimit_of_is_iso {A B : C} (f : A ⟶ B) [is_iso f] : is_colimit (punit_
 { desc := λ s, inv f ≫ s.ι.app punit.star,
   uniq' := λ s m w, (as_iso f).eq_inv_comp.2 (w punit.star) }
 
-def map_cone_point (B : C) : point B ⋙ F ≅ point (F.obj B) :=
+def map_cone_point (B : C) : functor.from_punit B ⋙ F ≅ functor.from_punit (F.obj B) :=
 nat_iso.of_components
 (λ X, iso.refl _)
 (λ X Y f, by { erw F.map_id, refl })
@@ -91,7 +72,7 @@ nat_iso.of_components
 If `F` reflects limits of shape `1`, then `F` reflects isomorphisms.
 This is actually an iff.
 -/
-instance reflects_iso_of_reflects_limits_of_shape_punit [reflects_limits_of_shape punit F] :
+instance reflects_iso_of_reflects_limits_of_shape_punit [reflects_limits_of_shape (discrete punit) F] :
   reflects_isomorphisms F :=
 { reflects := λ A B f,
   begin
@@ -100,7 +81,7 @@ instance reflects_iso_of_reflects_limits_of_shape_punit [reflects_limits_of_shap
     suffices : is_limit (F.map_cone (punit_cone_of_morphism f)),
       apply reflects_limit.reflects this,
     have l := is_limit_of_is_iso (F.map f),
-    let t : cone (point B ⋙ F) ≌ cone _ := cones.postcompose_equivalence (map_cone_point F B),
+    let t : cone (functor.from_punit B ⋙ F) ≌ cone _ := cones.postcompose_equivalence (map_cone_point F B),
     apply is_limit.of_iso_limit (is_limit.of_cone_equiv t.inverse l),
     refine cones.ext (iso.refl _) _,
     intro j,
@@ -112,7 +93,7 @@ instance reflects_iso_of_reflects_limits_of_shape_punit [reflects_limits_of_shap
 If `F` reflects colimits of shape `1`, then `F` reflects isomorphisms.
 This is actually an iff.
 -/
-instance reflects_iso_of_reflects_colimits_of_shape_punit [reflects_colimits_of_shape punit F] :
+instance reflects_iso_of_reflects_colimits_of_shape_punit [reflects_colimits_of_shape (discrete punit) F] :
   reflects_isomorphisms F :=
 { reflects := λ A B f,
   begin
@@ -121,7 +102,7 @@ instance reflects_iso_of_reflects_colimits_of_shape_punit [reflects_colimits_of_
     suffices : is_colimit (F.map_cocone (punit_cocone_of_morphism f)),
       apply reflects_colimit.reflects this,
     have l := is_colimit_of_is_iso (F.map f),
-    let t : cocone (point A ⋙ F) ≌ cocone _ := cocones.precompose_equivalence (map_cone_point F A).symm,
+    let t : cocone (functor.from_punit A ⋙ F) ≌ cocone _ := cocones.precompose_equivalence (map_cone_point F A).symm,
     apply is_colimit.of_iso_colimit (is_colimit.of_cocone_equiv t.inverse l),
     refine cocones.ext (iso.refl _) _,
     intro j,

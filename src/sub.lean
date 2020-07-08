@@ -12,6 +12,7 @@ import category_theory.limits.shapes.regular_mono
 import category_theory.closed.cartesian
 import category_theory.limits.shapes.pullbacks
 import category_theory.limits.over
+import sparse_skeleton
 import pullbacks
 
 universes v u
@@ -26,8 +27,87 @@ structure sub' (X : C) :=
 (arrow : over X)
 [is_mono : mono arrow.hom]
 
+@[reducible]
+def sub'' (X : C) := {f : over X // mono f.hom}
+def forget_sub'' (X : C) : sub'' X ⥤ over X := full_subcategory_inclusion _
+def sub''.arrow (f : sub'' X) : _ ⟶ X := ((forget_sub'' X).obj f).hom
+
+instance : full (forget_sub'' X) := full_subcategory.full _
+instance : faithful (forget_sub'' X) := full_subcategory.faithful _
+
+instance sub''_mono (f : sub'' X) : mono f.arrow :=
+f.property
+
+instance : category (sub'' X) := infer_instance
+
+instance is_thin {X : C} (f g : sub'' X) : subsingleton (f ⟶ g) :=
+⟨begin
+  intros h₁ h₂,
+  ext1,
+  erw [← cancel_mono g.arrow, over.w h₁, over.w h₂],
+end⟩
+
+@[reducible]
+def sub''' (X : C) := skel (sub'' X)
+
+instance sub'''_partial_order : partial_order (sub''' X) := infer_instance
+instance sub'''_category : category (sub''' X) := infer_instance
+
+attribute [semireducible] sub'' forget_sub'' sub'''
+
 @[simps]
 def sub'.mk' {X A : C} (f : A ⟶ X) [hf : mono f] : sub'.{v} X := { arrow := over.mk f, is_mono := hf }
+@[simps]
+def sub''.mk' {X A : C} (f : A ⟶ X) [hf : mono f] : sub'' X := { val := over.mk f, property := hf }
+@[simp] lemma sub''_mk'_arrow {X A : C} (f : A ⟶ X) [hf : mono f] : (sub''.mk' f).arrow = f := rfl
+
+def restrict_to_sub'' (F : over Y ⥤ over X)
+  (h : ∀ (f : sub'' Y), mono (F.obj ((forget_sub'' Y).obj f)).hom) : sub'' Y ⥤ sub'' X :=
+{ obj := λ f, ⟨_, h f⟩,
+  map := λ _ _ k, (forget_sub'' X).preimage ((forget_sub'' Y ⋙ F).map k), }
+-- @[simps]
+-- def lower_functor {A B : C} (F : sub' A ⥤ sub' B) :
+--   sub A ⥤ sub B :=
+-- { obj :=
+--   begin
+--     apply quotient.map F.obj _,
+--     rintros _ _ ⟨q, r⟩,
+--     exact ⟨(F.map ⟨⟨q⟩⟩).down.down, (F.map ⟨⟨r⟩⟩).down.down⟩,
+--   end,
+--   map :=
+--   begin
+--     rintros _ _ le,
+--     refine ⟨⟨_⟩⟩,
+--     rcases le with ⟨⟨_⟩⟩,
+--     revert le,
+--     apply quotient.induction_on₂ X Y,
+--     intros _ _ q,
+--     exact (F.map ⟨⟨q⟩⟩).1.1,
+--   end }
+
+@[simps]
+def restrict_to_sub''' (F : sub'' Y ⥤ sub'' X) : sub''' Y ⥤ sub''' X :=
+{ obj :=
+  begin
+    apply quotient.map F.obj _,
+    rintros _ _ ⟨q, r⟩,
+    apply equiv_of_both_ways (F.map q) (F.map r),
+  end,
+  map :=
+  begin
+    intros f g le,
+    refine ⟨⟨_⟩⟩,
+    rcases le with ⟨⟨_⟩⟩,
+    revert le,
+    apply quotient.induction_on₂ f g,
+    rintros _ _ ⟨q⟩,
+    refine ⟨F.map q⟩,
+  end }
+
+@[simp]
+lemma lower_comm (F : sub'' Y ⥤ sub'' X) :
+  skel_quotient ⋙ restrict_to_sub''' F = F ⋙ skel_quotient :=
+rfl
 
 @[simp] lemma sub'_mk'_arrow {X A : C} (f : A ⟶ X) [hf : mono f] : (sub'.mk' f).arrow.hom = f := rfl
 
@@ -138,6 +218,98 @@ instance sub_partial : partial_order (sub X) :=
 { le_antisymm := λ a b, quotient.induction_on₂ a b (λ _ _ h k, quotient.sound ⟨h, k⟩),
   ..preorder_sub }
 
+@[simps]
+def sub.quotient (A : C) : sub' A ⥤ sub A :=
+{ obj := quotient.mk,
+  map := λ X Y f, f }
+
+-- instance (A : C) : full (sub.quotient A) :=
+-- { preimage := λ X Y f, f }
+
+-- instance (A : C) : faithful (sub.quotient A) := {}.
+
+@[simps]
+def lower_functor {A B : C} (F : sub' A ⥤ sub' B) :
+  sub A ⥤ sub B :=
+{ obj :=
+  begin
+    apply quotient.map F.obj _,
+    rintros _ _ ⟨q, r⟩,
+    exact ⟨(F.map ⟨⟨q⟩⟩).down.down, (F.map ⟨⟨r⟩⟩).down.down⟩,
+  end,
+  map :=
+  begin
+    rintros _ _ le,
+    refine ⟨⟨_⟩⟩,
+    rcases le with ⟨⟨_⟩⟩,
+    revert le,
+    apply quotient.induction_on₂ X Y,
+    intros _ _ q,
+    exact (F.map ⟨⟨q⟩⟩).1.1,
+  end }
+
+def lower_func_quot {A B : C} (F : sub' A ⥤ sub' B) :
+  F ⋙ sub.quotient B ≅ sub.quotient A ⋙ lower_functor F :=
+nat_iso.of_components (λ _, iso.refl _) (λ _ _ _, by ext)
+
+def lower_functor₂ {A B c : C} (F : sub' A ⥤ sub' B ⥤ sub' c) :
+  sub A ⥤ sub B ⥤ sub c :=
+{ obj :=
+  begin
+    refine quotient.lift _ _,
+    intro x,
+    apply lower_functor (F.obj x),
+    rintros a b ⟨q, r⟩,
+    apply functor.ext _ _,
+    apply quotient.ind,
+    intro z,
+    apply quotient.sound,
+    refine ⟨((F.map ⟨⟨q⟩⟩).app z).1.1, ((F.map ⟨⟨r⟩⟩).app z).1.1⟩,
+    intros, ext,
+  end,
+  map :=
+  begin
+    intros X Y le,
+    refine { app := _, naturality' := _ },
+    intro Z,
+    refine ⟨⟨_⟩⟩,
+    revert le,
+    apply quotient.induction_on₃ X Y Z,
+    intros _ _ _ q,
+    exact ((F.map q).app c_1).1.1,
+    intros,
+    ext,
+  end }
+
+--   begin
+--     apply quotient.map F.obj _,
+--     rintros _ _ ⟨q, r⟩,
+--     exact ⟨(F.map ⟨⟨q⟩⟩).down.down, (F.map ⟨⟨r⟩⟩).down.down⟩,
+--   end,
+--   map :=
+--   begin
+--     rintros _ _ le,
+--     refine ⟨⟨_⟩⟩,
+--     rcases le with ⟨⟨_⟩⟩,
+--     revert le,
+--     apply quotient.induction_on₂ X Y,
+--     intros _ _ q,
+--     exact (F.map ⟨⟨q⟩⟩).1.1,
+--   end }
+
+def sub.unquotient' {A : C} (esc : sub A → sub' A) (valid : quotient.mk ∘ esc = id) : sub A ⥤ sub' A :=
+{ obj := esc,
+  map := λ x y f,
+  begin
+    refine ⟨⟨_⟩⟩,
+    have hx := congr_fun valid x,
+    have hy := congr_fun valid y,
+    dsimp at hx hy,
+    rcases f with ⟨⟨_⟩⟩,
+    rw [← hx, ← hy] at f,
+    exact f,
+  end }
+
 def pullback_sub [has_pullbacks.{v} C] {Y : C} (f : X ⟶ Y) : sub Y → sub X :=
 quotient.map (pullback_sub' f) $ λ a b ⟨_, _⟩, by split; mono
 
@@ -239,72 +411,64 @@ def preorder_functor {α β : Type*} [preorder α] [preorder β] (f : α → β)
   map := λ X Y ⟨⟨h⟩⟩, ⟨⟨hf h⟩⟩ }
 
 @[simps]
-def preorder_equivalence {α β : Type*} [preorder α] [preorder β] (f : α ≃ β)
-  (hf : ∀ {x y}, x ≤ y ↔ f.to_fun x ≤ f.to_fun y) : α ≌ β :=
-{ functor := preorder_functor f.to_fun (λ x y, hf.1),
-  inverse := preorder_functor f.inv_fun (λ a b h, by rwa [hf, f.right_inv, f.right_inv]),
+def preorder_equivalence {α β : Type*} [preorder α] [preorder β] (f : ((≤) : α → α → Prop) ≃o ((≤) : β → β → Prop))
+  : α ≌ β :=
+{ functor := preorder_functor f (λ x y, f.ord.1),
+  inverse := preorder_functor f.symm (λ a b h, by rwa [f.ord, f.apply_symm_apply, f.apply_symm_apply]),
   unit_iso := nat_iso.of_components (λ X, eq_to_iso (f.left_inv _).symm) (λ X Y f, rfl),
   counit_iso := nat_iso.of_components (λ X, eq_to_iso (f.right_inv _)) (λ X Y f, rfl) }
 
--- /!\ might be unstable
-instance mono_term (A : C) : mono.{v} (⊤_ over A).hom :=
+instance iso_term (A : C) [has_terminal (over A)] : is_iso (⊤_ over A).hom :=
 begin
-  change mono (𝟙 _),
-  apply_instance
+  let ident : over A := over.mk (𝟙 A),
+  let k : ident ⟶ (⊤_ over A) := default _,
+  haveI : split_epi (⊤_ over A).hom := ⟨k.left, over.w k⟩,
+  let l : (⊤_ over A) ⟶ ident := over.hom_mk (⊤_ over A).hom (comp_id _),
+  haveI : mono l := ⟨λ _ _ _ _, subsingleton.elim _ _⟩,
+  haveI : mono (⊤_ over A).hom := category_theory.over_mono l,
+  apply is_iso_of_mono_of_split_epi,
 end
 
-def sub_one_over [has_terminal.{v} C] (A : C) : sub A ≌ sub (⊤_ (over A)) :=
+def sub_one_over (A : C) [has_terminal.{v} (over A)] : sub A ≌ sub (⊤_ (over A)) :=
 begin
-  refine preorder_equivalence _ _,
-  { refine ⟨_, _, _, _⟩,
-    { refine quotient.map _ _,
-      { intro f,
-        refine { arrow := over.mk (default (f.1 ⟶ _)), is_mono := @category_theory.over_mono' _ _ _ _ _ _ (id _) },
-        refine ⟨λ Z g h eq, _⟩,
-        apply f.is_mono.right_cancellation,
-        exact eq },
-      { rintros f₁ f₂ ⟨⟨e₁, he₁⟩, ⟨e₂, he₂⟩⟩,
-        refine ⟨⟨over.hom_mk e₁ he₁, _⟩, ⟨over.hom_mk e₂ he₂, _⟩⟩,
-        change (_ : _ ⟶ ⊤_ (over A)) = _,
-        apply subsingleton.elim,
-        change (_ : _ ⟶ ⊤_ (over A)) = _,
-        apply subsingleton.elim } },
-    { refine quotient.map _ _,
-      { intro f,
-        haveI := f.is_mono,
-        refine { arrow := f.arrow.left, is_mono := _ },
-        rw ← (show f.arrow.hom.left ≫ _ = f.arrow.left.hom, from over.w f.arrow.hom),
-        apply mono_comp _ _,
-        apply category_theory.over_mono,
-        dsimp,
-        apply category_theory.mono_term },
-      { rintros f₁ f₂ ⟨⟨e₁, he₁⟩, ⟨e₂, he₂⟩⟩,
-        exact ⟨⟨e₁.left, over.w e₁⟩, ⟨e₂.left, over.w e₂⟩⟩ } },
+  refine preorder_equivalence _,
+  refine ⟨⟨_, _, _, _⟩, _⟩,
+  { refine quotient.map _ _,
     { intro f,
-      apply quotient.induction_on f,
-      intro f',
-      apply quotient.sound,
-      refine ⟨⟨𝟙 _, id_comp _⟩, ⟨𝟙 _, id_comp _⟩⟩ },
+      refine sub'.mk' (_ : f.1 ⟶ _),
+      apply over.hom_mk (f.1.hom ≫ inv (⊤_ over A).hom),
+      apply over_mono' _,
+      dsimp,
+      apply_instance },
+    { rintros f₁ f₂ ⟨⟨e₁, he₁⟩, ⟨e₂, he₂⟩⟩,
+      refine ⟨⟨over.hom_mk e₁ he₁, _⟩, ⟨over.hom_mk e₂ he₂, _⟩⟩;
+      { change (_ : _ ⟶ ⊤_ _) = _,
+        apply subsingleton.elim } } },
+  { refine quotient.map _ _,
     { intro f,
-      apply quotient.induction_on f,
-      intro f',
-      apply quotient.sound,
-      refine ⟨⟨𝟙 _, _⟩, ⟨𝟙 _, _⟩⟩,
+      refine { arrow := f.arrow.left, is_mono := _},
+      rw ← (show f.arrow.hom.left ≫ _ = f.arrow.left.hom, from over.w f.arrow.hom),
       dsimp,
-      apply subsingleton.elim,
-      dsimp,
-      apply subsingleton.elim } },
+      apply_instance },
+    { rintros f₁ f₂ ⟨⟨e₁, he₁⟩, ⟨e₂, he₂⟩⟩,
+      exact ⟨⟨e₁.left, over.w e₁⟩, ⟨e₂.left, over.w e₂⟩⟩ } },
+  { refine quotient.ind _,
+    intro f,
+    apply quotient.sound,
+    refine ⟨⟨𝟙 _, id_comp _⟩, ⟨𝟙 _, id_comp _⟩⟩ },
+  { refine quotient.ind _,
+    intro f,
+    apply quotient.sound,
+    refine ⟨⟨𝟙 _, _⟩, ⟨𝟙 _, _⟩⟩;
+    { dsimp, apply subsingleton.elim } },
   { apply quotient.ind₂,
     intros a b,
-    dsimp,
     refine ⟨_, _⟩,
     { rintro ⟨f, hf⟩,
       refine ⟨over.hom_mk f hf, _⟩,
-      dsimp,
-      apply subsingleton.elim },
+      dsimp, apply subsingleton.elim },
     { rintro ⟨f, hf⟩,
-      dsimp at f hf,
-      refine ⟨f.left, (over.w f)⟩ } },
+      refine ⟨f.left, over.w f⟩ } }
 end
 
 def intersection' [has_pullbacks.{v} C] {A : C} (f₁ f₂ : sub'.{v} A) : sub'.{v} A :=
@@ -513,6 +677,7 @@ def exponentiable_sub [cartesian_closed C] (B : sub (⊤_ C)) : exponentiable B 
   { right := adjunction.right_adjoint_of_equiv (exp_e B) (λ _ _ _ _ _, subsingleton.elim _ _),
     adj := adjunction.adjunction_of_equiv_right _ _ } }
 
+variable (C)
 instance cart_closed_one [cartesian_closed C] : cartesian_closed (sub (⊤_ C)) :=
 { closed := exponentiable_sub }
 

@@ -62,11 +62,11 @@ end
 --   unit_iso := nat_iso.of_components (λ X, eq_to_iso (h.left_inv X).symm) (λ X Y f, dec_trivial),
 --   counit_iso := nat_iso.of_components (λ X, eq_to_iso (h.right_inv X)) (λ X Y f, dec_trivial) }
 
-def pempty_equiv_discrete0 : pempty ≌ discrete (ulift (fin 0)) :=
-begin
-  apply (functor.empty (discrete pempty)).as_equivalence.trans (discrete.equivalence _),
-  refine ⟨λ x, x.elim, λ ⟨t⟩, t.elim0, λ t, t.elim, λ ⟨t⟩, t.elim0⟩,
-end
+-- def pempty_equiv_discrete0 : pempty ≌ discrete (ulift (fin 0)) :=
+-- begin
+--   apply (functor.empty (discrete pempty)).as_equivalence.trans (discrete.equivalence _),
+--   refine ⟨λ x, x.elim, λ ⟨t⟩, t.elim0, λ t, t.elim, λ ⟨t⟩, t.elim0⟩,
+-- end
 
 variables {C : Type u} [category.{v} C]
 
@@ -128,11 +128,19 @@ def preserves_limit_of_equiv {J₁ J₂ : Type v} [small_category J₁] [small_c
       rw [id_comp, comp_id, ← F.map_comp, assoc, ← K.map_comp, cone.w] }
   end }
 
-variables (F : C ⥤ D) [preserves_limits_of_shape (discrete walking_pair) F] [preserves_limits_of_shape pempty F] [has_finite_products.{v} C] [has_finite_products.{v} D]
+variables (F : C ⥤ D) [preserves_limits_of_shape (discrete walking_pair) F] [preserves_limits_of_shape (discrete pempty) F]
+variables [has_finite_products.{v} C] [has_finite_products.{v} D]
+
+example : pempty.{u} ≃ ulift (fin 0) :=
+begin
+  apply (equiv.equiv_pempty _).symm,
+  intro,
+  apply a.1.elim0,
+end
 
 def preserves_fin_of_preserves_binary_and_terminal  :
   Π (n : ℕ), preserves_limits_of_shape (discrete (ulift (fin n))) F
-| 0 := preserves_limit_of_equiv (show pempty ≌ discrete (ulift (fin 0)), from pempty_equiv_discrete0) F
+| 0 := preserves_limit_of_equiv (begin apply discrete.equivalence (equiv.equiv_pempty _).symm, intro a, apply a.1.elim0, end : discrete pempty ≌ _) F
 | (n+1) :=
   begin
     haveI p := preserves_fin_of_preserves_binary_and_terminal n,

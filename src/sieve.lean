@@ -5,7 +5,6 @@ import category_theory.limits.shapes.finite_limits
 import category_theory.yoneda
 import order.complete_lattice
 import data.set.lattice
-import comma
 
 universes v u
 namespace category_theory
@@ -29,14 +28,13 @@ S.subs g Hf
 lemma arrow_ext : Π {R S : sieve X}, R.arrows = S.arrows → R = S
 | ⟨Ra, _⟩ ⟨Sa, _⟩ rfl := rfl
 
-@[ext] lemma ext {R S : sieve X} : (∀ {Y} (f : Y ⟶ X), over.mk f ∈ R.arrows ↔ over.mk f ∈ S.arrows) → R = S :=
+@[ext] lemma ext_iff {R S : sieve X} : (∀ {Y} (f : Y ⟶ X), over.mk f ∈ R.arrows ↔ over.mk f ∈ S.arrows) → R = S :=
 begin
   intros,
   apply arrow_ext,
-  ext,
-  have : x = over.mk x.hom,
-    rw over.mk_hom_id,
-  convert a x.hom,
+  ext ⟨_, _, _⟩,
+  convert a x_hom;
+  apply subsingleton.elim,
 end
 
 open lattice
@@ -99,8 +97,8 @@ instance : complete_lattice (sieve X) :=
   sup_le       := begin rintros _ _ _ a b _ _ (q | q), apply a _ _ q, apply b _ _ q end,
   inf_le_left  := begin intros _ _ _ _, apply set.inter_subset_left  end,
   inf_le_right := begin intros _ _ _ _, apply set.inter_subset_right end,
-  le_inf       := begin intros _ _ _ p q _ _ z, refine ⟨p _ _ z, q _ _ z⟩,  end,
-  le_top       := begin intros _ _ _ _, trivial end,
+  le_inf       := begin intros _ _ _ p q _ _ z, exact ⟨p _ _ z, q _ _ z⟩,  end,
+  le_top       := λ _ _ _ _, trivial,
   bot_le       := begin rintros _ _ _ ⟨⟩ end }
 
 @[simp]
@@ -132,7 +130,15 @@ open order lattice
 
 lemma sets_iff_generate {𝒢 : set (over X)} : generate 𝒢 ≤ S ↔ 𝒢 ⊆ S.arrows :=
 iff.intro
-    (λ H g hg, by { have : over.mk g.hom = g := over.mk_hom_id, rw ← this at *, apply H, apply generate_sets.basic hg } )
+    (λ H g hg,
+      begin
+        have : over.mk g.hom = g,
+          cases g, dsimp [over.mk],
+          congr' 1, apply subsingleton.elim,
+        rw ← this at *,
+        apply H,
+        apply generate_sets.basic hg,
+      end )
     (λ ss Y f hf, begin induction hf, apply ss hf_a, apply downward_closed, apply hf_ih end)
 
 /-- Show that there is a galois insertion (generate, .arrows). -/
@@ -246,7 +252,6 @@ def functor_inclusion (S : sieve X) : S.as_functor ⟶ yoneda.obj X :=
 instance functor_inclusion_is_mono : mono (functor_inclusion S) :=
 ⟨λ Z f g h, begin
   ext Y y,
-  apply subtype.ext.2,
   have : (f ≫ functor_inclusion S).app Y y = (g ≫ functor_inclusion S).app Y y,
     rw h,
   exact this

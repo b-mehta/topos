@@ -6,8 +6,8 @@ import category_theory.adjunction.fully_faithful
 import category_theory.closed.cartesian
 import reflects
 import equiv
-import pempty
 import construction
+import topos
 
 namespace category_theory
 
@@ -84,126 +84,10 @@ end
 
 end equalizers
 
-class topos :=
-[lim : has_finite_limits.{v} C]
-[sub : has_subobject_classifier.{v} C]
-[cc : cartesian_closed.{v} C]
-
-attribute [instance] topos.lim
-attribute [instance] topos.sub
-attribute [instance] topos.cc
-
 variables [topos.{v} C]
 
 variable {C}
 
-lemma classifier_of_pullback {E F A : C} (m : A ⟶ E) (f : F ⟶ E) [mono m] : f ≫ classifier_of m = classifier_of (pullback.snd : pullback m f ⟶ F) :=
-begin
-  symmetry,
-  apply uniquely,
-  apply left_right_hpb_to_both_hpb _ has_pullback_top_of_pb (classifies m),
-end
-
-lemma class_lift_of_is_iso {A₁ A₂ E : C} {m₁ : A₁ ⟶ E} {m₂ : A₂ ⟶ E} [mono m₁] [mono m₂] (h : A₁ ⟶ A₂) [is_iso h] :
-  h ≫ m₂ = m₁ → classifier_of m₁ = classifier_of m₂ :=
-begin
-  intros k,
-  apply uniquely,
-  change has_pullback_top _ _ _,
-  rw ← id_comp (classifier_of m₂),
-  apply left_right_hpb_to_both_hpb m₂,
-  apply top_iso_has_pullback_top h,
-    simpa,
-  apply classifies,
-end
-
-lemma class_lift_of_iso {A₁ A₂ E : C} {m₁ : A₁ ⟶ E} {m₂ : A₂ ⟶ E} [mono m₁] [mono m₂] (h : A₁ ≅ A₂) (l : h.hom ≫ m₂ = m₁) :
-  classifier_of m₁ = classifier_of m₂ :=
-class_lift_of_is_iso h.hom l
-
-lemma class_lift_of_both_factor {A₁ A₂ E : C} {m₁ : A₁ ⟶ E} {m₂ : A₂ ⟶ E} [mono m₁] [mono m₂] (hom : A₁ ⟶ A₂) (inv : A₂ ⟶ A₁) :
-  hom ≫ m₂ = m₁ → inv ≫ m₁ = m₂ → classifier_of m₁ = classifier_of m₂ :=
-begin
-  intros k l,
-  apply class_lift_of_iso ⟨hom, inv, _, _⟩ k,
-  rw ← cancel_mono m₁, simp [k, l],
-  rw ← cancel_mono m₂, simp [k, l],
-end
-
-def how_inj_is_classifier {E A₁ A₂ : C} (m₁ : A₁ ⟶ E) (m₂ : A₂ ⟶ E) [mono m₁] [mono m₂]
-  (h : classifier_of m₁ = classifier_of m₂) :
-A₁ ≅ A₂ :=
-{ hom := (pullback_cone.is_limit.lift' (classifies m₂).is_pb (classifies m₁).top m₁ (h ▸ (classifies m₁).comm)).1,
-  inv := (pullback_cone.is_limit.lift' (classifies m₁).is_pb (classifies m₂).top m₂ (h.symm ▸ (classifies m₂).comm)).1,
-  hom_inv_id' := by erw [← cancel_mono_id m₁, assoc, lift'_right, lift'_right],
-  inv_hom_id' := by erw [← cancel_mono_id m₂, assoc, lift'_right, lift'_right] }
-
-lemma c_very_inj {E A₁ A₂ : C} {m₁ : A₁ ⟶ E} {m₂ : A₂ ⟶ E} [mono m₁] [mono m₂] (h : classifier_of m₁ = classifier_of m₂) :
-  (how_inj_is_classifier _ _ h).hom ≫ m₂ = m₁ :=
-lift'_right _ _ _ _
-
-def get_subobject_obj {B : C} (c : B ⟶ Ω C) : C := pullback (truth C) c
-def get_subobject {B : C} (c : B ⟶ Ω C) : get_subobject_obj c ⟶ B := pullback.snd
-instance get_subobject_mono {B : C} (c : B ⟶ Ω C) : mono (get_subobject c) := pullback.snd_of_mono
-
-lemma classify_inv {E : C} (c : E ⟶ Ω C) : classifier_of (get_subobject c) = c :=
-(uniquely _ _ has_pullback_top_of_pb)
-
-set_option pp.universes false
-
-@[simps]
-def classification {B : C} : (B ⟶ Ω C) ≃ sub B :=
-{ to_fun := λ k, sub.mk (get_subobject k),
-  inv_fun :=
-  begin
-    refine quotient.lift (λ (k : sub'.{v} B), _) _,
-    exact classifier_of k.arrow.hom,
-    rintro a₁ a₂ ⟨⟨k₁, hk₁⟩, ⟨k₂, hk₂⟩⟩,
-    apply class_lift_of_both_factor k₁ k₂ hk₁ hk₂,
-  end,
-  left_inv := λ k, classify_inv k,
-  right_inv := quotient.ind
-  begin
-    intro k,
-    apply quotient.sound,
-    refine ⟨⟨_, (classifies k.arrow.hom).is_pb.fac _ walking_cospan.right⟩,
-            ⟨_, pullback.lift_snd _ _ (classifies k.arrow.hom).comm⟩⟩,
-  end }
-
-abbreviation classify {B : C} : sub B → (B ⟶ Ω C) := classification.symm
-
-lemma classify_eq_iff_eq {B : C} (m n : sub B) : classify m = classify n ↔ m = n :=
-classification.right_inv.injective.eq_iff
-
-lemma classify_pullback {B B' : C} (f : B ⟶ B') :
-  ∀ m, classify (pullback_sub f m) = f ≫ classify m :=
-quotient.ind $ by { intro m, exact (classifier_of_pullback _ _).symm }
-
-lemma classification_natural_symm {B B' : C} (f : B ⟶ B') (c : B' ⟶ Ω C) :
-  classification (f ≫ c) = pullback_sub f (classification c) :=
-begin
-  rw [← classification.eq_symm_apply],
-  change _ = classify _,
-  rw [classify_pullback],
-  congr',
-  symmetry,
-  apply classification.symm_apply_apply c,
-end
-
-def sub_bot {B : C} : sub B := sub.mk (initial.to B)
-instance {B : C} : order_bot (sub B) :=
-{ bot := sub_bot,
-  bot_le := quotient.ind
-  begin
-    intro a,
-    refine ⟨initial.to _, _⟩,
-    dsimp,
-    apply subsingleton.elim,
-  end,
-  ..category_theory.sub_partial }
-
--- -- lemma inf_eq_intersection :
--- namespace intersect
 
 def indicators {B : C} (m : B ⟶ Ω C) (n : B ⟶ Ω C) : B ⟶ Ω C :=
 classify (classification m ⊓ classification n)
@@ -590,7 +474,7 @@ begin
     rw [← uncurry_natural_left, ha] }
 end
 
-instance : cartesian_closed (sheaf j) :=
+instance sheaf_cc : cartesian_closed (sheaf j) :=
 { closed := λ A,
   { is_adj :=
     { right :=
@@ -644,7 +528,7 @@ def eq_equiv (B : C) : (B ⟶ closed_classifier j) ≃ {cm : B ⟶ Ω C // cm �
 { to_fun := λ f, ⟨f ≫ equalizer.ι _ _, by simp [equalizer.condition]⟩,
   inv_fun := λ f, equalizer.lift f.1 (by rw [f.2, comp_id]),
   left_inv := λ f, equalizer.hom_ext (equalizer.lift_ι _ _),
-  right_inv := λ ⟨f, hf⟩, subtype.eq' (equalizer.lift_ι _ _) }
+  right_inv := λ ⟨f, hf⟩, subtype.eq (equalizer.lift_ι _ _) }
 
 def action {B B' : C} (m : B' ⟶ B) [d : closure.dense j m] : {n' : sub B // closure.operator j n' = n'} ≃ {n : sub B' // closure.operator j n = n} :=
 { to_fun :=
@@ -719,8 +603,7 @@ begin
   apply (cones.forget _).map_iso (lifted_limit_maps_to_original (limit.is_limit (functor.empty _ ⋙ forget j))) ≪≫ _,
   change limit (functor.empty (sheaf j) ⋙ forget j) ≅ ⊤_ C,
   have : functor.empty (sheaf j) ⋙ forget j = functor.empty _,
-  refine category_theory.functor.ext _ _,
-  simp, simp,
+    apply functor.empty_ext',
   rw this,
 end
 
@@ -1143,11 +1026,11 @@ instance : is_right_adjoint (forget j) :=
 
 instance : reflective (forget j) := {}.
 
-def sheafification_preserves_terminal : preserves_limits_of_shape pempty (sheafification j) :=
+def sheafification_preserves_terminal : preserves_limits_of_shape (discrete pempty) (sheafification j) :=
 { preserves_limit := λ K,
   begin
     haveI := nat_iso.is_iso_app_of_is_iso (sheafification_is_adjoint j).counit,
-    apply preserves_limit_of_iso _ (K.unique_from_pempty _),
+    apply preserves_limit_of_iso _ (functor.unique_from_empty _).symm,
     apply preserves_limit_of_preserves_limit_cone (limit.is_limit (functor.empty C)),
     have i : (sheafification j).obj (⊤_ C) ≅ (⊤_ sheaf j),
       apply functor.map_iso (sheafification j) (forget_terminal_sheaf j).symm ≪≫ (as_iso ((sheafification_is_adjoint j).counit.app _)),
@@ -1353,7 +1236,7 @@ end preserve_equalizers
 def sheafification_preserves_equalizers : preserves_limits_of_shape.{v} walking_parallel_pair (sheafification j) :=
 { preserves_limit := λ K,
   begin
-    apply preserves_limit_of_iso _ (diagram_iso_parallel_pair _).symm,
+    apply preserves_limit_of_iso (sheafification j) (diagram_iso_parallel_pair _).symm,
     apply preserve_equalizers.sheafification_preserves_equalizer,
   end }
 

@@ -121,5 +121,3 @@ begin
   haveI : mono f := faithful_reflects_mono F (by apply_instance),
   apply balanced
 end⟩
-
-#lint

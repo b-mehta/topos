@@ -166,7 +166,7 @@ def coalgebra_to_presheaf : coalgebra (W C) ⥤ Cᵒᵖ ⥤ Type u :=
     begin
       refine ⟨f.f a.1, _⟩,
       have := congr_fun f.h a.1,
-      dsimp at this,
+      dsimp at *,
       rw ← this,
       apply a.2,
     end,
@@ -229,11 +229,9 @@ def presheaf_equiv_coalgebra : (Cᵒᵖ ⥤ Type u) ≌ coalgebra (W C) :=
     { intros X Y f,
       ext,
       dsimp [coalgebra_to_presheaf_obj, presheaf_to_coalgebra] at *,
-      rw id_comp,
-      refl },
+      rw id_comp },
     { intros P Q α,
       ext,
-      dsimp [coalgebra_to_presheaf, presheaf_to_coalgebra],
       refl }
   end,
   counit_iso :=
@@ -260,7 +258,9 @@ def presheaf_equiv_coalgebra : (Cᵒᵖ ⥤ Type u) ≌ coalgebra (W C) :=
     conv_rhs {rw ← sigma.eta (w.a hi)},
     congr,
     ext,
+    dsimp [coalgebra_to_presheaf, coalgebra_to_presheaf_obj],
     simp,
+    -- simp,
     intros w₁ w₂ f,
     ext ⟨i, hi, t⟩,
     subst t,
@@ -288,13 +288,9 @@ begin
   ext i,
   refl,
   intros m m₁ m₂,
-  ext i,
-  rw subtype.ext,
-  dsimp,
-  rw ← m₁,
-  rw ← m₂,
-  change _ = ((m i).val.1, (m i).val.2),
-  simp only [prod.mk.eta],
+  ext,
+  dsimp, rw ← m₁, refl,
+  dsimp, rw ← m₂, refl,
 end
 
 def construct_pb {W X Y Z : Type u} {f : X ⟶ Z} {g : Y ⟶ Z} {h : W ⟶ _} {k} (comm : h ≫ f = k ≫ g) :
@@ -310,19 +306,19 @@ def construct_type_pb {W X Y Z : Type u} {f : X ⟶ Z} {g : Y ⟶ Z} {h : W ⟶ 
   (∀ (x : X) (y : Y), f x = g y → {t // h t = x ∧ k t = y ∧ ∀ t', h t' = x → k t' = y → t' = t}) → is_limit (pullback_cone.mk _ _ comm) :=
 begin
   intro z,
-  apply construct_pb,
-  intros Q π₁ π₂ c,
-  refine ⟨λ q, _, _, _, _⟩,
-  apply (z (π₁ q) (π₂ q) (congr_fun c q)).1,
-  ext q,
-  apply (z (π₁ q) (π₂ q) (congr_fun c q)).2.1,
-  ext q,
-  apply (z (π₁ q) (π₂ q) (congr_fun c q)).2.2.1,
+  apply is_limit.mk' _ _,
+  intro s,
+  refine ⟨λ t, _, _, _, _⟩,
+  refine (z (s.fst t) (s.snd t) (congr_fun s.condition t)).1,
+  ext t,
+  apply (z (s.fst t) (s.snd t) (congr_fun s.condition t)).2.1,
+  ext t,
+  apply (z (s.fst t) (s.snd t) (congr_fun s.condition t)).2.2.1,
   intros m m₁ m₂,
-  ext q,
-  apply (z (π₁ q) (π₂ q) (congr_fun c q)).2.2.2,
-  apply congr_fun m₁ q,
-  apply congr_fun m₂ q,
+  ext t,
+  apply (z (s.fst t) (s.snd t) (congr_fun s.condition t)).2.2.2,
+  apply congr_fun m₁ t,
+  apply congr_fun m₂ t,
 end
 
 def W_preserves_cospan {X Y Z : Type u} {f : X ⟶ Z} {g : Y ⟶ Z} : preserves_limit (cospan f g) (W C) :=
@@ -351,9 +347,8 @@ begin
   rw heq_iff_eq at m₆,
   cases m₆,
   congr' 1,
-  ext T h,
-  dsimp,
-  simp,
+  ext T h;
+  refl,
 end
 
 def W_preserves_pullbacks : preserves_limits_of_shape walking_cospan (W C) :=

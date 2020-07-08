@@ -150,8 +150,8 @@ instance (k : is_kernel_pair f a b) : transitive (relation.of_pair a b) :=
     erw [assoc, this, pullback.condition_assoc, this, assoc, assoc, assoc],
     refl,
   end,
-  w₁ := by simp [relation.of_pair_a, (k.lift' _ _ _).2.1],
-  w₂ := by simp [relation.of_pair_b, (k.lift' _ _ _).2.2] }
+  w₁ := by simp only [relation.of_pair_a, (k.lift' _ _ _).2.1],
+  w₂ := by simp only [relation.of_pair_b, (k.lift' _ _ _).2.2] }
 
 end equiv_of_kernel_pair
 

@@ -34,8 +34,7 @@ instance : category (arrows C) := show category (comma _ _), by apply_instance
 
 def crush.setoid : setoid (arrows C) :=
 { r := λ f g, nonempty (f ≅ g),
-  iseqv := are_iso.equiv
-}
+  iseqv := are_iso.equiv }
 
 variable (C)
 
@@ -45,7 +44,7 @@ end arrows
 
 variables {C : Type u} [category.{v} C] {X Y Z : C} {i : X ≅ Y}
 
-/-- A map `r` induces a skeleton category. -/
+/-- A map `r` which induces a skeleton category. -/
 structure skeleton_map (r : C → C) :=
 (repr_iso : ∀ (X : C), r X ≅ X)
 (eq_of_iso : ∀ {X Y : C}, (X ≅ Y) → r X = r Y)
@@ -69,7 +68,7 @@ def to_skeleton : C ⥤ skeleton sr :=
   map_comp' := λ X Y Z f g, by simp [← preimage_comp] }
 
 -- @[simp] lemma to_skeleton_map_def {X Y : C} {f : X ⟶ Y} : @functor.map _ _ _ _ (@to_skeleton _ _ r _) X Y f = ((@repr_iso C 𝒞 r _ X).hom ≫ f ≫ (@repr_iso C 𝒞 r _ Y).inv : r X ⟶ r Y) := rfl
--- @[simp] lemma to_skeleton_obj_def {X : C}  : @functor.obj _ _ _ _ (@to_skeleton _ _ r _) X = ⟨r X, X, rfl⟩ := rfl
+@[simp] lemma to_skeleton_obj_val_coe {X : C}  : (to_skeleton sr).obj X = ⟨r X, X, rfl⟩ := rfl
 -- @[simp] lemma forget_map_def {X Y : skeleton r} {f : X ⟶ Y} : @functor.map _ _ _ _ (@forget _ _ r _) X Y f = f := rfl
 @[simp] lemma forget_obj_def {X : skeleton sr} : (forget sr).obj X = X.val := rfl
 

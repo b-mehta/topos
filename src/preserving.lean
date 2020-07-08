@@ -4,7 +4,6 @@ import category_theory.comma
 import category_theory.limits.over
 import category_theory.limits.shapes.constructions.equalizers
 import pullbacks
-import pempty
 
 namespace category_theory
 
@@ -45,13 +44,13 @@ def pair_of_pullback_terminal_is_limit (X Y : C) : is_limit (pair_of_pullback_te
     erw [w walking_pair.right, pullback.lift_snd],
   end }
 
-variables [preserves_limits_of_shape walking_cospan T] [preserves_limits_of_shape pempty T]
+variables [preserves_limits_of_shape walking_cospan T] [preserves_limits_of_shape (discrete pempty) T]
 
 def unique_to_functor_terminal {X : D} {f g : X ⟶ T.obj (⊤_ C)} : f = g :=
 begin
   have : is_limit (T.map_cone _) := preserves_limit.preserves (limit.is_limit (functor.empty C)),
   apply this.hom_ext,
-  simp,
+  rintro ⟨⟩,
 end
 
 def preserves_pair {X Y : C} : preserves_limit (pair X Y) T :=
@@ -129,12 +128,11 @@ begin
   rw ← w zero,
   congr' 1,
   dsimp, rw comp_id,
-  refl,
   erw (limits.pullback_cone.is_limit.lift' l (s.π.app zero) (s.π.app zero) _).2.2,
   rw ← w zero,
   congr' 1,
   dsimp,
-  rw comp_id, rw pullback_fst_eq_pullback_snd, refl,
+  rw comp_id, rw pullback_fst_eq_pullback_snd,
 end
 
 def preserves_equalizers_of_preserves_pullbacks_and_prods :

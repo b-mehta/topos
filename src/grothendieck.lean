@@ -86,7 +86,11 @@ instance of_basis [has_pullbacks.{v} C] {K : arrow_set C} [basis K] : grothendie
     rw pullback.condition,
     apply downward_closed,
     apply RS,
-    rwa over.mk_hom_id,
+    convert hf,
+    cases f,
+    dsimp [over.mk],
+    congr;
+    apply subsingleton.elim,
   end,
   trans :=
   begin

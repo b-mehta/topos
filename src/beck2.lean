@@ -16,8 +16,7 @@ namespace category_theory
 
 open limits
 open category_theory
-variables {C : Type u₁} [𝒞 : category.{v} C]
-include 𝒞
+variables {C : Type u₁} [category.{v} C]
 variables {A B : C}
 
 structure reflexive_pair (f g : A ⟶ B) :=
@@ -60,8 +59,7 @@ variable (C)
 def has_reflexive_coequalizers := Π ⦃A B : C⦄ ⦃f g : A ⟶ B⦄, reflexive_pair f g → has_colimit (parallel_pair f g)
 variable {C}
 
-variables {D : Type u₂} [𝒟 : category.{v} D]
-include 𝒟
+variables {D : Type u₂} [category.{v} D]
 
 def reflexive_coeq_of_equiv (F : C ⥤ D) [is_equivalence F] (hrc : has_reflexive_coequalizers C) : has_reflexive_coequalizers D :=
 begin
@@ -72,10 +70,7 @@ begin
     refine ⟨F.inv.map r.back, _, _⟩,
     simp [← F.inv.map_comp, r.back_f],
     simp [← F.inv.map_comp, r.back_g],
-  haveI : limits.has_colimit
-    (limits.parallel_pair ((limits.parallel_pair f g ⋙ F.inv).map limits.walking_parallel_pair_hom.left)
-       ((limits.parallel_pair f g ⋙ functor.inv F).map limits.walking_parallel_pair_hom.right)) := this,
-  exact has_colimit_of_iso (diagram_iso_parallel_pair (limits.parallel_pair f g ⋙ F.inv)),
+  refine @has_colimit_of_iso _ _ _ _ _ _ this (diagram_iso_parallel_pair.{v} (limits.parallel_pair f g ⋙ F.inv)),
 end
 
 section algebra
@@ -136,18 +131,14 @@ def adjunctive_coequalizer_split (B : D) : split_coequalizer (G.map ((F G).map (
 def adjunctive_coequalizer_split' (B : D) : split_coequalizer (G.map ((F G).map (G.map (ε.app B)))) (G.map (ε.app _)) :=
 other_adjunctive_coequalizer_split ⟨G.obj B, G.map (ε.app B), right_triangle_components _, by { erw [← G.map_comp, ← G.map_comp, ← ε.naturality], dsimp, refl }⟩
 
-omit 𝒞 𝒟
 def restrict_equivalence {A : Type u₁} {B : Type u₂} (h : A ≃ B) (p : A → Prop) (q : B → Prop) (sound : ∀ a, p a ↔ q (h a)) : {a // p a} ≃ {b // q b} :=
 equiv.subtype_congr h sound
 
-include 𝒞
 def coeq_equiv {X Y : C} (Z : C) (f g : X ⟶ Y) [has_colimit (parallel_pair f g)] : (coequalizer f g ⟶ Z) ≃ {h : Y ⟶ Z // f ≫ h = g ≫ h} :=
 { to_fun := λ i, ⟨coequalizer.π _ _ ≫ i, coequalizer.condition_assoc f g i⟩,
   inv_fun := λ h, coequalizer.desc h.1 h.2,
   left_inv := by tidy,
   right_inv := by tidy }
-
-include 𝒟
 
 def e2_base {α : algebras G} {B : D} : ((F G).obj α.A ⟶ B) ≃ (α.A ⟶ G.obj B) := is_right_adjoint.adj.hom_equiv _ _
 
@@ -243,7 +234,6 @@ C ≌ D :=
   unit_iso := as_iso adj.unit,
   counit_iso := as_iso adj.counit }
 
-omit 𝒟
 def coequalizer_desc_is_iso {X Y Z : C} (f g : X ⟶ Y) [i : has_colimit (parallel_pair f g)] (h : Y ⟶ Z) (w : f ≫ h = g ≫ h) (t : is_colimit (cofork.of_π h w)) :
   is_iso (@coequalizer.desc _ _ _ _ f g i _ h w) :=
 begin
@@ -260,8 +250,6 @@ begin
   apply cocones.ext _ _, refl, rintro ⟨j⟩, erw category.comp_id, rw ← cofork.left_app_one, refl,
   erw category.comp_id, refl
 end
-
-include 𝒟
 
 def really_preserves_coeq {X Y Z : D} {f g : X ⟶ Y} {h : Y ⟶ Z} (w₁ : f ≫ h = g ≫ h)
   (t : is_colimit (G.map_cocone (cofork.of_π h w₁))) : is_colimit (cofork.of_π (G.map h) (begin rw ← G.map_comp, simp [w₁] end) : cofork (G.map f) (G.map g)) :=
