@@ -436,7 +436,7 @@ instance cat_of_int_cat : category (internal_category.{v} A) :=
   end }
 
 @[simps]
-def internal_equiv : internal_category.{u} (Type u) ⥤ Cat.{u u} :=
+def internal_equiv : internal_category (Type u) ⥤ Cat :=
 { obj := λ c, Cat.of c.C₀,
   map := make_functor,
   map_id' := λ c,
@@ -455,6 +455,11 @@ def internal_equiv : internal_category.{u} (Type u) ⥤ Cat.{u u} :=
     dsimp,
     simpa,
   end }
+
+@[simps]
+def internal_inv : Cat.{u} ⥤ internal_category (Type u) :=
+{ obj := λ c, internal_category_type_of_category c.α,
+  map := λ c d f, internalise_functor _ _ f }
 
 -- -- set_option pp.all true
 -- def internal_equivalence : internal_category.{u} (Type u) ≌ Cat.{u u} :=

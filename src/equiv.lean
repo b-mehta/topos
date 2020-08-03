@@ -63,13 +63,17 @@ begin
   simp only [assoc, prod.lift_fst, prod.lift_snd, symmetric.w₁, symmetric.w₂],
 end
 
+-- represents triples (x,y,z) such that Rxy and Ryz
 def triples : C := pullback rel.b rel.a
 
+-- get Rxy out of the triple
 def p : triples rel ⟶ R := pullback.fst
+-- get Ryz out of the triple
 def q : triples rel ⟶ R := pullback.snd
 
 @[reassoc] lemma consistent : p rel ≫ rel.b = q rel ≫ rel.a := pullback.condition
 
+/-- Show Rxz holds if Rxy and Ryz hold -/
 class transitive :=
 (t : triples rel ⟶ R)
 (w₁ : t ≫ rel.a = p rel ≫ rel.a)
@@ -234,27 +238,28 @@ def makes_kernel_pair [mono rel] [reflexive rel] [symmetric rel] [transitive rel
 is_limit.mk' _ $ λ c,
 begin
   have frgr : c.fst ≫ hat _ = c.snd ≫ hat _ := c.condition,
-  let ab' : sub (A ⨯ A) := sub.mk rel,
-  have subs : pullback_sub (limits.prod.map c.fst (𝟙 _)) ab' = pullback_sub (limits.prod.map c.snd (𝟙 _)) ab',
+  let ab' : subq (A ⨯ A) := ⟦sub.mk' rel⟧,
+  have subs : (subq.pullback (limits.prod.map c.fst (𝟙 _))).obj ab' = (subq.pullback (limits.prod.map c.snd (𝟙 _))).obj ab',
     apply name_bijection.right_inv.injective,
-    change name_subobject (pullback_sub (limits.prod.map c.fst (𝟙 A)) ab') = name_subobject (pullback_sub (limits.prod.map c.snd (𝟙 A)) ab'),
+    change name_subobject ((subq.pullback (limits.prod.map c.fst (𝟙 _))).obj ab') = name_subobject ((subq.pullback (limits.prod.map c.snd (𝟙 _))).obj ab'),
     rw [name_pullback ab', name_pullback ab'],
     exact frgr,
-  have subs2 : pullback_sub (prod.lift c.fst c.snd) ab' = pullback_sub (prod.lift c.snd c.snd) ab',
+  have subs2 : (subq.pullback (prod.lift c.fst c.snd)).obj ab' = (subq.pullback (prod.lift c.snd c.snd)).obj ab',
     have s₁ : prod.lift c.fst c.snd = prod.lift (𝟙 _) c.snd ≫ limits.prod.map c.fst (𝟙 _),
       rw [prod.lift_map, id_comp, comp_id],
     have s₂ : prod.lift c.snd c.snd = prod.lift (𝟙 _) c.snd ≫ limits.prod.map c.snd (𝟙 _),
       rw [prod.lift_map, id_comp, comp_id],
-    rw [s₁, s₂, pullback_sub_comp, subs, pullback_sub_comp],
-  have subs3 : pullback_sub (prod.lift c.snd c.snd) ab' = ⊤,
+    rw [s₁, s₂, subq.pullback_comp, subs, subq.pullback_comp],
+  have subs3 : (subq.pullback (prod.lift c.snd c.snd)).obj ab' = ⊤,
     have s₃ : prod.lift c.snd c.snd = c.snd ≫ prod.lift (𝟙 _) (𝟙 _),
       apply prod.hom_ext;
       simp only [prod.lift_fst, prod.lift_snd, assoc, comp_id],
     rw s₃,
-    suffices : pullback_sub (prod.lift (𝟙 _) (𝟙 _)) ab' = ⊤,
-      rw [pullback_sub_comp, this, pullback_top],
-    rw [eq_top_iff, top_eq_top],
-    refine ⟨pullback.lift (reflexive.r rel) (𝟙 _) _, _⟩,
+    suffices : (subq.pullback (prod.lift (𝟙 _) (𝟙 _))).obj ab' = ⊤,
+      rw [subq.pullback_comp, this, subq.pullback_top],
+    rw [eq_top_iff],
+    refine ⟨sub.hom_mk _ _⟩,
+    refine pullback.lift (reflexive.r rel) (𝟙 _) _,
       rw [id_comp], apply reflexive_prop,
     apply pullback.lift_snd,
   rw [← subs2, eq_top_iff] at subs3,

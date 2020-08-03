@@ -4,6 +4,7 @@ import category_theory.adjunction
 import category_theory.monad.adjunction
 import category_theory.adjunction.fully_faithful
 import category_theory.closed.cartesian
+import adjunction
 
 universes v₁ v₂ u₁ u₂
 
@@ -35,14 +36,6 @@ begin
   haveI := h.returning,
   exact as_iso (ir.adj.unit.app A),
 end
-
-@[reducible]
-def equiv_of_fully_faithful [full i] [faithful i] {X Y} : (X ⟶ Y) ≃ (i.obj X ⟶ i.obj Y) :=
-{ to_fun := λ f, i.map f,
-  inv_fun := λ f, i.preimage f,
-  left_inv := λ f, by simp,
-  right_inv := λ f, by simp }
-
 variable {i}
 
 instance inclusion_is_in (B : D) : in_subcategory i (i.obj B) :=

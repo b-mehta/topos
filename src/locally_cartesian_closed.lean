@@ -88,20 +88,19 @@ lemma over_epi' [has_binary_products.{v} C] {B : C} {f g : over B} (k : f ⟶ g)
 left_adjoint_preserves_epi (forget_adj_star _) ke
 
 local attribute [instance] has_pullbacks_of_has_finite_limits
-
 variables [has_finite_limits.{v} C] [is_locally_cartesian_closed.{v} C]
 
 def dependent_product {A B : C} (f : A ⟶ B) : over A ⥤ over B :=
 (over.iterated_slice_equiv (over.mk f)).inverse ⋙ Pi_functor (over.mk f)
 
-def ladj {A B : C} (f : A ⟶ B) : pullback_along f ⊣ dependent_product f :=
+def ladj' {A B : C} (f : A ⟶ B) : pullback_along f ⊣ dependent_product f :=
 adjunction.comp _ _ (star_adj_pi_of_exponentiable (over.mk f)) (equivalence.to_adjunction _)
 
-def ladj' {A B : C} (f : A ⟶ B) : real_pullback f ⊣ dependent_product f :=
-adjunction.of_nat_iso_left (ladj f) (iso_pb f)
+def ladj {A B : C} (f : A ⟶ B) : real_pullback f ⊣ dependent_product f :=
+adjunction.of_nat_iso_left (ladj' f) (iso_pb f)
 
 instance other_thing {A B : C} (f : A ⟶ B) : is_left_adjoint (real_pullback f) :=
-⟨dependent_product f, adjunction.of_nat_iso_left (ladj f) (iso_pb f)⟩
+⟨dependent_product f, ladj _⟩
 
 /--
  P ⟶ D
@@ -116,7 +115,7 @@ instance pullback_preserves_epi {A B D : C}
 begin
   let g'' : over.mk g ⟶ over.mk (𝟙 B) := over.hom_mk g,
   haveI : epi g''.left := hg,
-  haveI := left_adjoint_preserves_epi (ladj' f) (over_epi g''),
+  haveI := left_adjoint_preserves_epi (ladj f) (over_epi g''),
   have : ((real_pullback f).map g'').left ≫ pullback.snd = pullback.snd := pullback.lift_snd _ pullback.snd _,
   rw ← this,
   have : epi ((real_pullback f).map g'').left := over_epi' _,
@@ -214,7 +213,7 @@ nat_iso.of_components (λ j, iso.refl _) (by tidy)
 
 def pullback_preserves {K : J ⥤ C} (c : cocone K) (t : is_colimit c) (r : c.X ⟶ Z) : is_colimit (pullback_cocone f K c r) :=
 begin
-  haveI : preserves_colimits (real_pullback f) := adjunction.left_adjoint_preserves_colimits (ladj' f),
+  haveI : preserves_colimits (real_pullback f) := adjunction.left_adjoint_preserves_colimits (ladj f),
   let e := cocones.precompose_equivalence (pullback_diagram_iso f c r),
   let c' := is_colimit.of_cocone_equiv e.inverse (preserves_colimit.preserves (preserves_colimit.preserves (long_colimit c r t))),
   apply is_colimit.of_iso_colimit c',
@@ -381,7 +380,8 @@ def regular_epi_of_regular_epi {X Y Z : C} (f : X ⟶ Y) (g : Y ⟶ Z) [epi f] [
     erw [assoc, w walking_parallel_pair.one, (cofork.is_colimit.desc' r.is_colimit (f ≫ s.π) _).2]
   end) }
 
-def regular_epi_of_is_pullback {W X Y Z : C} (f : W ⟶ X) (g : W ⟶ Y) (h : X ⟶ Z) (k : Y ⟶ Z) (comm : f ≫ h = g ≫ k) (l : is_limit (pullback_cone.mk _ _ comm)) [regular_epi h] :
+def regular_epi_of_is_pullback {W X Y Z : C} (f : W ⟶ X) (g : W ⟶ Y) (h : X ⟶ Z) (k : Y ⟶ Z)
+  (comm : f ≫ h = g ≫ k) (l : is_limit (pullback_cone.mk _ _ comm)) [regular_epi h] :
   regular_epi g :=
 begin
   have e : regular_epi (pullback.snd : pullback h k ⟶ Y) := category_theory.pullback_regular_epi k h,
@@ -397,6 +397,10 @@ begin
   haveI := this,
   apply regular_epi_of_regular_epi (l.lift (limit.cone (cospan h k))) g,
 end
+
+def regular_epi_of_is_pullback_alt {W X Y Z : C} (f : W ⟶ X) (g : W ⟶ Y) (h : X ⟶ Z) (k : Y ⟶ Z)
+  (comm : f ≫ h = g ≫ k) (l : is_limit (pullback_cone.mk _ _ comm)) [regular_epi k] :
+  regular_epi f := regular_epi_of_is_pullback g f k h comm.symm (pullback_flip l)
 
 def regular_epi_of_comp_iso {X Y Z : C} (f : X ⟶ Y) [r : regular_epi f] (g : Y ⟶ Z) [is_iso g] :
   regular_epi (f ≫ g) :=

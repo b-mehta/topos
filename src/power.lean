@@ -35,7 +35,7 @@ universes v u v₂ u₂
 
 namespace category_theory
 
-open category_theory category_theory.category category_theory.limits
+open category_theory category limits
 
 attribute [instance] has_pullbacks_of_has_finite_limits
 
@@ -83,7 +83,8 @@ def mem : ni A ⟶ P A ⨯ A := has_power_object.memA
 def power_is_power : is_power_object (mem A) := has_power_object.is_power
 instance mono_mem : mono (mem A) := has_power_object.is_mono
 
-def mem_sub : sub (P A ⨯ A) := sub.mk (mem A)
+def mem_sub : sub (P A ⨯ A) := sub.mk' (mem A)
+def mem_subq : subq (P A ⨯ A) := ⟦mem_sub A⟧
 
 variables {A} {B R : C} (m : R ⟶ B ⨯ A) [mono m]
 
@@ -147,11 +148,8 @@ begin
   simp [← cancel_mono g₁, ← cancel_mono g₂, l, k],
 end
 
-lemma liftable {B : C} (a b : sub'.{v} (B ⨯ A)) : (a ≈ b) → hat a.1.hom = hat b.1.hom :=
-begin
-  rintros ⟨⟨hom, k⟩, ⟨inv, l⟩⟩,
-  apply lifting _ _ k l,
-end
+lemma liftable {B : C} (a b : sub (B ⨯ A)) (i : a ≈ b) : hat a.arrow = hat b.arrow :=
+nonempty.elim i (λ i, lifting _ _ (sub.w i.hom) (sub.w i.inv))
 
 def get_named_object {B : C} (k : B ⟶ P A) : C := pullback (mem A) (limits.prod.map k (𝟙 _))
 def get_named_arrow {B : C} (k : B ⟶ P A) : get_named_object k ⟶ B ⨯ A := pullback.snd
@@ -169,35 +167,34 @@ begin
 end
 
 @[simps]
-def name_bijection {A B : C} [has_power_object.{v} A] : (B ⟶ P A) ≃ sub (B ⨯ A) :=
-{ to_fun := λ k, sub.mk (get_named_arrow k),
-  inv_fun := quotient.lift (λ (f : sub' (B ⨯ A)), hat f.arrow.hom) liftable,
+def name_bijection {A B : C} [has_power_object.{v} A] : (B ⟶ P A) ≃ subq (B ⨯ A) :=
+{ to_fun := λ k, ⟦sub.mk' (get_named_arrow k)⟧,
+  inv_fun := quotient.lift (λ (f : sub (B ⨯ A)), hat f.arrow) liftable,
   left_inv := hat_get_named_arrow,
   right_inv := quotient.ind
   begin
     intro g,
     apply quotient.sound,
-    exact ⟨⟨_, (hat_powerises g.arrow.hom).is_pb.fac _ walking_cospan.right⟩,
-           ⟨_, pullback.lift_snd _ _ (hat_powerises g.arrow.hom).comm⟩⟩,
+    exact equiv_of_both_ways
+      (sub.hom_mk _ ((hat_powerises g.arrow).is_pb.fac _ walking_cospan.right))
+      (sub.hom_mk _ (pullback.lift_snd _ _ (hat_powerises g.arrow).comm)),
   end }
 
-abbreviation name_subobject {B : C} : sub (B ⨯ A) → (B ⟶ P A) := name_bijection.symm
-
--- def get_named_subobject {B : C} : (B ⟶ P A) → sub (B ⨯ A) := name_bijection
+abbreviation name_subobject {B : C} : subq (B ⨯ A) → (B ⟶ P A) := name_bijection.symm
 
 lemma get_named_subobject_eq_pullback_mem {B : C} (k : B ⟶ P A) :
-  name_bijection k = pullback_sub (limits.prod.map k (𝟙 _)) (mem_sub A) := rfl
+  name_bijection k = (subq.pullback (limits.prod.map k (𝟙 _))).obj (mem_subq A) := rfl
 
 def get_named_subobject_natural_left {B B' : C} (k : B ⟶ P A) (g : B' ⟶ B) :
-  name_bijection (g ≫ k) = pullback_sub (limits.prod.map g (𝟙 A)) (name_bijection k) :=
-by { rw [get_named_subobject_eq_pullback_mem, prod_map_comp_id, pullback_sub_comp], refl }
+  name_bijection (g ≫ k) = (subq.pullback (limits.prod.map g (𝟙 A))).obj (name_bijection k) :=
+by { rw [get_named_subobject_eq_pullback_mem, prod_map_comp_id, subq.pullback_comp], refl }
 
-lemma name_pullback {B' : C} (g : sub (B ⨯ A)) (f : B' ⟶ B) :
-  name_subobject (pullback_sub (limits.prod.map f (𝟙 _)) g) = f ≫ name_subobject g :=
-quotient.induction_on g (λ a, hat_natural_left a.arrow.hom _)
+lemma name_pullback {B' : C} (g : subq (B ⨯ A)) (f : B' ⟶ B) :
+  name_subobject ((subq.pullback (limits.prod.map f (𝟙 _))).obj g) = f ≫ name_subobject g :=
+quotient.induction_on g (λ a, hat_natural_left a.arrow _)
 
 lemma pullback_along_hat_eq_self {R : C} (m : R ⟶ B ⨯ A) [mono m] :
-  pullback_sub (limits.prod.map (hat m) (𝟙 A)) (mem_sub A) = sub.mk m :=
+  (subq.pullback (limits.prod.map (hat m) (𝟙 A))).obj (mem_subq A) = ⟦sub.mk' m⟧ :=
 begin
   rw ← get_named_subobject_eq_pullback_mem,
   erw name_bijection.apply_eq_iff_eq_symm_apply,
@@ -207,17 +204,17 @@ end
 section functor_setup
 
 variables (f : A ⟶ B) [has_power_object.{v} B]
-def Esub : sub (P B ⨯ A) := pullback_sub (limits.prod.map (𝟙 _) f) (mem_sub B)
 def E : C := pullback (mem B) (limits.prod.map (𝟙 _) f)
 def Emap : E f ⟶ P B ⨯ A := pullback.snd
 instance Emap_mono : mono (Emap f) := pullback.snd_of_mono
+def Esubq : subq (P B ⨯ A) := (subq.pullback (limits.prod.map (𝟙 _) f)).obj (mem_subq B)
 lemma Esquare : (pullback.fst : E f ⟶ _) ≫ mem B = Emap f ≫ limits.prod.map (𝟙 _) f := pullback.condition
 lemma Epb : is_limit (pullback_cone.mk _ _ (Esquare f)) :=
 cone_is_pullback _ _
 
 variable [has_power_object.{v} A]
 def P_map : P B ⟶ P A :=
-name_subobject (Esub f)
+name_subobject (Esubq f)
 
 lemma hat_natural_right {D R : C} (m : R ⟶ D ⨯ B) [hm : mono m] :
   hat (pullback.snd : pullback m (limits.prod.map (𝟙 D) f) ⟶ D ⨯ A) = hat m ≫ P_map f :=
@@ -232,7 +229,7 @@ begin
 end
 
 lemma name_other_pullback {D : C} :
-  ∀ m, name_subobject (pullback_sub (limits.prod.map (𝟙 D) f) m) = name_subobject m ≫ P_map f :=
+  ∀ m, name_subobject ((subq.pullback (limits.prod.map (𝟙 D) f)).obj m) = name_subobject m ≫ P_map f :=
 quotient.ind (by { intro a, apply hat_natural_right })
 
 @[simp] lemma lift'_right {X Y Z : C} {f : X ⟶ Z} {g : Y ⟶ Z} {t : pullback_cone f g} (ht : is_limit t) {W : C} (h : W ⟶ X) (k : W ⟶ Y) (w : h ≫ f = k ≫ g) :
@@ -255,7 +252,7 @@ hat_get_named_arrow _
 
 lemma P_map_comp {X Y Z : C} [has_power_object.{v} X] [has_power_object.{v} Y] [has_power_object.{v} Z] (f : X ⟶ Y) (g : Y ⟶ Z) :
   P_map (f ≫ g) = P_map g ≫ P_map f :=
-by { erw [← name_other_pullback, Esub, ← pullback_sub_comp, ← prod_map_id_comp], refl }
+by { erw [← name_other_pullback, Esubq, ← subq.pullback_comp, ← prod_map_id_comp], refl }
 
 @[simps]
 def P_functor [has_power_objects.{v} C] : Cᵒᵖ ⥤ C :=
@@ -279,16 +276,16 @@ def self_adj [has_power_objects.{v} C] : is_right_adjoint (P_functor : Cᵒᵖ �
     hom_equiv_naturality_left_symm' := λ X' X Y f g,
     begin
       rw ← has_hom.hom.unop_inj.eq_iff,
-      change name_subobject (postcompose (limits.prod.braiding _ _).hom (name_bijection (f ≫ g))) =
-             name_subobject (postcompose (limits.prod.braiding _ _).hom (name_bijection g)) ≫ P_map f,
+      change name_subobject ((subq.post _).obj (name_bijection (f ≫ g))) =
+             name_subobject ((subq.post _).obj (name_bijection g)) ≫ P_map f,
       rw [← name_other_pullback, get_named_subobject_natural_left],
       congr' 1,
       exact postcompose_pullback_comm _ (pullback_square_iso _ _ _ _ (braid_natural _ _)) _,
     end,
     hom_equiv_naturality_right' := λ X Y Y' f g,
     begin
-      change name_subobject (postcompose _ (name_bijection (g.unop ≫ f.unop))) =
-             name_subobject (postcompose _ (name_bijection f.unop)) ≫ P_map g.unop,
+      change name_subobject ((subq.post _).obj (name_bijection (g.unop ≫ f.unop))) =
+             name_subobject ((subq.post _).obj (name_bijection f.unop)) ≫ P_map g.unop,
       rw [← name_other_pullback, get_named_subobject_natural_left],
       congr' 1,
       exact postcompose_pullback_comm _ (pullback_square_iso _ _ _ _ (braid_natural _ _)) _,
@@ -298,8 +295,8 @@ def diagonal (A : C) : A ⟶ A ⨯ A := limits.prod.lift (𝟙 A) (𝟙 A)
 
 instance mono_diagonal (A : C) : mono.{v} (diagonal A) := category_theory.mono_prod_lift_of_left _ _
 
-def diagonal_sub' (A : C) : sub' (A ⨯ A) := sub'.mk' (diagonal A)
-def diagonal_sub (A : C) : sub (A ⨯ A) := ⟦diagonal_sub' A⟧
+def diagonal_sub (A : C) : sub (A ⨯ A) := sub.mk' (diagonal A)
+def diagonal_subq (A : C) : subq (A ⨯ A) := ⟦diagonal_sub A⟧
 
 -- @[reducible]
 def singleton_arrow (A : C) [has_power_object.{v} A] : A ⟶ P A := hat (diagonal A)
@@ -366,9 +363,9 @@ lemma naturalish {A B : C} [has_power_object.{v} A] [has_power_object.{v} B] (f 
 begin
   have comm : limits.prod.map (hat m) (𝟙 _) ≫ limits.prod.map (𝟙 _) f = limits.prod.map (𝟙 _) f ≫ limits.prod.map (hat m) (𝟙 _),
     rw prod_map_map,
-  change hat m ≫ name_bijection.symm (postcompose _ (mem_sub A)) = name_bijection.symm (postcompose _ (sub.mk m)),
-  rw [← name_pullback, ← postcompose_pullback_comm comm _, pullback_along_hat_eq_self],
-  apply is_limit.mk''',
+  change hat m ≫ name_bijection.symm ((subq.post (limits.prod.map _ _)).obj (mem_subq A)) = name_bijection.symm ((subq.post _).obj ⟦sub.mk' m⟧),
+  rw [← name_pullback, ← postcompose_pullback_comm comm _, pullback_along_hat_eq_self], refl,
+  refine is_limit.mk''' _ _ _,
     exact (category_theory.mono_prod_map (𝟙 D) f),
   intro s,
   refine ⟨_, _⟩,
@@ -389,10 +386,10 @@ end
 
 lemma internal_image_map_id {X : C} [has_power_object.{v} X] : internal_image (𝟙 X) = 𝟙 (P X) :=
 begin
-  change name_subobject (postcompose _ (mem_sub _)) = _,
+  change name_subobject ((subq.post (limits.prod.map _ _)).obj (mem_subq _)) = _,
   rw [name_bijection.symm_apply_eq, get_named_subobject_eq_pullback_mem],
   conv { for (limits.prod.map _ _) [1, 2] { rw prod_map_id_id } },
-  rw [postcompose_map_id, pullback_sub_id],
+  rw [subq.post_id, subq.pullback_id],
 end
 
 theorem beck_chevalley {A B C' D : C}
@@ -403,7 +400,8 @@ theorem beck_chevalley {A B C' D : C}
   internal_image f ≫ P_map g = P_map h ≫ internal_image k :=
 begin
   erw [← hat_natural_right, naturalish],
-  change name_subobject (pullback_sub _ (postcompose _ (mem_sub A))) = name_subobject (postcompose _ (pullback_sub _ (mem_sub A))),
+  change name_subobject ((subq.pullback _).obj ((subq.post (limits.prod.map _ _)).obj (mem_subq A))) =
+         name_subobject ((subq.post (limits.prod.map _ _)).obj ((subq.pullback _).obj (mem_subq A))),
   rw equiv.apply_eq_iff_eq,
   symmetry,
   apply postcompose_pullback_comm _ _,
@@ -521,7 +519,7 @@ def intersect_names_natural {B B' : C} (f : B' ⟶ B) (m n : B ⟶ P A) :
   f ≫ intersect_names m n = intersect_names (f ≫ m) (f ≫ n) :=
 begin
   dunfold intersect_names,
-  rw [get_named_subobject_natural_left, get_named_subobject_natural_left, ← intersect_pullback,
+  rw [get_named_subobject_natural_left, get_named_subobject_natural_left, ← inf_pullback,
       name_bijection.eq_symm_apply, get_named_subobject_natural_left, name_bijection.apply_symm_apply],
 end
 
@@ -538,9 +536,9 @@ end
 def P₁_obj (A : C) [has_power_object.{v} A] : C := equalizer (intersect.intersect A) limits.prod.fst
 def P₁_arrow (A : C) [has_power_object.{v} A] : P₁_obj A ⟶ P A ⨯ P A := equalizer.ι (intersect.intersect A) limits.prod.fst
 instance P₁_arrow_mono (A : C) [has_power_object.{v} A] : mono (P₁_arrow A) := equalizer.ι_mono
-def P₁_sub (A : C) [has_power_object.{v} A] : sub (P A ⨯ P A) := sub.mk (P₁_arrow A)
+def P₁_sub (A : C) [has_power_object.{v} A] : subq (P A ⨯ P A) := ⟦sub.mk' (P₁_arrow A)⟧
 
-lemma leq_prop' (A B : C) (m n : sub (B ⨯ A)) [has_power_object.{v} A] :
+lemma leq_prop' (A B : C) (m n : subq (B ⨯ A)) [has_power_object.{v} A] :
   m ≤ n ↔ limits.prod.lift (name_subobject m) (name_subobject n) ≫ intersect.intersect A = limits.prod.lift (name_subobject m) (name_subobject n) ≫ limits.prod.fst :=
 begin
   rw [← inf_eq_left, intersect.intersect, intersect.intersect_names_natural, prod.lift_fst,
@@ -550,16 +548,17 @@ end
 
 lemma leq_prop (A B R₁ R₂ : C) [has_power_object.{v} A] (m : R₁ ⟶ B ⨯ A) (n : R₂ ⟶ B ⨯ A) [mono m] [mono n] :
   factors_through m n ↔ limits.prod.lift (hat m) (hat n) ≫ intersect.intersect A = limits.prod.lift (hat m) (hat n) ≫ limits.prod.fst :=
-leq_prop' _ _ (sub.mk m) (sub.mk n)
+leq_prop' _ _ ⟦sub.mk' m⟧ ⟦sub.mk' n⟧
 
-lemma leq_iff_factor (A B R₁ R₂ : C) [has_power_object.{v} A] (m : R₁ ⟶ B ⨯ A) (n : R₂ ⟶ B ⨯ A) [mono m] [mono n] :
-  factors_through m n ↔ factors_through (prod.lift (hat m) (hat n)) (P₁_arrow A) :=
-begin
-  rw [leq_prop, factors_through],
-  refine ⟨λ k, ⟨_, (equalizer.lift' _ k).2⟩, _⟩,
-  rintro ⟨k, hk⟩,
-  simp [←hk, P₁_arrow, equalizer.condition],
-end
+-- lemma leq_iff_factor (A B R₁ R₂ : C) [has_power_object.{v} A] (m : R₁ ⟶ B ⨯ A) (n : R₂ ⟶ B ⨯ A) [mono m] [mono n] :
+--   factors_through m n ↔ factors_through (prod.lift (hat m) (hat n)) (P₁_arrow A) :=
+-- begin
+--   rw [leq_prop, factors_through],
+
+--   -- refine ⟨λ k, ⟨_, (equalizer.lift' _ k).2⟩, _⟩,
+--   -- rintro ⟨k, hk⟩,
+--   -- simp [←hk, P₁_arrow, equalizer.condition],
+-- end
 
 namespace slicing
 
@@ -685,7 +684,8 @@ begin
     rw ← this,
     erw [assoc, assoc, equalizer.condition], refl,
   rw ← leq_prop at this,
-  exact this
+  cases this with a,
+  refine ⟨_, over.w a⟩,
 end
 
 -- @[reducible]
@@ -750,7 +750,8 @@ begin
   have := l_eq m,
   erw [← seven_six_two, ← hat_natural_left] at this,
   rw [this, ← leq_prop],
-  refine ⟨_, _⟩,
+  refine ⟨_⟩,
+  apply over.hom_mk _ _,
   { apply pullback.lift (m'' m ≫ limits.prod.snd) (m'' m) _,
     apply prod.hom_ext,
     { erw [assoc, assoc, assoc, assoc, m'', assoc, prod.lift_fst, limits.prod.map_fst],
@@ -759,7 +760,7 @@ begin
       rw over.w (limits.prod.fst : g ⨯ f ⟶ g),
       rw over.w (limits.prod.snd : g ⨯ f ⟶ f) },
     { erw [assoc, assoc, assoc, assoc, assoc, prod.lift_snd, comp_id, limits.prod.map_snd, comp_id] } },
-  { rw limit.lift_π, refl }
+  { dsimp, rw limit.lift_π, refl }
 end
 -- @[reducible]
 def top : g.left ⟶ P₁_obj f.left := equalizer.lift (l m) (llem m)

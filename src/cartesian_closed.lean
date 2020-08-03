@@ -14,6 +14,8 @@ class cartesian_closed_functor :=
 [preserves_bin_prods : preserves_limits_of_shape (discrete walking_pair) F]
 (comparison_iso : ∀ A B, is_iso (exp_comparison F A B))
 
+attribute [instance] cartesian_closed_functor.comparison_iso
+
 variables {F} {L : D ⥤ C}
 
 def frobenius_map (A : C) (B : D) (adj : L ⊣ F) : L.obj (F.obj A ⨯ B) ⟶ A ⨯ L.obj B :=
@@ -137,7 +139,7 @@ lemma biject_natural_right
 biject adj q ≫ (exp _).map (F.map g) = biject adj (q ≫ F.map ((exp _).map g)) :=
 by simpa using biject_natural adj (𝟙 _) g q
 
-instance : cartesian_closed_functor F :=
+def cartesian_closed_of_frobenius_iso : cartesian_closed_functor F :=
 { preserves_bin_prods :=
   begin
     letI := adj.right_adjoint_preserves_limits,
@@ -195,14 +197,4 @@ instance : cartesian_closed_functor F :=
 -- -- is an iso for all A ∈ D, B ∈ C.
 -- -- Corollary: If F has a left adjoint L which preserves finite products, F is cartesian closed iff
 -- -- F is full and faithful.
-
-example : (∀ (α : Type) (p : α → Prop), ¬ (∃ x, ¬ p x) → ∀ x, p x) → ∀ (q : Prop), ¬¬q → q :=
-begin
-  intros k x nnx,
-  apply k unit (λ _, x) _ (),
-  rintro ⟨y, hy⟩,
-  apply nnx,
-  apply hy,
-end
-
 end category_theory

@@ -18,6 +18,7 @@ import category_theory.adjunction.fully_faithful
 import sparse_skeleton
 import over
 import adjunction
+import algebra.pointwise
 
 universes v v₂ u u₂
 
@@ -34,7 +35,7 @@ skeletal, so it's not a partial order. The quotient is taken in `subq` instead, 
 able to work with both.
 It's reducible for now to get instances to happen quickly, marked semireducible again later.
 -/
-@[derive category]
+@[derive [category, λ t, has_coe t (over X)]]
 def sub (X : C) := {f : over X // mono f.hom}
 /-- The inclusion arrow from subobjects to the over category. -/
 def forget_sub (X : C) : sub X ⥤ over X := full_subcategory_inclusion _
@@ -64,12 +65,18 @@ end⟩
 abbreviation sub.hom_mk {f g : sub X} (h : f.val.left ⟶ g.val.left) (w : h ≫ g.arrow = f.arrow) : f ⟶ g :=
 over.hom_mk h w
 
+def sub.iso_mk {f g : sub X} (h : f.val.left ≅ g.val.left) (w : h.hom ≫ g.arrow = f.arrow) : f ≅ g :=
+{ hom := sub.hom_mk h.hom w,
+  inv := sub.hom_mk h.inv (by rw [h.inv_comp_eq, w]) }
+
 @[derive [partial_order, category]]
 def subq (X : C) := skel (sub X)
 
 @[simps]
 def sub.mk' {X A : C} (f : A ⟶ X) [hf : mono f] : sub X := { val := over.mk f, property := hf }
 @[simp] lemma sub_mk'_arrow {X A : C} (f : A ⟶ X) [hf : mono f] : (sub.mk' f).arrow = f := rfl
+
+abbreviation subq.mk {X A : C} (f : A ⟶ X) [mono f] : subq X := ⟦sub.mk' f⟧
 
 @[simps]
 def restrict_to_sub {Y : D} (F : over Y ⥤ over X)
@@ -124,12 +131,31 @@ def sub.pullback_id [has_pullbacks.{v} C] :
   sub.pullback (𝟙 X) ≅ 𝟭 _ :=
 restrict_to_sub_iso _ _ pullback_id ≪≫ restrict_to_sub_id
 
+@[simp] lemma sub.pullback_obj_left [has_pullbacks.{v} C] (f : X ⟶ Y) (g : sub Y) :
+(↑((sub.pullback f).obj g) : over X).left = pullback g.arrow f :=
+rfl
+
 @[simp] lemma sub.pullback_obj_arrow [has_pullbacks.{v} C] (f : X ⟶ Y) (g : sub Y) :
 ((sub.pullback f).obj g).arrow = pullback.snd :=
 rfl
 
 def subq.pullback [has_pullbacks.{v} C] (f : X ⟶ Y) : subq Y ⥤ subq X :=
 lower_sub (sub.pullback f)
+
+lemma subq.pullback_id [has_pullbacks.{v} C] (x : subq X) : (subq.pullback (𝟙 X)).obj x = x :=
+begin
+  apply quotient.induction_on x,
+  intro f,
+  apply quotient.sound,
+  exact ⟨sub.pullback_id.app f⟩,
+end
+lemma subq.pullback_comp [has_pullbacks.{v} C] (f : X ⟶ Y) (g : Y ⟶ Z) (x : subq Z) : (subq.pullback (f ≫ g)).obj x = (subq.pullback f).obj ((subq.pullback g).obj x) :=
+begin
+  apply quotient.induction_on x,
+  intro t,
+  apply quotient.sound,
+  refine ⟨(sub.pullback_comp _ _).app t⟩,
+end
 
 attribute [instance] mono_comp
 
@@ -143,6 +169,10 @@ restrict_to_sub_iso _ _ (over_map_comp _ _) ≪≫ (restrict_to_sub_comp _ _ _ _
 
 def sub.post_id : sub.post (𝟙 X) ≅ 𝟭 _ :=
 restrict_to_sub_iso _ _ over_map_id ≪≫ restrict_to_sub_id
+
+@[simp] lemma sub.post_obj_left (f : X ⟶ Y) [mono f] (g : sub X) :
+(↑((sub.post f).obj g) : over Y).left = g.val.left :=
+rfl
 
 @[simp]
 lemma sub.post_obj_arrow (f : X ⟶ Y) [mono f] (g : sub X) :
@@ -160,6 +190,22 @@ instance sub.faithful_post (f : X ⟶ Y) [mono f] : faithful (sub.post f) := {}.
 
 def subq.post (f : X ⟶ Y) [mono f] : subq X ⥤ subq Y :=
 lower_sub (sub.post f)
+
+lemma subq.post_id (x : subq X) : (subq.post (𝟙 X)).obj x = x :=
+begin
+  apply quotient.induction_on x,
+  intro f,
+  apply quotient.sound,
+  exact ⟨sub.post_id.app f⟩,
+end
+lemma subq.post_comp (f : X ⟶ Y) (g : Y ⟶ Z) [mono f] [mono g] (x : subq X) :
+  (subq.post (f ≫ g)).obj x = (subq.post g).obj ((subq.post f).obj x) :=
+begin
+  apply quotient.induction_on x,
+  intro t,
+  apply quotient.sound,
+  refine ⟨(sub.post_comp _ _).app t⟩,
+end
 
 @[simps]
 def sub.image [has_images C] : over X ⥤ sub X :=
@@ -208,6 +254,13 @@ as_iso (adjunction.counit image_forget_adj)
 def sub.exists [has_images C] (f : X ⟶ Y) : sub X ⥤ sub Y :=
 forget_sub _ ⋙ over.map f ⋙ sub.image
 
+def subq.exists [has_images C] (f : X ⟶ Y) : subq X ⥤ subq Y :=
+lower_sub (sub.exists f)
+
+instance sub.faithful_pullback (f : X ⟶ Y) [has_pullbacks C] : faithful (sub.pullback f) := {}.
+
+instance sub.faithful_exists (f : X ⟶ Y) [has_images C] : faithful (sub.exists f) := {}.
+
 def exists_iso_post [has_images C] (f : X ⟶ Y) [mono f] : sub.exists f ≅ sub.post f :=
 nat_iso.of_components
 begin
@@ -229,12 +282,36 @@ begin
 end
 
 /-- post is adjoint to pullback for monos -/
-def pull_post_adj (f : X ⟶ Y) [mono f] [has_pullbacks C] : sub.post f ⊣ sub.pullback f :=
+def sub.pull_post_adj (f : X ⟶ Y) [mono f] [has_pullbacks C] : sub.post f ⊣ sub.pullback f :=
 restrict_adjunction (forget_sub X) (forget_sub Y) (radj f) (iso.refl _) (iso.refl _)
+
+def subq.lower_adjunction {A : C} {B : D} {R : sub B ⥤ sub A} {L : sub A ⥤ sub B} (h : L ⊣ R) :
+  lower_sub L ⊣ lower_sub R :=
+adjunction.mk_of_hom_equiv
+{ hom_equiv := λ X Y,
+  begin
+    apply quotient.rec_on_subsingleton₂ X Y,
+    intros x y,
+    refine ⟨_, _, _, _⟩,
+    { rintro ⟨⟨k⟩⟩,
+      refine ⟨⟨_⟩⟩,
+      cases k,
+      refine ⟨h.hom_equiv _ _ k⟩ },
+    { rintro ⟨⟨k⟩⟩,
+      refine ⟨⟨_⟩⟩,
+      cases k,
+      refine ⟨(h.hom_equiv _ _).symm k⟩ },
+    { tidy },
+    { tidy },
+    { tidy },
+  end }
+
+def subq.pull_post_adj (f : X ⟶ Y) [mono f] [has_pullbacks C] : subq.post f ⊣ subq.pullback f :=
+subq.lower_adjunction (sub.pull_post_adj f)
 
 /-- image is adjoint to pullback if images exist -/
 -- I really think there should be a high-level proof of this but not sure what it is...
-def exists_pull_adj (f : X ⟶ Y) [has_images C] [has_pullbacks C] : sub.exists f ⊣ sub.pullback f :=
+def sub.exists_pull_adj (f : X ⟶ Y) [has_images C] [has_pullbacks C] : sub.exists f ⊣ sub.pullback f :=
 adjunction.mk_of_hom_equiv
 { hom_equiv := λ g h,
   { to_fun := λ k,
@@ -249,8 +326,14 @@ adjunction.mk_of_hom_equiv
     left_inv := λ k, subsingleton.elim _ _,
     right_inv := λ k, subsingleton.elim _ _ } }
 
+def subq.exists_pull_adj (f : X ⟶ Y) [has_pullbacks C] [has_images C] : subq.exists f ⊣ subq.pullback f :=
+subq.lower_adjunction (sub.exists_pull_adj f)
+
 -- Is this actually necessary?
 def factors_through {X Y Z : C} (f : X ⟶ Z) (g : Y ⟶ Z) : Prop := nonempty (over.mk f ⟶ over.mk g)
+lemma factors_through_iff_le {X Y Z : C} (f : X ⟶ Z) (g : Y ⟶ Z) [mono f] [mono g] :
+  factors_through f g ↔ subq.mk f ≤ subq.mk g :=
+iff.rfl
 
 instance {X : C} : has_top (sub X) :=
 { top := sub.mk' (𝟙 _) }
@@ -491,20 +574,7 @@ quotient.sound ⟨sub.pullback_top f⟩
 --   -- rw [id_comp, comp_id], refl,
 --   -- apply pullback.lift_snd,
 -- end
-lemma subq.pullback_id [has_pullbacks.{v} C] (x : subq X) : (subq.pullback (𝟙 X)).obj x = x :=
-begin
-  apply quotient.induction_on x,
-  intro f,
-  apply quotient.sound,
-  exact ⟨sub.pullback_id.app f⟩,
-end
-lemma subq.pullback_comp [has_pullbacks.{v} C] (f : X ⟶ Y) (g : Y ⟶ Z) (x : subq Z) : (subq.pullback (f ≫ g)).obj x = (subq.pullback f).obj ((subq.pullback g).obj x) :=
-begin
-  apply quotient.induction_on x,
-  intro t,
-  apply quotient.sound,
-  refine ⟨(sub.pullback_comp _ _).app t⟩,
-end
+
 
 variable (C)
 
@@ -534,12 +604,12 @@ variable {C}
 --   apply quotient.sound (postcompose_sub'_comp _ _ _),
 -- end
 
--- @[simps]
--- def postcompose_sub_equiv_of_iso (e : X ≅ Y) : sub X ≃ sub Y :=
--- { to_fun := postcompose e.hom,
---   inv_fun := postcompose e.inv,
---   left_inv := λ g, by simp_rw [← postcompose_map_comp, e.hom_inv_id, postcompose_map_id],
---   right_inv := λ g, by simp_rw [← postcompose_map_comp, e.inv_hom_id, postcompose_map_id] }
+@[simps]
+def postcompose_sub_equiv_of_iso (e : X ≅ Y) : subq X ≃ subq Y :=
+{ to_fun := (subq.post e.hom).obj,
+  inv_fun := (subq.post e.inv).obj,
+  left_inv := λ g, by simp_rw [← subq.post_comp, e.hom_inv_id, subq.post_id],
+  right_inv := λ g, by simp_rw [← subq.post_comp, e.inv_hom_id, subq.post_id] }
 
 lemma postcompose_pullback_comm' [has_pullbacks.{v} C] {X Y Z W : C} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W} [mono h] [mono g]
   {comm : f ≫ h = g ≫ k} (t : is_limit (pullback_cone.mk f g comm)) (a) :
@@ -567,7 +637,7 @@ end
 
 lemma sub.pull_post_self [has_pullbacks.{v} C] (f : X ⟶ Y) [mono f] (g₁ : sub X) :
   sub.post f ⋙ sub.pullback f ≅ 𝟭 _ :=
-(as_iso (pull_post_adj f).unit).symm
+(as_iso (sub.pull_post_adj f).unit).symm
 
 lemma subq.pull_post_self [has_pullbacks.{v} C] (f : X ⟶ Y) [mono f] :
   ∀ g₁, (subq.pullback f).obj ((subq.post f).obj g₁) = g₁ :=
@@ -698,20 +768,20 @@ begin
 end
 
 @[simps]
-def over.coprod' [has_coproducts.{v} C] {A : C} : over A → over A ⥤ over A := λ f,
+def over.coprod' [has_finite_coproducts.{v} C] {A : C} : over A → over A ⥤ over A := λ f,
 { obj := λ g, over.mk (coprod.desc f.hom g.hom),
   map := λ g₁ g₂ k, over.hom_mk (coprod.map (𝟙 _) k.left) }
 
 @[simps]
-def over.coprod [has_coproducts.{v} C] {A : C} : over A ⥤ over A ⥤ over A :=
+def over.coprod [has_finite_coproducts.{v} C] {A : C} : over A ⥤ over A ⥤ over A :=
 { obj := λ f, over.coprod' f,
   map := λ f₁ f₂ k,
   { app := λ g, over.hom_mk (coprod.map k.left (𝟙 _)) (by { dsimp, rw [coprod.map_desc, id_comp, over.w k] }) } }.
 
-def sub.union [has_images.{v} C] [has_coproducts.{v} C] {A : C} : sub A ⥤ sub A ⥤ sub A :=
+def sub.union [has_images.{v} C] [has_finite_coproducts.{v} C] {A : C} : sub A ⥤ sub A ⥤ sub A :=
 curry_obj ((forget_sub A).prod (forget_sub A) ⋙ uncurry.obj over.coprod ⋙ sub.image)
 
-def sub.le_union_left [has_images.{v} C] [has_coproducts.{v} C] {A : C} (f g : sub A) :
+def sub.le_union_left [has_images.{v} C] [has_finite_coproducts.{v} C] {A : C} (f g : sub A) :
   f ⟶ (sub.union.obj f).obj g :=
 begin
   refine sub.hom_mk (coprod.inl ≫ factor_thru_image _) _,
@@ -719,7 +789,7 @@ begin
   refl,
 end
 
-def sub.le_union_right [has_images.{v} C] [has_coproducts.{v} C] {A : C} (f g : sub A) :
+def sub.le_union_right [has_images.{v} C] [has_finite_coproducts.{v} C] {A : C} (f g : sub A) :
   g ⟶ (sub.union.obj f).obj g :=
 begin
   refine sub.hom_mk (coprod.inr ≫ factor_thru_image _) _,
@@ -727,7 +797,7 @@ begin
   refl,
 end
 
-def sub.union_le [has_images.{v} C] [has_coproducts.{v} C] {A : C} (f g h : sub A) :
+def sub.union_le [has_images.{v} C] [has_finite_coproducts.{v} C] {A : C} (f g h : sub A) :
   (f ⟶ h) → (g ⟶ h) → ((sub.union.obj f).obj g ⟶ h) :=
 begin
   intros k₁ k₂,
@@ -740,7 +810,7 @@ begin
   { apply image.lift_fac }
 end
 
-def subq.union [has_images.{v} C] [has_coproducts.{v} C] {A : C} : subq A ⥤ subq A ⥤ subq A :=
+def subq.union [has_images.{v} C] [has_finite_coproducts.{v} C] {A : C} : subq A ⥤ subq A ⥤ subq A :=
 skel_map₂ sub.union
 
 -- def intersection' [has_pullbacks.{v} C] {A : C} (f₁ f₂ : sub A) : sub A :=
@@ -794,12 +864,26 @@ end
 --   ..category_theory.sub_partial }
 
 instance [has_pullbacks.{v} C] {B : C} : semilattice_inf_top (subq B) :=
-{ le := (≤),
-  inf := λ m n, (subq.intersection.obj m).obj n,
+{ inf := λ m n, (subq.intersection.obj m).obj n,
   inf_le_left := subq.inf_le_left,
   inf_le_right := subq.inf_le_right,
   le_inf := subq.le_inf,
   ..category_theory.subq.order_top }
+
+lemma subq.inf_eq_post_pull [has_pullbacks.{v} C] {A : C} (f₁ : sub A) (f₂ : subq A) :
+  (⟦f₁⟧ ⊓ f₂ : subq A) = (subq.post f₁.arrow).obj ((subq.pullback f₁.arrow).obj f₂) :=
+begin
+  apply quotient.induction_on f₂,
+  intro f₂,
+  refl,
+end
+
+instance [has_finite_coproducts.{v} C] [has_images.{v} C] {B : C} : semilattice_sup (subq B) :=
+{ sup := λ m n, (subq.union.obj m).obj n,
+  le_sup_left := λ m n, quotient.induction_on₂ m n (λ a b, ⟨sub.le_union_left _ _⟩),
+  le_sup_right := λ m n, quotient.induction_on₂ m n (λ a b, ⟨sub.le_union_right _ _⟩),
+  sup_le := λ m n k, quotient.induction_on₃ m n k (λ a b c ⟨i⟩ ⟨j⟩, ⟨sub.union_le _ _ _ i j⟩),
+  ..category_theory.subq.partial_order B }
 
 lemma prod_eq_inter {A : C} {f₁ f₂ : subq A} [has_pullbacks.{v} C] : (f₁ ⨯ f₂) = f₁ ⊓ f₂ :=
 begin
@@ -823,6 +907,17 @@ quotient.ind begin
        ← subq.pullback_comp, pullback.condition],
   refl,
 end
+
+lemma inf_post [has_pullbacks.{v} C] {X Y : C} (g : Y ⟶ X) [mono g] (f₂) :
+  ∀ f₁, (subq.post g).obj (f₁ ⊓ f₂) = (subq.post g).obj f₁ ⊓ (subq.post g).obj f₂ :=
+quotient.ind begin
+  intro f₁,
+  erw [inf_eq_intersection, inf_eq_intersection, subq.intersection_eq_post_pull,
+       subq.intersection_eq_post_pull, ← subq.post_comp],
+  dsimp,
+  rw [subq.pullback_comp, subq.pull_post_self],
+end
+
 
 def sub.top_le_pullback_self {A B : C} (f : A ⟶ B) [mono f] [has_pullbacks.{v} C] :
   (⊤ : sub A) ⟶ (sub.pullback f).obj (sub.mk' f) :=

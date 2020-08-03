@@ -103,10 +103,16 @@ regular_of_is_pullback_snd_of_regular _ (classifies m).is_pb
 lift it to data.
 -/
 def raised_factors {X Y Z : C} {f : X ⟶ Z} {g : Y ⟶ Z} (h : factors_through f g) [mono g] : {k // k ≫ g = f} :=
-by haveI := mono_is_regular g; exact regular_mono.lift' _ _ (by { cases h, simp [← h_h, regular_mono.w] })
+begin
+  haveI := mono_is_regular g,
+  refine regular_mono.lift' _ _ _,
+  casesI h,
+  have : h.left ≫ g = f := over.w h,
+  rw [← this, assoc, assoc, regular_mono.w],
+end
 
 /-- A category with a subobject classifier is balanced. -/
--- Making this an instance screws with resolution.
+-- Making this an instance screws with resolution (unsurprisingly).
 def balanced {A B : C} (f : A ⟶ B) [ef : epi f] [mono f] : is_iso f :=
 @is_iso_limit_cone_parallel_pair_of_epi _ _ _ _ _ _ _ (mono_is_regular f).is_limit ef
 
