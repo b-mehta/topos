@@ -117,7 +117,7 @@ def preserves_limit_of_equiv {J₁ J₂ : Type v} [small_category J₁] [small_c
       apply_instance,
     let l := is_limit_equivalence_comp e.symm this,
     let equ := e.inv_fun_id_assoc (K ⋙ F),
-    apply (is_limit.of_cone_equiv (cones.postcompose_equivalence equ.symm).inverse l).of_iso_limit,
+    apply (is_limit.of_right_adjoint (cones.postcompose_equivalence equ.symm).inverse l).of_iso_limit,
     apply cones.ext _ _,
     { apply iso.refl _ },
     { intro j,

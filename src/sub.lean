@@ -943,8 +943,6 @@ quotient.sound ⟨sub.pullback_self f⟩
 -- lemma pullback_top {A B : C} (f : A ⟶ B) [has_pullbacks.{v} C] : pullback_sub f ⊤ = ⊤ :=
 -- quotient.sound (pullback'_top_eq_top f)
 
-local attribute [instance] has_pullbacks_of_has_finite_limits
-
 variable [has_finite_limits.{v} C]
 
 instance mono_prod_lift_of_left {X Y Z : C} (f : X ⟶ Y) (g : X ⟶ Z) [mono f] : mono (limits.prod.lift f g) :=
@@ -1001,7 +999,9 @@ end
 def sub.exp (f : sub (⊤_ C)) [cartesian_closed C] : sub (⊤_ C) ⥤ sub (⊤_ C) :=
 sub.exp_aux f.val.left
 
-def sub.exp_equiv (f₁ f₂ f₃ : sub (⊤_ C)) [cartesian_closed C] :
+local attribute [instance] has_finite_wide_pullbacks_of_has_finite_limits has_pullbacks_of_has_finite_limits
+
+def sub.exp_equiv [cartesian_closed C] (f₁ f₂ f₃ : sub (⊤_ C)) :
   ((sub.intersection.obj f₂).obj f₁ ⟶ f₃) ≃ (f₁ ⟶ (sub.exp f₂).obj f₃) :=
 { to_fun := λ k,
   begin

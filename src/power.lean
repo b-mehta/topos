@@ -38,6 +38,7 @@ namespace category_theory
 open category_theory category limits
 
 attribute [instance] has_pullbacks_of_has_finite_limits
+attribute [instance] has_finite_wide_pullbacks_of_has_finite_limits
 
 variables {C : Type u} [category.{v} C]
 
@@ -952,7 +953,7 @@ instance fundamental_theorem (B : C) [has_power_objects.{v} C] : has_power_objec
 
 def comparison [has_power_objects.{v} C]
   {D : Type u₂} [category.{v} D] [has_finite_limits.{v} D] [has_power_objects.{v} D]
-  (F : C ⥤ D) (h : Π (J : Type v) [small_category J] [fin_category J], preserves_limits_of_shape J F)
+  (F : C ⥤ D) (h : Π (J : Type v) [𝒥₁ : small_category J] [@fin_category J 𝒥₁], @preserves_limits_of_shape _ _ _ _ J 𝒥₁ F)
   (A : C) : F.obj (P A) ⟶ P (F.obj A) :=
 begin
   let m := F.map (mem A) ≫ (prod_comparison F (P A) A),
@@ -962,7 +963,7 @@ end
 
 def comp_natural' [has_power_objects.{v} C]
   {D : Type u₂} [category.{v} D] [has_finite_limits.{v} D] [has_power_objects.{v} D]
-  (F : C ⥤ D) (h : Π (J : Type v) [small_category J] [fin_category J], preserves_limits_of_shape J F)
+  (F : C ⥤ D) (h : Π (J : Type v) [𝒥₁ : small_category J] [@fin_category J 𝒥₁], @preserves_limits_of_shape _ _ _ _ J 𝒥₁ F)
   (A B : C) (f : B ⟶ A) :
   F.map (P_map f) ≫ comparison F h B = comparison F h A ≫ P_map (F.map f) :=
 begin
@@ -1016,7 +1017,7 @@ end
 -- Define F as a logical functor if this is an iso.
 def comp_natural [has_power_objects.{v} C]
   {D : Type u₂} [category.{v} D] [has_finite_limits.{v} D] [has_power_objects.{v} D]
-  (F : C ⥤ D) [h : Π (J : Type v) [small_category J] [fin_category J], preserves_limits_of_shape J F] :
+  (F : C ⥤ D) [h : Π (J : Type v) [𝒥₁ : small_category J] [@fin_category J 𝒥₁], @preserves_limits_of_shape _ _ _ _ J 𝒥₁ F] :
   (P_functor ⋙ F) ⟶ (F.op ⋙ P_functor) :=
 { app := λ A, comparison F h A.unop,
   naturality' := λ A B g, comp_natural' F h A.unop B.unop g.unop }

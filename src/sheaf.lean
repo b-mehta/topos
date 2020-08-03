@@ -1,6 +1,6 @@
 import category_theory.full_subcategory
 import category_theory.limits.creates
-import category_theory.reflect_isomorphisms
+import category_theory.reflects_isomorphisms
 import category_theory.limits.shapes.constructions.preserve_binary_products
 import category_theory.adjunction.fully_faithful
 import category_theory.closed.cartesian
@@ -22,7 +22,7 @@ def of_iso_point {J : Type v} [small_category J] (K : J ⥤ C) (c : cone K) [has
 is_limit.of_iso_limit (limit.is_limit K)
 begin
   haveI : is_iso (limit.cone_morphism c).hom := i,
-  haveI : is_iso (limit.cone_morphism c) := cone_iso_of_hom_iso _,
+  haveI : is_iso (limit.cone_morphism c) := cones.cone_iso_of_hom_iso _,
   symmetry,
   apply as_iso (limit.cone_morphism c),
 end
@@ -559,7 +559,7 @@ begin
   rw ← classify_eq_iff_eq,
   rw closure.classify_op,
   change _ ↔ classification.symm _ ≫ _ = classification.symm _,
-  simp,
+  rw classification.symm_apply_apply,
 end
 
 def closed_equiv {B B' : C} (m : B' ⟶ B) [closure.dense j m] : {cB : B ⟶ Ω C // cB ≫ j = cB} ≃ {cB : B' ⟶ Ω C // cB ≫ j = cB} :=
@@ -576,9 +576,9 @@ begin
   rw equalizer.lift_ι,
   change _ = classify _,
   rw classify_pullback,
-  change _ = m ≫ classification.symm _,
+  change _ = m ≫ classification.symm (classification _),
   rw classification.symm_apply_apply,
-  rw [assoc],
+  rw [assoc], refl,
 end
 
 def sheaf_classifier : sheaf j :=
@@ -1214,11 +1214,6 @@ begin
   refine ⟨_⟩,
   rwa eq_top_iff,
 end
-
--- def image.lift (F' : mono_factorisation f) : image f ⟶ F'.I := (image.is_image f).lift F'
--- @[simp, reassoc]
--- lemma image.lift_fac (F' : mono_factorisation f) : image.lift F' ≫ F'.m = image.ι f :=
--- (image.is_image f).lift_fac' F
 
 def sheafification_preserves_equalizer {B c : C} (f g : B ⟶ c) :
   preserves_limit.{v} (parallel_pair f g) (sheafification j) :=

@@ -1,6 +1,6 @@
 import category_theory.full_subcategory
 import category_theory.limits.preserves
-import category_theory.reflect_isomorphisms
+import category_theory.reflects_isomorphisms
 import category_theory.punit
 
 open category_theory category_theory.category category_theory.limits
@@ -82,7 +82,7 @@ instance reflects_iso_of_reflects_limits_of_shape_punit [reflects_limits_of_shap
       apply reflects_limit.reflects this,
     have l := is_limit_of_is_iso (F.map f),
     let t : cone (functor.from_punit B ⋙ F) ≌ cone _ := cones.postcompose_equivalence (map_cone_point F B),
-    apply is_limit.of_iso_limit (is_limit.of_cone_equiv t.inverse l),
+    apply is_limit.of_iso_limit (is_limit.of_right_adjoint t.inverse l),
     refine cones.ext (iso.refl _) _,
     intro j,
     dsimp [map_cone_point],
@@ -103,7 +103,7 @@ instance reflects_iso_of_reflects_colimits_of_shape_punit [reflects_colimits_of_
       apply reflects_colimit.reflects this,
     have l := is_colimit_of_is_iso (F.map f),
     let t : cocone (functor.from_punit A ⋙ F) ≌ cocone _ := cocones.precompose_equivalence (map_cone_point F A).symm,
-    apply is_colimit.of_iso_colimit (is_colimit.of_cocone_equiv t.inverse l),
+    apply is_colimit.of_iso_colimit (is_colimit.of_left_adjoint t.inverse l),
     refine cocones.ext (iso.refl _) _,
     intro j,
     dsimp [map_cone_point],

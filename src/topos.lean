@@ -1,6 +1,6 @@
 import category_theory.full_subcategory
 import category_theory.limits.creates
-import category_theory.reflect_isomorphisms
+import category_theory.reflects_isomorphisms
 import category_theory.limits.shapes.constructions.preserve_binary_products
 import category_theory.adjunction.fully_faithful
 import category_theory.adjunction.limits
@@ -54,7 +54,7 @@ calc star f ⋙ over.forget ≅ star f ⋙ (over.iterated_slice_equiv _).functor
         convert iso_pb f.hom,
       end
 
-def pullback_sum_iso [has_pullbacks.{v} C] {X Y Z W : C} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W}
+def pullback_sum_iso {X Y Z W : C} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W}
   {comm : f ≫ h = g ≫ k} (t : is_limit (pullback_cone.mk f g comm)) :
   real_pullback g ⋙ dependent_sum f ≅ dependent_sum k ⋙ real_pullback h :=
 begin

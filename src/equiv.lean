@@ -342,15 +342,15 @@ kata_is_pullback (A242_commutes _ _) _ (A242_pullback _ _) t
 
 def pushout_coprod {A B : C} :
   is_colimit (pushout_cocone.mk coprod.inl coprod.inr (subsingleton.elim _ _) : pushout_cocone (default (⊥_ C ⟶ A)) (default (⊥_ C ⟶ B))) :=
-pushout_cocone.is_colimit.mk _
-  (λ s, coprod.desc (pushout_cocone.inl s) (pushout_cocone.inr s))
+pushout_cocone.is_colimit.mk _ _ _
+  (λ s, coprod.desc s.inl s.inr)
   (λ s, coprod.inl_desc _ _)
-  (λ s, coprod.inr_desc _ _)
-$ λ s m w,
+  (λ s, coprod.inr_desc _ _) $
+λ s m w₁ w₂,
 begin
   apply coprod.hom_ext,
-  rw coprod.inl_desc, apply w walking_span.left,
-  rw coprod.inr_desc, apply w walking_span.right,
+  { rwa [coprod.inl_desc] },
+  { rwa [coprod.inr_desc] },
 end
 
 instance mono_coprod_inr {A B : C} : mono (coprod.inl : A ⟶ A ⨿ B) := A243_part1 _ pushout_coprod

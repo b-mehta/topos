@@ -204,7 +204,7 @@ begin
   suffices : is_colimit (over.forget.map_cocone (long_cone c r)),
     apply reflects_colimit.reflects this,
   apply limits.is_colimit.of_iso_colimit _ (forget_long_cocone_iso _ _).symm,
-  apply is_colimit.of_cocone_equiv (cocones.precompose_equivalence (diagram_iso _ r)).functor t,
+  apply is_colimit.of_left_adjoint (cocones.precompose_equivalence (diagram_iso _ r)).functor t,
 end
 
 def pullback_diagram_iso {K : J ⥤ C} (c : cocone K) (r : c.X ⟶ Z) :
@@ -215,7 +215,7 @@ def pullback_preserves {K : J ⥤ C} (c : cocone K) (t : is_colimit c) (r : c.X 
 begin
   haveI : preserves_colimits (real_pullback f) := adjunction.left_adjoint_preserves_colimits (ladj f),
   let e := cocones.precompose_equivalence (pullback_diagram_iso f c r),
-  let c' := is_colimit.of_cocone_equiv e.inverse (preserves_colimit.preserves (preserves_colimit.preserves (long_colimit c r t))),
+  let c' := is_colimit.of_left_adjoint e.inverse (preserves_colimit.preserves (preserves_colimit.preserves (long_colimit c r t))),
   apply is_colimit.of_iso_colimit c',
   apply cocones.ext _ _,
   apply iso.refl _,
@@ -290,7 +290,7 @@ instance pullback_regular_epi {X Y Z : C} (f : Y ⟶ Z) (g : X ⟶ Z) [gr : regu
   is_colimit :=
   begin
     have := pullback_preserves f _ gr.is_colimit (𝟙 Z),
-    apply is_colimit.of_iso_colimit (is_colimit.of_cocone_equiv (cocones.precompose_equivalence _).inverse this),
+    apply is_colimit.of_iso_colimit (is_colimit.of_left_adjoint (cocones.precompose_equivalence _).inverse this),
     swap,
     { apply nat_iso.of_components _ _,
       { rintro ⟨j⟩,

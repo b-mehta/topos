@@ -146,8 +146,8 @@ def arrow_map (a : algebra T) (b : algebra S) (comm_iso : R' ⋙ forget T ≅ fo
 equiv.trans ((adj S).hom_equiv ((L R).obj a.A) b) $ equiv.trans (ℛ.adj.hom_equiv a.A ((forget S).obj b)) $
 { to_fun := λ f, f ≫ comm_iso.inv.app b,
   inv_fun := λ g, g ≫ comm_iso.hom.app b,
-  left_inv := λ f, begin dsimp, rw [category.assoc, nat_iso.inv_hom_id_app], apply category.comp_id end,
-  right_inv := λ g, begin dsimp, rw [category.assoc, nat_iso.hom_inv_id_app], apply category.comp_id end
+  left_inv := λ f, begin dsimp, rw [category.assoc, iso.inv_hom_id_app], apply category.comp_id end,
+  right_inv := λ g, begin dsimp, rw [category.assoc, iso.hom_inv_id_app], apply category.comp_id end
 }
 -- This final equivalence might be useful in other contexts (that is, A ⟶ B ≃ A ⟶ C when B ≅ C). It should also probably be a consequence of Yoneda
 
@@ -222,7 +222,7 @@ begin
   slice_rhs 1 2 {rw ← (free T).map_comp, congr, erw ← ℛ.adj.unit.naturality, rw functor.id_map },
   simp only [functor.map_comp, functor.comp_map, category.assoc],
   slice_rhs 2 3 {rw ← (free T).map_comp, congr, rw ℛ.adj.right_triangle_components },
-  slice_rhs 1 3 {rw [← (free T).map_comp, ← (free T).map_comp], congr, erw category.id_comp, rw nat_iso.hom_inv_id_app },
+  slice_rhs 1 3 {rw [← (free T).map_comp, ← (free T).map_comp], congr, erw category.id_comp, rw iso.hom_inv_id_app },
   erw (free T).map_id,
   rw category.id_comp,
 end

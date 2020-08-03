@@ -7,6 +7,7 @@ Authors: Bhavik Mehta, Edward Ayers
 import category_theory.limits.shapes
 import category_theory.limits.preserves
 import category_theory.limits.over
+import category_theory.limits.shapes.constructions.over
 import tactic
 
 /-!
@@ -53,7 +54,7 @@ def has_pullback_top_of_is_pb {U V W X : C}
 def is_limit.mk' (t : pullback_cone f g)
   (create : Π (s : pullback_cone f g), {l : s.X ⟶ t.X // l ≫ t.fst = s.fst ∧ l ≫ t.snd = s.snd ∧ ∀ {m : s.X ⟶ t.X}, m ≫ t.fst = s.fst → m ≫ t.snd = s.snd → m = l}) :
 is_limit t :=
-pullback_cone.is_limit.mk t
+pullback_cone.is_limit_aux t
   (λ s, (create s).1)
   (λ s, (create s).2.1)
   (λ s, (create s).2.2.1)
@@ -439,11 +440,11 @@ is_limit (F.map_cone (pullback_cone.mk _ _ comm)) ≅ is_limit (pullback_cone.mk
 { hom := λ p,
   begin
     apply is_limit.of_iso_limit _ (convert_pb F comm),
-    apply is_limit.of_cone_equiv (cones.postcompose_equivalence ((diagram_iso_cospan _).symm)).inverse p,
+    apply is_limit.of_right_adjoint (cones.postcompose_equivalence ((diagram_iso_cospan _).symm)).inverse p,
   end,
   inv := λ p,
   begin
-    have := is_limit.of_cone_equiv (cones.postcompose_equivalence (diagram_iso_cospan (cospan g k ⋙ F))).inverse p,
+    have := is_limit.of_right_adjoint (cones.postcompose_equivalence (diagram_iso_cospan (cospan g k ⋙ F))).inverse p,
     apply is_limit.of_iso_limit this _,
     refine cones.ext (iso.refl _) _,
     dsimp [diagram_iso_cospan],
