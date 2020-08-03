@@ -17,7 +17,6 @@ import category_theory.currying
 import category_theory.adjunction.fully_faithful
 import sparse_skeleton
 import over
-import adjunction
 import algebra.pointwise
 
 universes v v₂ u u₂
