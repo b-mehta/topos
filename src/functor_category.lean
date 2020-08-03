@@ -87,7 +87,7 @@ begin
   apply jointly_reflects,
   intro c',
   specialize t c'.unop,
-  apply is_limit.of_iso_limit (is_limit.of_cone_equiv (cones.postcompose_equivalence (diagram_iso_cospan ((cospan h k).flip.obj c'))).inverse _) _,
+  apply is_limit.of_iso_limit (is_limit.of_right_adjoint (cones.postcompose_equivalence (diagram_iso_cospan ((cospan h k).flip.obj c'))).inverse _) _,
   swap,
   apply t,
   apply cones.ext _ _,
@@ -119,9 +119,6 @@ instance : mono (presheaf.truth C) :=
 begin
   refine ⟨λ Z g h eq, _⟩,
   ext,
-  apply subsingleton.elim _ _,
-  dsimp,
-  apply_instance,
 end
 
 @[simps]

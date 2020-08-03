@@ -31,6 +31,7 @@ def apply_functor (A : C) : over A ⥤ over (G.obj A) :=
 variables {G} (a : coalgebra G)
 
 local attribute [instance] has_pullbacks_of_has_finite_limits
+local attribute [instance] has_finite_wide_pullbacks_of_has_finite_limits
 
 def G' : over a.A ⥤ over a.A :=
 apply_functor G a.A ⋙ real_pullback a.a

@@ -61,7 +61,7 @@ begin
 end
 
 def truth : punit ⟶ ulift Prop := λ _, ulift.up true
-instance : mono truth := ⟨λ A f g _, begin ext i, apply subsingleton.elim end⟩
+instance : mono truth := ⟨λ A f g _, by ext⟩
 
 lemma set_classifier_u {U X : Type u} {f : U ⟶ X} {χ₁ : X ⟶ ulift Prop} (q : classifying truth f χ₁) :
   ∀ x, (χ₁ x).down ↔ ∃ (a : U), f a = x :=
