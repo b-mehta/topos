@@ -260,8 +260,8 @@ S.as_functor ⟶ P
 def amalgamation {P : Cᵒᵖ ⥤ Type v} {S : sieve X} (γ : matching_family P S) :=
 {α : yoneda.obj X ⟶ P // sieve.functor_inclusion S ≫ α = γ}
 
-def sheaf (J : sieve_set C) [grothendieck J] (P : Cᵒᵖ ⥤ Type v) :=
-∀ (X : C) (S : sieve X) (γ : matching_family P S), S ∈ J(X) → unique (amalgamation γ)
+def sheaf (J : sieve_set C) [grothendieck J] (P : Cᵒᵖ ⥤ Type v) : Type (max u v) :=
+Π (X : C) (S : sieve X) (γ : matching_family P S), S ∈ J X → unique (amalgamation γ)
 
 end grothendieck
 

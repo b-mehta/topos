@@ -30,18 +30,20 @@ variable {C}
 
 lemma prod_iso_pb {B : C} (f : over B) : prod_functor.obj f = star f ⋙ over.forget := rfl
 
--- def pb_compose {X Y Z : C} (f : X ⟶ Y) (g : Y ⟶ Z) : real_pullback g ⋙ real_pullback f ≅ real_pullback (f ≫ g) :=
--- begin
---   -- pullback_along g ⋙ pullback_along f ≅ pullback_along (f ⋙ g)
---   -- star (over.mk g) ⋙ (over.iterated_slice_equiv _).functor ⋙ star (over.mk f) ⋙ (over.iterated_slice_equiv _).functor ≅ star (over.mk (f ≫ g)) ⋙ (over.iterated_slice_equiv _).functor
-
-
---   -- star (over.mk g) ⋙ (over.iterated_slice_equiv _).functor ⋙ star (over.mk f) ⋙ (over.iterated_slice_equiv _).functor ⋙ over.forget ≅ star (over.mk (f ≫ g)) ⋙ (over.iterated_slice_equiv _).functor ⋙ over.forget
---   -- star (over.mk g) ⋙ (over.iterated_slice_equiv _).functor ⋙ star (over.mk f) ⋙ over.forget ⋙ over.forget ≅ star (over.mk (f ≫ g)) ⋙ over.forget ⋙ over.forget
---   -- star (over.mk g) ⋙ (over.iterated_slice_equiv _).functor ⋙ prod_functor.obj (over.mk f) ⋙ over.forget ≅ prod_functor.obj (f ≫ g) ⋙ over.forget
--- end
-
 def prod_iso_pb' {B : C} (f : over B) : prod_functor.obj f ≅ real_pullback f.hom ⋙ dependent_sum f.hom :=
+calc star f ⋙ over.forget ≅ star f ⋙ (over.iterated_slice_equiv _).functor ⋙ (over.iterated_slice_equiv f).inverse ⋙ over.forget :
+            iso_whisker_left (star f) (iso_whisker_right f.iterated_slice_equiv.unit_iso over.forget)
+     ... ≅ (star f ⋙ (over.iterated_slice_equiv _).functor) ⋙ ((over.iterated_slice_equiv f).inverse ⋙ over.forget) : iso.refl _
+     ... ≅ (star f ⋙ (over.iterated_slice_equiv _).functor) ⋙ dependent_sum f.hom : iso.refl _
+     ... ≅ real_pullback f.hom ⋙ dependent_sum f.hom :
+      begin
+        refine iso_whisker_right _ (dependent_sum f.hom),
+        have : f = over.mk f.hom,
+          cases f, congr, apply subsingleton.elim,
+        convert iso_pb f.hom,
+      end
+
+def prod_iso_pb'' {B : C} (f : over B) : prod_functor.obj f ≅ real_pullback f.hom ⋙ over.map f.hom :=
 calc star f ⋙ over.forget ≅ star f ⋙ (over.iterated_slice_equiv _).functor ⋙ (over.iterated_slice_equiv f).inverse ⋙ over.forget :
             iso_whisker_left (star f) (iso_whisker_right f.iterated_slice_equiv.unit_iso over.forget)
      ... ≅ (star f ⋙ (over.iterated_slice_equiv _).functor) ⋙ ((over.iterated_slice_equiv f).inverse ⋙ over.forget) : iso.refl _
@@ -56,7 +58,7 @@ calc star f ⋙ over.forget ≅ star f ⋙ (over.iterated_slice_equiv _).functor
 
 def pullback_sum_iso {X Y Z W : C} {f : X ⟶ Y} {g : X ⟶ Z} {h : Y ⟶ W} {k : Z ⟶ W}
   {comm : f ≫ h = g ≫ k} (t : is_limit (pullback_cone.mk f g comm)) :
-  real_pullback g ⋙ dependent_sum f ≅ dependent_sum k ⋙ real_pullback h :=
+  real_pullback g ⋙ over.map f ≅ over.map k ⋙ real_pullback h :=
 begin
   apply nat_iso.of_components _ _,
   { intro m,
@@ -88,43 +90,30 @@ begin
     simp }
 end
 
-def dependent_sum_comp {X Y Z : C} (f : X ⟶ Y) (g : Y ⟶ Z) : dependent_sum (f ≫ g) ≅ (dependent_sum f : over _ ⥤ over _) ⋙ dependent_sum g :=
+def test' {A B : C} (f : over A) (k : B ⟶ A) :
+  over.map k ⋙ prod_functor.obj f ≅ prod_functor.obj ((real_pullback k).obj f) ⋙ over.map k :=
+calc over.map k ⋙ prod_functor.obj f ≅ over.map k ⋙ real_pullback f.hom ⋙ over.map f.hom :
+              iso_whisker_left (over.map k) (prod_iso_pb'' _)
+     ... ≅ real_pullback pullback.snd ⋙ over.map pullback.fst ⋙ over.map f.hom :
+              iso_whisker_right (pullback_sum_iso (cone_is_pullback _ _)).symm (dependent_sum f.hom)
+     ... ≅ real_pullback pullback.snd ⋙ over.map (_ ≫ f.hom) : iso_whisker_left (real_pullback _) (over_map_comp _ _).symm
+     ... ≅ real_pullback pullback.snd ⋙ over.map (pullback.snd ≫ k) : iso_whisker_left (real_pullback _) (by rw pullback.condition)
+     ... ≅ real_pullback ((real_pullback k).obj f).hom ⋙ over.map pullback.snd ⋙ over.map k : iso_whisker_left (real_pullback _) (over_map_comp _ _)
+     ... ≅ prod_functor.obj ((real_pullback k).obj f) ⋙ over.map k : iso_whisker_right (prod_iso_pb' _).symm (over.map k)
+
+def test {A B : C} (f : over A) (k : B ⟶ A) :
+  exp f ⋙ real_pullback k ≅ real_pullback k ⋙ exp ((real_pullback k).obj f) :=
 begin
-  apply nat_iso.of_components _ _,
-  intro h,
-  refine over_iso (iso.refl _) _,
-  dsimp [dependent_sum],
-  simp,
-  intros,
-  ext1,
-  dsimp [dependent_sum],
-  simp,
+  apply right_adjoint_uniq,
+  apply adjunction.comp _ _ (radj k) (exp.adjunction _),
+  apply adjunction.of_nat_iso_left _ (test' f k).symm,
+  apply adjunction.comp _ _ (exp.adjunction _) (radj k),
 end
 
-def test' {A B : C} (f : over A) (k : B ⟶ A) :
-  dependent_sum k ⋙ prod_functor.obj f ≅ prod_functor.obj ((real_pullback k).obj f) ⋙ dependent_sum k :=
-calc dependent_sum k ⋙ prod_functor.obj f ≅ dependent_sum k ⋙ real_pullback f.hom ⋙ dependent_sum f.hom :
-              iso_whisker_left (dependent_sum k) (prod_iso_pb' _)
-     ... ≅ real_pullback pullback.snd ⋙ dependent_sum pullback.fst ⋙ dependent_sum f.hom :
-              iso_whisker_right (pullback_sum_iso (cone_is_pullback _ _)).symm (dependent_sum f.hom)
-     ... ≅ real_pullback pullback.snd ⋙ dependent_sum (_ ≫ f.hom) : iso_whisker_left (real_pullback _) (dependent_sum_comp _ _).symm
-     ... ≅ real_pullback pullback.snd ⋙ dependent_sum (pullback.snd ≫ k) : iso_whisker_left (real_pullback _) (by rw pullback.condition)
-     ... ≅ real_pullback ((real_pullback k).obj f).hom ⋙ dependent_sum pullback.snd ⋙ dependent_sum k : iso_whisker_left (real_pullback _) (dependent_sum_comp _ _)
-     ... ≅ prod_functor.obj ((real_pullback k).obj f) ⋙ dependent_sum k : iso_whisker_right (prod_iso_pb' _).symm (dependent_sum k)
-
--- def test {A B : C} (f : over A) (k : B ⟶ A) :
---   exp f ⋙ real_pullback k ≅ real_pullback k ⋙ exp ((real_pullback k).obj f) :=
--- begin
---   apply right_adjoint_uniq,
---   apply adjunction.comp _ _ (radj k) (exp.adjunction _),
---   apply adjunction.of_nat_iso_left _ (test' f k).symm,
---   apply adjunction.comp _ _ (exp.adjunction _) (radj k),
--- end
-
 /-- Pullback respects exponentials! (Natural in `g`) -/
--- def pullback_exp {X Y A B : C} (f g : over A) (k : B ⟶ A) :
---   (real_pullback k).obj (f ⟹ g) ≅ (real_pullback k).obj f ⟹ (real_pullback k).obj g :=
--- (test f k).app g
+def pullback_exp {X Y A B : C} (f g : over A) (k : B ⟶ A) :
+  (real_pullback k).obj (f ⟹ g) ≅ (real_pullback k).obj f ⟹ (real_pullback k).obj g :=
+(test f k).app g
 
 instance subq_cc (A : C) : cartesian_closed (subq A) :=
 cartesian_closed_of_equiv (sub_one_over A).symm
@@ -333,7 +322,7 @@ adjunction.right_adjoint_preserves_limits (subq.exists_pull_adj f)
 instance pullback_cc (f : A ⟶ B) : cartesian_closed_functor (subq.pullback f) :=
 cartesian_closed_of_frobenius_iso (subq.exists_pull_adj f)
 
-lemma pullback_exp (f : A ⟶ B) (x y : subq B) :
+lemma subq.pullback_exp (f : A ⟶ B) (x y : subq B) :
   (subq.pullback f).obj (x ⟹ y) = ((subq.pullback f).obj x ⟹ (subq.pullback f).obj y) :=
 begin
   apply skel_is_skel,
@@ -464,8 +453,9 @@ end
 -- def and_arrow : Ω C ⨯ Ω C ⟶ Ω C := indicators limits.prod.fst limits.prod.snd
 -- variable {C}h
 
+/-- Complement commutes with pullback. -/
 lemma compl_natural (m : subq B) (f : A ⟶ B) : (subq.pullback f).obj mᶜ = ((subq.pullback f).obj m)ᶜ :=
-by { erw [pullback_exp, pullback_bot], refl }
+by { erw [subq.pullback_exp, pullback_bot], refl }
 
 def neg_arrow_aux (m : B ⟶ Ω C) : B ⟶ Ω C :=
 classify (classification m)ᶜ
