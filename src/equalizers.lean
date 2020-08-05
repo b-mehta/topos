@@ -1,18 +1,9 @@
-import category_theory.full_subcategory
-import category_theory.limits.creates
-import category_theory.reflects_isomorphisms
-import category_theory.limits.shapes.constructions.preserve_binary_products
-import category_theory.adjunction.fully_faithful
-import category_theory.closed.cartesian
-import reflects
-import equiv
-import construction
-import topos
+import category_theory.limits.preserves
+import category_theory.limits.shapes.equalizers
 
 namespace category_theory
 
 open category_theory category_theory.category category_theory.limits
-open classifier
 
 universes v u u₂
 
