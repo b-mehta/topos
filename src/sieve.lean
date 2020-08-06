@@ -240,13 +240,26 @@ by rw [← id_mem_iff_eq_top, mem_pullback, category.id_comp]
 -- end
 
 /-- A sieve induces a presheaf. -/
+@[simps]
 def as_functor (S : sieve X) : Cᵒᵖ ⥤ Type v :=
 { obj := λ Y, {g : Y.unop ⟶ X // over.mk g ∈ S.arrows},
   map := λ Y Z f g, ⟨f.unop ≫ g.1, downward_closed _ g.2 _⟩ }
 
+@[simps]
+def le_as_functor {S T : sieve X} (h : S ≤ T) : as_functor S ⟶ as_functor T :=
+{ app := λ Y f, ⟨f.1, h _ _ f.2⟩ }.
+
 /-- The natural inclusion from the functor induced by a sieve to the yoneda embedding. -/
+@[simps]
 def functor_inclusion (S : sieve X) : S.as_functor ⟶ yoneda.obj X :=
 { app := λ Y f, f.1 }.
+
+lemma le_as_functor_comm {S T : sieve X} (h : S ≤ T) :
+  le_as_functor h ≫ functor_inclusion _ = functor_inclusion _ :=
+begin
+  ext c t,
+  refl,
+end
 
 /-- The presheaf induced by a sieve is a subobject of the yoneda embedding. -/
 instance functor_inclusion_is_mono : mono (functor_inclusion S) :=

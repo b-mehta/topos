@@ -5,7 +5,7 @@ import category_theory.limits.types
 import category_theory.monad.algebra
 import category_theory.category.Cat
 import tactic.equiv_rw
-import pullbacks
+import category.pullbacks
 import data.sigma
 
 namespace category_theory

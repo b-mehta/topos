@@ -5,8 +5,8 @@ import category_theory.limits.shapes.images
 import category_theory.limits.shapes.regular_mono
 import category_theory.epi_mono
 import category_theory.limits.over
+import category.images
 import over
-import images
 
 /-!
 # Locally cartesian closed categories

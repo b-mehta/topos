@@ -1,7 +1,7 @@
 import category_theory.limits.shapes.equalizers
 import category_theory.limits.shapes.pullbacks
 import category_theory.limits.shapes.regular_mono
-import pullbacks
+import category.pullbacks
 
 universes v u u₂
 

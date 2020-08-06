@@ -8,10 +8,10 @@ import category_theory.limits.shapes.binary_products
 import category_theory.limits.shapes.constructions.preserve_binary_products
 import category_theory.limits.shapes.pullbacks
 import category_theory.comma
-import pullbacks
 import category_theory.adjunction.limits
 import category_theory.pempty
 import category_theory.limits.preserves
+import category.pullbacks
 
 universes v u u' u₂
 

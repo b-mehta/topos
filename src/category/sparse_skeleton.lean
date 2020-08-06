@@ -15,7 +15,7 @@ import category_theory.limits.shapes.pullbacks
 import category_theory.limits.over
 import category_theory.currying
 import tactic
-import adjunction
+import category.adjunction
 
 universes v v₂ v₃ u u₂ u₃
 

@@ -10,15 +10,15 @@ import category_theory.limits.shapes.finite_products
 import category_theory.limits.types
 import category_theory.adjunction.limits
 import category_theory.monad.limits
-import subobject_classifier
 import category_theory.limits.opposites
 import category_theory.limits.over
 import category_theory.epi_mono
 import category_theory.limits.shapes.equalizers
 import category_theory.limits.shapes.constructions.limits_of_products_and_equalizers
-import adjoint_lifting
-import locally_cartesian_closed
 import category_theory.limits.shapes.constructions.preserve_binary_products
+import category.adjoint_lifting
+import locally_cartesian_closed
+import subobject_classifier
 
 /-!
 # Power objects

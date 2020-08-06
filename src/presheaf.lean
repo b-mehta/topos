@@ -1,5 +1,5 @@
 import category_theory.monad.algebra
-import pullbacks
+import category.pullbacks
 
 namespace category_theory
 

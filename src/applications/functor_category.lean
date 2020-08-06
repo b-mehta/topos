@@ -6,6 +6,7 @@ import category_theory.limits.functor_category
 import category_theory.functor_category
 import sieve
 import subobject_classifier
+import topos
 
 universes v u
 
@@ -317,5 +318,9 @@ begin
   refl,
 end
 
-instance : cartesian_closed.{u} (Cᵒᵖ ⥤ Type u) :=
+def presheaf_cc : cartesian_closed.{u} (Cᵒᵖ ⥤ Type u) :=
 { closed := λ P, exponentiables P }
+
+noncomputable instance : topos (Cᵒᵖ ⥤ Type u) :=
+{ sub := presheaf_has_subobj_classifier C,
+  cc := presheaf_cc }.

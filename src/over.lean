@@ -4,8 +4,8 @@ import category_theory.limits.shapes
 import category_theory.epi_mono
 import category_theory.limits.over
 import category_theory.closed.cartesian
-import binary_products
-import adjunction
+import category.binary_products
+import category.adjunction
 
 /-!
 # Properties of the over category.

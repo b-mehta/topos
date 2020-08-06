@@ -4,7 +4,7 @@ import category_theory.reflects_isomorphisms
 import category_theory.limits.shapes.constructions.preserve_binary_products
 import category_theory.adjunction.fully_faithful
 import category_theory.closed.cartesian
-import reflects
+import category.reflects
 import equiv
 import construction
 import topos
@@ -34,14 +34,15 @@ variable (C)
 def and_arrow : Ω C ⨯ Ω C ⟶ Ω C := indicators limits.prod.fst limits.prod.snd
 variable {C}
 
-lemma property {B : C} (m₁ m₂ : subq B) :
+@[reassoc]
+lemma and_property {B : C} (m₁ m₂ : subq B) :
   prod.lift (classify m₁) (classify m₂) ≫ and_arrow C = classify (m₁ ⊓ m₂) :=
 by rw [and_arrow, indicators_natural, prod.lift_fst, prod.lift_snd, indicators,
        classification.apply_symm_apply, classification.apply_symm_apply]
 
 lemma leq_iff_comp_and {E : C} (m n : subq E) :
   m ≤ n ↔ prod.lift (classify m) (classify n) ≫ and_arrow C = classify m :=
-by simp only [← inf_eq_left, property, ← classification.apply_eq_iff_eq, classification.apply_symm_apply]
+by simp only [← inf_eq_left, and_property, ← classification.apply_eq_iff_eq, classification.apply_symm_apply]
 
 lemma factors_iff_comp_and {E A₁ A₂ : C} (m₁ : A₁ ⟶ E) (m₂ : A₂ ⟶ E) [mono m₁] [mono m₂] :
   factors_through m₁ m₂ ↔ prod.lift (classifier_of m₁) (classifier_of m₂) ≫ and_arrow C = classifier_of m₁ :=
@@ -110,7 +111,7 @@ begin
 end
 
 def closure_intersection {E : C} {m m' : subq E} : closure.operator j (m ⊓ m') = closure.operator j m ⊓ closure.operator j m' :=
-by simp only [← classify_eq_iff_eq, closure.classify_op, ← property, ← prod.lift_map, assoc, topology.ax3]
+by simp only [← classify_eq_iff_eq, closure.classify_op, ← and_property, ← prod.lift_map, assoc, topology.ax3]
 
 def monotone {B : C} (m : A ⟶ E) (n : B ⟶ E) [mono m] [mono n] (h : factors_through m n) :
   factors_through (arrow j m) (arrow j n) :=
@@ -291,6 +292,9 @@ end
 def sheaf.A (A : sheaf j) : C := (forget j).obj A
 
 def sheaf.hom_mk (A B : sheaf j) (f : A.A ⟶ B.A) : A ⟶ B := f
+
+def unique_extend (A : sheaf j) {B B' : C} (m : B' ⟶ B) [closure.dense j m] (f' : B' ⟶ A.A) : unique {f // m ≫ f = f'} :=
+(A.unique_extend m f')
 
 def extend_map' (A : sheaf j) {B B' : C} (m : B' ⟶ B) [closure.dense j m] (f' : B' ⟶ A.A) : {f // m ≫ f = f'} :=
 (A.unique_extend m f').1.1
