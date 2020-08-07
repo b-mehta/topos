@@ -21,7 +21,7 @@ variables {C : Type u} [category.{v} C]
 variables {X Y Z : C} {S R : sieve X}
 
 @[simp, priority 100]
-lemma downward_closed (f : Y ⟶ X) (Hf : over.mk f ∈ S.arrows) (g : Z ⟶ Y) :
+lemma downward_closed (S : sieve X) {f : Y ⟶ X} (Hf : over.mk f ∈ S.arrows) (g : Z ⟶ Y) :
   over.mk (g ≫ f) ∈ S.arrows :=
 S.subs g Hf
 
