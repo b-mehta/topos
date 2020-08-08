@@ -5,7 +5,6 @@ import category_theory.limits.shapes.binary_products
 import category_theory.limits.functor_category
 import category_theory.functor_category
 import sieve
-import subobject_classifier
 import topos
 
 universes v u
