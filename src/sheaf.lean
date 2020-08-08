@@ -191,6 +191,8 @@ end
 
 instance dense_pullback {X Y Z : C} (f : X ⟶ Z) (g : Y ⟶ Z) [dense j g] : dense j (pullback.snd : pullback g f ⟶ X) :=
 dense_of_pullback j pullback.condition (cone_is_pullback _ _)
+instance dense_pullback_fst {X Y Z : C} (f : X ⟶ Z) (g : Y ⟶ Z) [dense j g] : dense j (pullback.fst : pullback f g ⟶ X) :=
+dense_of_pullback j pullback.condition.symm (pullback_cone.flip_is_limit (cone_is_pullback _ _))
 
 def dense_top_of_pullback {E F A B : C} {m : A ⟶ E} {f : F ⟶ E} {l : B ⟶ F} {t : B ⟶ A} (comm : t ≫ m = l ≫ f)
   (lim : is_limit (pullback_cone.mk _ _ comm)) [dense j f] : dense j t :=

@@ -11,12 +11,10 @@ namespace category_theory
 open category limits
 universes v₁ v₂ u₁ u₂
 
-set_option pp.universes true
-
 -- check what happens if we allow C's homs to be in another universe
 variables {C : Type u₁} [small_category C]
 
-section
+namespace colimit_adj
 variables {ℰ : Type u₂} [category.{u₁} ℰ]
 variables [has_colimits ℰ]
 variable (A : C ⥤ ℰ)
@@ -27,12 +25,12 @@ def R : ℰ ⥤ (Cᵒᵖ ⥤ Type u₁) :=
     map := λ c c' f k, A.map f.unop ≫ k },
   map := λ E E' k, { app := λ c f, f ≫ k } }.
 
-def L_obj (P : Cᵒᵖ ⥤ Type u₁) : ℰ :=
+private def L_obj (P : Cᵒᵖ ⥤ Type u₁) : ℰ :=
 colimit ((category_of_elements.π P).left_op ⋙ A)
 
 set_option pp.universes false
 
-def Le (P : Cᵒᵖ ⥤ Type u₁) (E : ℰ) : (L_obj A P ⟶ E) ≃ (P ⟶ (R A).obj E) :=
+private def Le (P : Cᵒᵖ ⥤ Type u₁) (E : ℰ) : (L_obj A P ⟶ E) ≃ (P ⟶ (R A).obj E) :=
 (colimit.hom_iso' ((category_of_elements.π P).left_op ⋙ A) E).to_equiv.trans
 { to_fun := λ k,
   { app := λ c p, k.1 (opposite.op ⟨_, p⟩),
@@ -80,9 +78,9 @@ begin
 end
 
 def L_adjunction : L A ⊣ R A := adjunction.adjunction_of_equiv_left _ _
-end
+end colimit_adj
 
-set_option pp.universes false
+open colimit_adj
 
 def right_is_id : R (yoneda : C ⥤ _) ≅ 𝟭 _ :=
 nat_iso.of_components
