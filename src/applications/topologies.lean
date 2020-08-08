@@ -17,58 +17,6 @@ open classifier limits category
 
 noncomputable theory
 
-def one_equiv (X : Cᵒᵖ ⥤ Type u) :
-  (one C ⟶ X) ≃ {f : Π (c : Cᵒᵖ), X.obj c // ∀ {c c' : Cᵒᵖ} (g : c ⟶ c'), X.map g (f c) = f c'} :=
-{ to_fun := λ f, ⟨λ c, f.app c ⟨⟩, λ c c' g, congr_fun (f.naturality g).symm punit.star⟩,
-  inv_fun := λ f,
-  { app := λ c _, f.1 c,
-    naturality' := λ c c' g,
-    begin
-      ext1 ⟨⟩,
-      exact (f.2 g).symm,
-    end },
-  left_inv := λ f,
-  begin
-    ext c ⟨⟩,
-    refl,
-  end,
-  right_inv := λ f,
-  begin
-    ext,
-    refl,
-  end }
-
-def one_to_truth :
-  (one C ⟶ Ω _) ≃ {J : Π (c : Cᵒᵖ), sieve c.unop // ∀ {c c' : Cᵒᵖ} (g : c ⟶ c'), (J c).pullback g.unop = J c'} :=
-one_equiv _
-
-lemma one_equiv_truth : (one_equiv _ (truth (Cᵒᵖ ⥤ Type u))).1 = λ c, (⊤ : sieve c.unop) :=
-begin
-  ext,
-  refl,
-end
-
-lemma maps_eq (F : Cᵒᵖ ⥤ Type u) (f g : Ω _ ⟶ F)
-  (h : ∀ (c : Cᵒᵖ) (S : sieve c.unop), f.app c S = g.app c S) : f = g :=
-begin
-  ext,
-  apply h,
-end
-
-lemma pair_maps_eq (F : Cᵒᵖ ⥤ Type u) (f g : Ω _ ⨯ Ω _ ⟶ F) :
-  (∀ {Q} (k₁ k₂ : Q ⟶ Ω _), limits.prod.lift k₁ k₂ ≫ f = limits.prod.lift k₁ k₂ ≫ g) → f = g :=
-begin
-  intro h,
-  apply eq_of_comp_right_eq,
-  intros Q pq,
-  specialize h (pq ≫ limits.prod.fst) (pq ≫ limits.prod.snd),
-  have : limits.prod.lift (pq ≫ limits.prod.fst) (pq ≫ limits.prod.snd) = pq,
-    apply limits.prod.hom_ext; simp,
-  simp_rw this at h,
-  exact h,
-end
-
-
 @[simps]
 def close (J : sieve_set C) [grothendieck J] {c : Cᵒᵖ} (S : sieve c.unop) : sieve c.unop :=
 { arrows := λ g, S.pullback g.hom ∈ J g.left,
@@ -141,20 +89,6 @@ def j : Ω (Cᵒᵖ ⥤ Type u) ⟶ Ω (Cᵒᵖ ⥤ Type u) :=
     change sieve c.unop at S,
     apply close_pullback,
   end }
-
-
--- lemma one_generating (X Y : Cᵒᵖ ⥤ Type u) (f g : X ⟶ Y) :
---   (∀ (i : one C ⟶ X), i ≫ f = i ≫ g) ↔ f = g :=
--- ⟨begin
---   intro k,
---   ext c x,
---   have q := k ((one_equiv _).symm ⟨_, _⟩),
---   apply_fun nat_trans.app at q,
---   replace q := congr_fun q c,
---   replace q := congr_fun q ⟨⟩,
---   dsimp [one_equiv] at q,
--- end
--- , λ k, by simp [k]⟩
 
 lemma yoneda_generates (X Y : Cᵒᵖ ⥤ Type u) (f g : X ⟶ Y)
   (h : ∀ (c : Cᵒᵖ) (k : yoneda.obj c.unop ⟶ X), k ≫ f = k ≫ g) :
@@ -374,152 +308,26 @@ sheaf.yoneda_mk J P
 begin
   introsI c S' f' m hm,
   let S := (sub_repr _).symm ⟦sub.mk' m⟧,
-  have := sub_repr_eq _ S,
-  -- change (sub_repr _) ((sub_repr _).symm _) = _ at this,
-  rw (sub_repr _).apply_symm_apply at this,
+  have same_class := sub_repr_eq _ S,
+  rw (sub_repr _).apply_symm_apply at same_class,
   have : closure.dense (j J) S.functor_inclusion,
   refine ⟨_⟩,
   change closure.operator _ (subq.mk _) = _,
-  rw ← this,
+  rw ← same_class,
   apply hm.closure_eq_top,
+  have := dense_inclusion_iff J _ S this,
   have : classifier_of m = classifier_of S.functor_inclusion,
-    rw ← classification.apply_eq_iff_eq,
-    change ⟦sub.mk' _⟧ = ⟦sub.mk' _⟧,
-
-    --  ⟦sub.mk' (get_subobject k)⟧,
-  let i := how_inj_is_classifier S.functor_inclusion m _,
-  -- have := c_very_inj _,
-  -- have := dense_inclusion_iff J _ S this,
-  -- have := h _ S _ ‹S ∈ J c›,
-  -- swap,
+    change classify ⟦sub.mk' m⟧ = classify ⟦sub.mk' S.functor_inclusion⟧,
+    rw same_class,
+  let i := how_inj_is_classifier m S.functor_inclusion this,
+  have hi : i.hom ≫ _ = _ := c_very_inj this,
+  refine ⟨(h _ S (i.inv ≫ f') ‹S ∈ J c›).1.1.1, _, _⟩,
+  rw [← hi, assoc, (h _ S (i.inv ≫ f') ‹S ∈ J c›).1.1.2], simp,
+  intros a ha,
+  apply subtype.ext_iff.1 ((h _ S (i.inv ≫ f') ‹S ∈ J c›).2 ⟨a, _⟩),
+  rw iso.eq_inv_comp,
+  rw reassoc_of hi,
+  rw ha,
 end
-
--- lemma dense_property {A E : Cᵒᵖ ⥤ Type u} (m : A ⟶ E) [closure.dense (j J) m] :
---   ∀ (c : Cᵒᵖ) (e : E.obj c), (classify (subq.mk m)).app c e ∈ J c.unop :=
--- sorry
-
--- lemma sieve_is {A E : Cᵒᵖ ⥤ Type u} (m : A ⟶ E) [closure.dense (j J) m] (c : Cᵒᵖ) (e : E.obj c)
---   (d : C) (f : d ⟶ _) :
---   over.mk f ∈ sieve.arrows ((classify (subq.mk m)).app c e) ↔ ∃ (x : A.obj _), m.app _ x = E.map f.op e :=
--- iff.rfl
-
--- lemma aux {A E P : Cᵒᵖ ⥤ Type u} (m : A ⟶ E) [mono m] (σ : A ⟶ P) {c : Cᵒᵖ} (e : E.obj c) {d d' : C}
---   (f : d ⟶ c.unop) (g : d' ⟶ d) (f₁ : _) (hf₁ : m.app (opposite.op d') f₁ = E.map (f.op ≫ g.op) e)
---   (f₂) (hf₂ : m.app (opposite.op d) f₂ = E.map f.op e) :
---   σ.app (opposite.op d') f₁ = σ.app (opposite.op d') (A.map g.op f₂) :=
--- begin
---   rw [E.map_comp, types_comp_apply] at hf₁,
---   have := congr_arg (E.map g.op) hf₂,
---   change (m.app (opposite.op d) ≫ E.map g.op) f₂ = _ at this,
---   rw ← m.naturality at this,
---   rw ← hf₁ at this,
---   dsimp at this,
---   have : mono (m.app (opposite.op d')) := preserves_mono_of_preserves_pullback ((evaluation Cᵒᵖ (Type u)).obj (opposite.op d')) A E m,
---   rw mono_iff_injective at this,
---   have : A.map g.op f₂ = f₁,
---     apply this, assumption,
---   rw this,
--- end
-
-
--- c: Cᵒᵖ
--- e: E.obj c
--- dd': C
--- f: d ⟶ opposite.unop c
--- g: d' ⟶ d
--- hf: over.mk f ∈ ((classify (subq.mk m)).app c e).arrows
--- hf₁: m.app (opposite.op d') (classical.some (sieve.downward_closed ((classify (subq.mk m)).app c e) hf g)) = E.map (f.op ≫ g.op) e
--- hf₂: m.app (opposite.op d) (classical.some hf) = E.map f.op e
--- ⊢ σ.app (opposite.op d') (classical.some (sieve.downward_closed ((classify (subq.mk m)).app c e) hf g)) = σ.app (opposite.op d') (A.map g.op (classical.some hf))
-
-
--- def Jsheaf_is_jsheaf (P : Cᵒᵖ ⥤ Type u) (h : grothendieck.sheaf J P) : sheaf (j J) :=
--- sheaf.mk' P
--- begin
---   replace h := (grothendieck.sheaf'_equiv_sheaf J P).hom h,
---   introsI E A m σ _,
---   rw grothendieck.sheaf' at h,
---   let special_sieve : Π (c : Cᵒᵖ) (e : E.obj c), sieve c.unop := λ c e, ((classify (subq.mk m)).app c e),
---   let family : Π c e, grothendieck.matching_family' P (special_sieve c e),
---   { intros c e,
---     refine ⟨λ d f hf, σ.app (opposite.op d) (classical.some hf), _⟩,
---     intros d d' f g hf,
---     change σ.app _ (classical.some (sieve.downward_closed _ hf g)) = (σ.app (opposite.op d) ≫ P.map _) (classical.some hf),
---     rw ← σ.naturality,
---     have hf₁ := classical.some_spec ((sieve.downward_closed (special_sieve c e) hf g)),
---     have hf₂ := classical.some_spec hf,
---     exact aux m _ e f _ _ hf₁ _ (classical.some_spec hf) },
---   let p : Π (c : Cᵒᵖ) (e : E.obj c), P.obj c,
---     intros, apply (h c.unop _ (family c e) (dense_property J m _ e)).1.1.1,
---   have hp : ∀ (c) (e : E.obj c) (d : C) (f : d ⟶ c.unop) (hf), P.map f.op (p _ e) = (family c e).val f hf,
---     intros,
---     apply (h c.unop _ (family c e) (dense_property J m _ e)).1.1.2 f hf,
---   have hp' : ∀ (c) (e : E.obj c) (d : C) (f : d ⟶ c.unop) (hf), P.map f.op (p _ e) = σ.app (opposite.op d) (classical.some hf),
---     intros,
---     rw hp,
---   refine ⟨_, _, _⟩,
---   { refine ⟨p, _⟩,
---     intros c c' f,
---     ext e,
---     dsimp,
---     rw hp',
-
---   },
-  -- { refine ⟨λ c e, (h c.unop _ (family c e) (dense_property J m _ e)).1.1.1, _⟩,
-  --   intros c c' f,
-  --   ext e,
-  --   dsimp only [types_comp_apply],
-  --   have := (h c.unop _ (family c e) (dense_property J m _ e)).1.1.2,
-  --   have : ∀ {d} (f : d ⟶ c.unop) (hf : over.mk f ∈ sieve.arrows ((classify (subq.mk m)).app c e)),
-  --     P.map _ (h c.unop _ (family c e) (dense_property J m _ e)).1.1.1 = sorry,
-
-    -- refine ⟨λ c e, _, _⟩,
-    -- { apply (h c.unop _ _ (dense_property J m _ e)).1.1.1,
-    --   refine ⟨λ d f hf, _, _⟩,
-    --   apply σ.app (opposite.op d),
-    --   apply classical.some hf,
-    --   intros d d' f g hf,
-    --   change σ.app _ (classical.some (sieve.downward_closed _ hf g)) = (σ.app (opposite.op d) ≫ P.map _) (classical.some hf),
-    --   rw ← σ.naturality,
-    --   have hf₁ := classical.some_spec ((sieve.downward_closed ((classify (subq.mk m)).app c e) hf g)),
-    --   have hf₂ := classical.some_spec hf,
-    --   exact aux m _ e f _ _ hf₁ _ (classical.some_spec hf) },
-    -- { intros c c' f,
-    --   ext1 e,
-    --   dsimp only [types_comp_apply],
-    --   have z : P.map f _ = _ := (h c.unop _ _ (dense_property J m _ e)).1.1.2 f.unop _,
-    --   rw z,
-    --   dsimp,
-
-    -- }
-    -- },
---   { sorry },
---   { sorry },
--- end
-
--- def Jsheaf_is_jsheaf (P : Cᵒᵖ ⥤ Type u) (h : grothendieck.sheaf J P) : sheaf (j J) :=
--- sheaf.mk' P
--- begin
---   replace h := (grothendieck.sheaf'_equiv_sheaf J P).hom h,
---   introsI E A m σ _,
---   refine ⟨_, _, _⟩,
---   refine ⟨_, _⟩,
---   intros c e,
---   let S : sieve c.unop := ⟨λ f, ∃ (t : A.obj _), m.app _ t = E.map f.hom.op e, _⟩,
---   have : S ∈ J c.unop,
---     sorry,
---   sorry,
---   intros,
---   change ∃ (x : A.obj (opposite.op Y)), m.app _ _ = E.map f.op e at a,
---   change ∃ (x : A.obj (opposite.op Z)), m.app (opposite.op Z) _ = E.map (f.op ≫ g.op) e,
---   cases a,
---   refine ⟨A.map g.op a_w, _⟩,
---   change (A.map g.op ≫ m.app _) _ = _,
---   rw m.naturality,
---   dsimp,
---   rw [a_h, E.map_comp],
---   refl,
---   -- specialize h c.unop,
--- end
 
 end category_theory

@@ -14,6 +14,8 @@ variables (X : Type u) [topological_space X]
 section
 variables {X} (U V : opens X)
 
+-- TODO: this file was written before topology.category.Top.opens was refactored to be easier to use
+-- so much of the indirection here is now redundant, can almost certainly be *massively* simplified
 structure opens_sieve :=
 (collection : set (opens X))
 (all_under : ∀ V ∈ collection, V ≤ U)
@@ -44,11 +46,11 @@ def is_covering (s : opens_sieve U) : Prop := Sup s.collection = U
 @[simps]
 def restrict {U V : opens X} (h : V ≤ U) (s : opens_sieve U) : opens_sieve V :=
 { collection := (λ W, V ⊓ W) '' s.collection,
-  all_under := by { rintro _ ⟨W, hW, rfl⟩, exact inf_le_left },
+  all_under := by { rintro _ ⟨W, hW, rfl⟩, exact lattice.inf_le_left _ _ },
   down_closed :=
   begin
     rintro _ ⟨W, hW, rfl⟩ W' hW',
-    refine ⟨W ⊓ W', s.down_closed _ hW inf_le_left, _⟩,
+    refine ⟨W ⊓ W', s.down_closed _ hW (lattice.inf_le_left _ _), _⟩,
     dsimp,
     rw ← inf_assoc,
     apply inf_of_le_right hW',
@@ -104,7 +106,7 @@ begin
     rw [is_covering, subtype.ext_iff, set.ext_iff] at hs,
     simp only [set.mem_Union, set.sUnion_image, opens.Sup_s] at hs,
     obtain ⟨V, hV, hxV⟩ := (hs x).2 hx,
-    specialize hr (inf_le_left : U ⊓ V ≤ U) (s.down_closed _ hV inf_le_right),
+    specialize hr (lattice.inf_le_left _ _ : U ⊓ V ≤ U) (s.down_closed _ hV (lattice.inf_le_right _ _)),
     rw [is_covering, subtype.ext_iff, set.ext_iff] at hr,
     simp only [set.mem_Union, set.sUnion_image, opens.Sup_s] at hr,
     obtain ⟨_, ⟨W, hW, rfl⟩, _, hxW⟩ := (hr x).2 ⟨hx, hxV⟩,
@@ -117,10 +119,10 @@ begin
   ext W,
   split,
   { rintro ⟨W, ⟨hW, hW₂⟩, rfl⟩,
-    refine ⟨⟨⟨inf_le_left⟩⟩, _⟩,
+    refine ⟨⟨⟨lattice.inf_le_left _ _⟩⟩, _⟩,
     change over.mk (_ ≫ _) ∈ _,
     dsimp,
-    have : s.arrows (over.mk (⟨⟨(inf_le_right : V ⊓ W ≤ W)⟩⟩ ≫ hW)),
+    have : s.arrows (over.mk (⟨⟨(lattice.inf_le_right V W : V ⊓ W ≤ W)⟩⟩ ≫ hW)),
       apply sieve.downward_closed _ hW₂,
     convert this },
   { rintro ⟨hW, q⟩,
