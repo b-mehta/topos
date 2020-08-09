@@ -261,7 +261,7 @@ def amalgamation {P : Cᵒᵖ ⥤ Type v} {S : sieve X} (γ : matching_family P 
 {α : yoneda.obj X ⟶ P // sieve.functor_inclusion S ≫ α = γ}
 
 @[derive subsingleton]
-def sheaf (J : sieve_set C) [grothendieck J] (P : Cᵒᵖ ⥤ Type v) : Type (max u v) :=
+def sheaf_condition (J : sieve_set C) [grothendieck J] (P : Cᵒᵖ ⥤ Type v) : Type (max u v) :=
 Π (X : C) (S : sieve X) (γ : matching_family P S), S ∈ J X → unique (amalgamation γ)
 
 def matching_family' (P : Cᵒᵖ ⥤ Type v) {c : C} (S : sieve c) :=
@@ -271,10 +271,8 @@ def amalgamation' {P : Cᵒᵖ ⥤ Type v} {c : C} {S : sieve c} (γ : matching_
 {y : P.obj (opposite.op c) // ∀ {d : C} (f : d ⟶ c) (hf : over.mk f ∈ S.arrows), P.map f.op y = γ.1 f hf}
 
 @[derive subsingleton]
-def sheaf' (J : sieve_set C) [grothendieck J] (P : Cᵒᵖ ⥤ Type v) : Type (max u v) :=
+def sheaf_condition' (J : sieve_set C) [grothendieck J] (P : Cᵒᵖ ⥤ Type v) : Type (max u v) :=
 Π (c : C) (S : sieve c) (γ : matching_family' P S), S ∈ J c → unique (amalgamation' γ)
-
-#check sheaf'
 
 def matching_family'_equiv_matching_family (P : Cᵒᵖ ⥤ Type v) : matching_family' P S ≃ matching_family P S :=
 { to_fun := λ x, ⟨λ _ t, x.1 _ t.2, λ c c' f, funext $ λ t, x.2 _ _ t.2⟩,
@@ -332,7 +330,7 @@ def amalgamation'_equiv_amalgamation (P : Cᵒᵖ ⥤ Type v) (x : matching_fami
   end }
 
 def sheaf'_equiv_sheaf (J : sieve_set C) [grothendieck J] (P : Cᵒᵖ ⥤ Type v) :
-  sheaf J P ≅ sheaf' J P :=
+  sheaf_condition J P ≅ sheaf_condition' J P :=
 { hom :=
   begin
     intros h c S γ hS,

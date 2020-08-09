@@ -235,20 +235,20 @@ begin
   exact hg,
 end
 
-def jsheaf_is_Jsheaf (P : sheaf (j J)) : grothendieck.sheaf J P.A :=
+def jsheaf_is_Jsheaf (P : Cᵒᵖ ⥤ Type u) (h : sheaf_condition (j J) P) : grothendieck.sheaf_condition J P :=
 begin
   intros c S γ hS,
   change S.as_functor ⟶ _ at γ,
   haveI : closure.dense (j J) S.functor_inclusion := dense_inclusion _ _ _ hS,
-  apply unique_extend P S.functor_inclusion γ,
+  apply h S.functor_inclusion γ,
 end
 
 -- This can be generalised to show it suffices to check the sheaf condition on a
 -- generating set (in the sense of colimits).
 def sheaf.yoneda_mk (P : Cᵒᵖ ⥤ Type u)
   (h : Π c S f' (m : S ⟶ yoneda.obj c) [closure.dense (j J) m], {f : yoneda.obj c ⟶ P // m ≫ f = f' ∧ ∀ a, m ≫ a = f' → a = f}) :
-  sheaf (j J) :=
-sheaf.mk' P
+  sheaf_condition (j J) P :=
+sheaf_condition.mk' _ _
 begin
   introsI E A m σ _,
   let A' : (E.elements)ᵒᵖ → (Cᵒᵖ ⥤ Type u) := λ i, pullback ((the_cocone E).ι.app i) m,
@@ -303,7 +303,7 @@ begin
     rw hq }
 end.
 
-def Jsheaf_is_jsheaf (P : Cᵒᵖ ⥤ Type u) (h : grothendieck.sheaf J P) : sheaf (j J) :=
+def Jsheaf_is_jsheaf (P : Cᵒᵖ ⥤ Type u) (h : grothendieck.sheaf_condition J P) : sheaf_condition (j J) P :=
 sheaf.yoneda_mk J P
 begin
   introsI c S' f' m hm,
@@ -329,5 +329,12 @@ begin
   rw reassoc_of hi,
   rw ha,
 end
+
+def equivalent_sheaf_conditions (P : Cᵒᵖ ⥤ Type u) :
+  grothendieck.sheaf_condition J P ≃ sheaf_condition (j J) P :=
+{ to_fun := Jsheaf_is_jsheaf _ _,
+  inv_fun := jsheaf_is_Jsheaf _ _,
+  left_inv := λ _, subsingleton.elim _ _,
+  right_inv := λ _, subsingleton.elim _ _ }
 
 end category_theory
