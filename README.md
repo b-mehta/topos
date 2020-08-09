@@ -41,7 +41,7 @@ This is a WIP project to define some topos theory within the Lean theorem prover
 ## Build Instructions
 
 EITHER:
-[Install elan and update-mathlib](https://github.com/leanprover-community/mathlib/tree/master/docs/install).
+[Install lean and leanproject](https://leanprover-community.github.io/get_started.html#regular-install).
 
 OR:
 If you have docker, spin up an instance of the `edayers/lean` image (or build your own using the provided Dockerfile).
@@ -49,8 +49,6 @@ If you have docker, spin up an instance of the `edayers/lean` image (or build yo
 FINALLY:
 run
 ``` sh
-# topos/
-leanpkg configure
-leanproject get-mathlib-cache
-leanpkg build
+leanproject get b-mehta/topos
+leanproject build
 ```
