@@ -12,20 +12,19 @@ This is a WIP project to define some topos theory within the Lean theorem prover
 - Many lemmas about pullbacks (for instance the pasting lemma)
 - Skeleton of a category (assuming choice)
 - Subobject category
-- Subobject classifier
-- Power objects
+- Subobject classifiers and power objects
 - Reflexive monadicity theorem
 - (Internal) Beck-Chevalley and Pare's theorem
 - Definition of a topos
 - Every topos is finitely cocomplete
 - Local cartesian closure of toposes and Fundamental Theorem of Topos Theory
 - Lawvere-Tierney topologies and sheaves
-- Sheafification
+- Sheafification of LT topologies
+- Proof that Lawvere-Tierney topologies generalise Grothendieck topologies
 
 ## What's coming soon?
 - Proof that category of coalgebras for a comonad form a topos
 - Logical functors
-- Proof that Lawvere-Tierney topologies generalise Grothendieck topologies
 - Logic internal to a topos
 - Natural number objects
 
