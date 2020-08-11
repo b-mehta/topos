@@ -14,168 +14,103 @@ variables (X : Type u) [topological_space X]
 section
 variables {X} (U V : opens X)
 
--- TODO: this file was written before topology.category.Top.opens was refactored to be easier to use
--- so much of the indirection here is now redundant, can almost certainly be *massively* simplified
-structure opens_sieve :=
-(collection : set (opens X))
-(all_under : ∀ V ∈ collection, V ≤ U)
-(down_closed : ∀ (V ∈ collection) {W}, W ≤ V → W ∈ collection)
-
-@[ext]
-lemma opens_sieve.ext {U : opens X} {s₁ s₂ : opens_sieve U} :
-  s₁.collection = s₂.collection → s₁ = s₂ :=
-begin
-  intro h,
-  cases s₁,
-  cases s₂,
-  congr,
-  exact h,
-end
-
-instance sieve_order : partial_order (opens_sieve U) :=
-partial_order.lift opens_sieve.collection (λ x y, opens_sieve.ext)
-
-instance opens_sieve_top : has_top (opens_sieve U) :=
-{ top :=
-  { collection := λ V, V ≤ U,
-    all_under := λ V hV, hV,
-    down_closed := λ V hV W hW, le_trans hW hV } }
-
-def is_covering (s : opens_sieve U) : Prop := Sup s.collection = U
+@[derive partial_order]
+def opens_sieve' := {s : set (opens X) // ∀ V ∈ s, V ≤ U ∧ ∀ W ≤ V, W ∈ s }
 
 @[simps]
-def restrict {U V : opens X} (h : V ≤ U) (s : opens_sieve U) : opens_sieve V :=
-{ collection := (λ W, V ⊓ W) '' s.collection,
-  all_under := by { rintro _ ⟨W, hW, rfl⟩, exact lattice.inf_le_left _ _ },
-  down_closed :=
-  begin
-    rintro _ ⟨W, hW, rfl⟩ W' hW',
-    refine ⟨W ⊓ W', s.down_closed _ hW (lattice.inf_le_left _ _), _⟩,
-    dsimp,
-    rw ← inf_assoc,
-    apply inf_of_le_right hW',
-  end }
+def equivalence' :
+  ((≤) : opens_sieve' U → opens_sieve' U → Prop) ≃o ((≤) : sieve U → sieve U → Prop) :=
+{ inv_fun := λ S,
+  { val := λ V, ∃ (h : V ≤ U), S.arrows (over.mk (hom_of_le h)),
+    property := by { rintro V ⟨VU, hVU⟩, exact ⟨VU, λ W WV, ⟨_, S.downward_closed hVU (hom_of_le WV)⟩⟩ } },
+  to_fun := λ S,
+  { arrows := λ f, f.left ∈ S.1,
+    subs := λ V W VU WV hVU, ((S.2 V) hVU).2 W (le_of_hom WV) },
+  right_inv := λ S, sieve.ext_iff $ λ V VU,
+    ⟨by { rintro ⟨_, q⟩, convert q }, by { rintro hf, refine ⟨le_of_hom VU, _⟩, convert hf }⟩,
+  left_inv := λ S, subtype.ext_val $ funext $ λ V,
+    propext ⟨by {rintro ⟨_, q⟩, exact q}, λ hV, ⟨(S.2 V hV).1, hV⟩⟩,
+  ord' := λ a b, ⟨λ h V VU hVU, h hVU, λ h V hV, h _ (hom_of_le (a.2 _ hV).1) hV⟩ }
 
-def equivalence : sieve U ≃ opens_sieve U :=
-{ to_fun := λ s,
-  { collection := λ V, ∃ (a : V ⟶ U), s.arrows (over.mk a),
-    all_under := λ _ ⟨hV, _⟩, hV.1.1,
-    down_closed := λ _ q _ hW, exists.elim q (λ _ q, ⟨_, s.subs ⟨⟨hW⟩⟩ q⟩) },
-  inv_fun := λ s,
-  { arrows := λ V, s.collection V.1,
-    subs := λ Y Z f g hf, s.down_closed Y hf g.down.down },
-  left_inv := λ s,
-  begin
-    ext V,
-    split,
-    { rintro ⟨p, q⟩,
-      convert q },
-    { intro p,
-      refine ⟨f, _⟩,
-      convert p },
-  end,
-  right_inv :=
-  begin
-    rintro ⟨s, s₁, s₂⟩,
-    ext V,
-    split,
-    { rintro ⟨_, q⟩, apply q },
-    { intro hV, exact ⟨⟨⟨s₁ _ hV⟩⟩, hV⟩ },
-  end }
+instance : order_top (opens_sieve' U) :=
+{ top := ⟨λ V, V ≤ U, by tidy⟩,
+  le_top := λ S V hV, (S.2 V hV).1,
+  ..topological_space.opens.opens_sieve'.partial_order _ }
 
-lemma opens_sieve_top_eq_top : equivalence U ⊤ = ⊤ :=
+def is_covering' (s : opens_sieve' U) : Prop := ∀ x ∈ U, ∃ V, V ∈ s.1 ∧ x ∈ V
+
+def restrict' {U : opens X} (V : opens X) (s : opens_sieve' U) : opens_sieve' V :=
 begin
-  ext W,
-  split,
-  { rintro ⟨h, _⟩,
-    exact h.down.down },
-  { intro _,
-    exact ⟨⟨⟨a⟩⟩, trivial⟩ }
+  refine subtype.map (set.image (⊓ V)) _ s,
+  rintros S hS _ ⟨W', hW', rfl⟩,
+  refine ⟨lattice.inf_le_right _ _, λ V' hV', ⟨V' ⊓ W', _, _⟩⟩,
+  apply (hS _ hW').2,
+  refine lattice.inf_le_right _ _,
+  simp only [],
+  rw inf_assoc,
+  apply inf_of_le_left hV',
 end
 
-lemma covering_trans (r s : opens_sieve U) (hs : is_covering U s)
-  (hr : ∀ {Y : opens X} (a : Y ≤ U), s.collection Y → is_covering _ (restrict a r)) :
-  is_covering U r :=
+lemma restrict_equivalence {U V : opens X} (VU : V ⟶ U) (s : opens_sieve' U) :
+  equivalence' _ (restrict' V s) = sieve.pullback (equivalence' _ s) VU :=
+sieve.ext_iff $ λ W WV,
+  ⟨ by {rintro ⟨W, h, q⟩, cases q, exact (s.2 _ h).2 _ (lattice.inf_le_left _ _)},
+    λ hW, ⟨_, hW, inf_of_le_left (le_of_hom WV)⟩⟩
+
+lemma covering'_trans (r s : opens_sieve' U) (hs : is_covering' U s)
+  (hr : ∀ {Y : opens X} (a : Y ≤ U), s.1 Y → is_covering' _ (restrict' Y r)) :
+  is_covering' U r :=
 begin
-  ext _ x,
-  simp only [set.mem_Union, set.sUnion_image, opens.Sup_s],
-  split,
-  { rintro ⟨V, hV, hx⟩,
-    apply r.all_under V hV hx },
-  { intro hx,
-    rw [is_covering, subtype.ext_iff, set.ext_iff] at hs,
-    simp only [set.mem_Union, set.sUnion_image, opens.Sup_s] at hs,
-    obtain ⟨V, hV, hxV⟩ := (hs x).2 hx,
-    specialize hr (lattice.inf_le_left _ _ : U ⊓ V ≤ U) (s.down_closed _ hV (lattice.inf_le_right _ _)),
-    rw [is_covering, subtype.ext_iff, set.ext_iff] at hr,
-    simp only [set.mem_Union, set.sUnion_image, opens.Sup_s] at hr,
-    obtain ⟨_, ⟨W, hW, rfl⟩, _, hxW⟩ := (hr x).2 ⟨hx, hxV⟩,
-    exact ⟨_, hW, hxW⟩ },
-end
-
-lemma restrict_is_pullback (s : sieve U) (h : V ≤ U) :
-  restrict h (equivalence _ s) = equivalence _ (s.pullback ⟨⟨h⟩⟩) :=
-begin
-  ext W,
-  split,
-  { rintro ⟨W, ⟨hW, hW₂⟩, rfl⟩,
-    refine ⟨⟨⟨lattice.inf_le_left _ _⟩⟩, _⟩,
-    change over.mk (_ ≫ _) ∈ _,
-    dsimp,
-    have : s.arrows (over.mk (⟨⟨(lattice.inf_le_right V W : V ⊓ W ≤ W)⟩⟩ ≫ hW)),
-      apply sieve.downward_closed _ hW₂,
-    convert this },
-  { rintro ⟨hW, q⟩,
-    refine ⟨W, ⟨_, q⟩, inf_of_le_right hW.down.down⟩ },
-end
-
-lemma restrict_is_pullback_symm (s : opens_sieve U) (h : V ≤ U) :
-  (equivalence _).symm (restrict h s) = ((equivalence _).symm s).pullback ⟨⟨h⟩⟩ :=
-begin
-  rw [equiv.symm_apply_eq, ← restrict_is_pullback, equiv.apply_symm_apply],
+  intros x hx,
+  obtain ⟨V, Vs, xV⟩ := hs x hx,
+  obtain ⟨_, ⟨W, Wr, rfl⟩, xW⟩ :=
+    hr (lattice.inf_le_left U V) ((s.2 _ Vs).2 _ (lattice.inf_le_right _ _)) x ⟨hx, xV⟩,
+  exact ⟨_, Wr, xW.1⟩,
 end
 
 end
 
-def covering : sieve_set (opens X) := λ U S, is_covering _ (equivalence _ S)
+def covering : sieve_set (opens X) := λ U S, is_covering' _ ((equivalence' _).symm S)
+
+lemma covering_sieve (U : opens X) (S : sieve U) :
+  S ∈ covering X U ↔ ∀ x ∈ U, ∃ V, x ∈ V ∧ ∃ (f : V ≤ U), over.mk (hom_of_le f) ∈ S.arrows :=
+ball_congr (λ x hx, exists_congr (λ V, and_comm _ _))
 
 instance : grothendieck (covering X) :=
 { max := λ U,
   begin
-    change is_covering _ _,
-    rw opens_sieve_top_eq_top,
-    exact cSup_Iic,
+    change U.is_covering' _,
+    rw order_iso.map_top (equivalence' U).symm,
+    intros x hx,
+    exact ⟨U, le_refl _, hx⟩,
   end,
-  stab := λ U V s hs,
+  stab := λ U V s hs f x hx,
   begin
-    rintro ⟨⟨h⟩⟩,
-    equiv_rw (equivalence U) at s,
-    change is_covering _ _ at hs,
-    change is_covering _ _,
-    rw [← restrict_is_pullback, restrict],
-    rw [equiv.apply_symm_apply, is_covering, subtype.ext_iff_val, set.ext_iff] at *,
-    simp only [set.mem_Union, set.sUnion_image, opens.Sup_s, exists_prop, set.mem_image, exists_and_distrib_left] at *,
-    intro x,
-    split,
-    { rintro ⟨_, ⟨_, ⟨_, _, rfl⟩, rfl⟩, hx, _⟩,
-      exact hx },
-    { intro hx,
-      obtain ⟨_, ⟨W, hW, rfl⟩, hxV⟩ := (hs x).2 (h hx),
-      exact ⟨_, ⟨_, ⟨W, hW, rfl⟩, rfl⟩, hx, hxV⟩ }
+    equiv_rw (equivalence' U).to_equiv.symm at s,
+    change ∀ (x ∈ U), _ at hs,
+    simp only [order_iso.coe_fn_to_equiv, equiv.symm_symm, order_iso.symm_apply_apply] at hs,
+    simp only [order_iso.coe_fn_to_equiv],
+    rw ← restrict_equivalence,
+    simp only [order_iso.symm_apply_apply],
+    dsimp [restrict', subtype.map],
+    obtain ⟨W, hW₁, hW₂⟩ := hs x (le_of_hom f hx),
+    refine ⟨_ ⊓ _, ⟨W, hW₁, rfl⟩, hW₂, hx⟩,
   end,
   trans := λ U s hs r h,
   begin
-    equiv_rw (equivalence U) at s,
-    equiv_rw (equivalence U) at r,
-    change is_covering _ _ at hs,
-    rw [equiv.apply_symm_apply] at hs,
-    apply covering_trans _ _ s hs,
-    intros Y a hY,
-    rw equiv.apply_symm_apply,
-    specialize h ⟨⟨a⟩⟩ hY,
-    rw [← restrict_is_pullback_symm] at h,
-    change is_covering _ _ at h,
-    rw equiv.apply_symm_apply at h, exact h,
+    equiv_rw (equivalence' U).to_equiv.symm at s,
+    equiv_rw (equivalence' U).to_equiv.symm at r,
+    change is_covering' _ _,
+    change is_covering' _ _ at hs,
+    simp only [order_iso.coe_fn_to_equiv, order_iso.symm_apply_apply, equiv.symm_symm] at ⊢ hs h,
+    refine U.covering'_trans r s hs _,
+    intros V VU Vs,
+    specialize h (hom_of_le VU) _,
+    rw ← restrict_equivalence at h,
+    change is_covering' _ _ at h,
+    simp only [order_iso.coe_fn_to_equiv, order_iso.symm_apply_apply, equiv.symm_symm] at h,
+    apply h,
+    apply Vs,
   end }
 
 end
