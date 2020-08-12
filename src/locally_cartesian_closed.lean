@@ -36,9 +36,6 @@ class is_locally_cartesian_closed [has_finite_limits.{v} C] :=
 
 attribute [instance] is_locally_cartesian_closed.overs_cc
 
-def cc_of_lcc [has_finite_limits.{v} C] [is_locally_cartesian_closed.{v} C] : cartesian_closed.{v} C :=
-cartesian_closed_of_equiv over_terminal
-
 universe u₂
 
 variable {C}

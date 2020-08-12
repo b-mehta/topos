@@ -32,20 +32,6 @@ variables {C : Type u} [category.{v} C]
 def over_iso {B : C} {f g : over B} (hl : f.left ≅ g.left) (hw : hl.hom ≫ g.hom = f.hom) : f ≅ g :=
 { hom := over.hom_mk hl.hom, inv := over.hom_mk hl.inv (by simp [iso.inv_comp_eq, hw]) }
 
-def over_terminal [has_terminal.{v} C] : over (⊤_ C) ≌ C :=
-{ functor := over.forget,
-  inverse :=
-  { obj := λ X, over.mk (terminal.from X),
-    map := λ X Y f, over.hom_mk f },
-  unit_iso :=
-  begin
-    refine nat_iso.of_components (λ X, { hom := over.hom_mk (𝟙 _), inv := over.hom_mk (𝟙 _) } ) _,
-    intros X Y f,
-    ext1,
-    simp,
-  end,
-  counit_iso := iso.refl _ }
-
 section adjunction
 
 variable (B : C)
