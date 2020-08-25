@@ -24,6 +24,6 @@ is_image.lift_fac _ _
 
 lemma unique_factorise_inv_comp_mono (I' : C) (e : X ⟶ I') (m : I' ⟶ Y) (comm : e ≫ m = f) [strong_epi e] [mono m] :
   (unique_factorise f I' e m comm).inv ≫ m = image.ι f :=
-is_image.lift_fac _ _
+image.lift_fac _
 
 end category_theory.limits

@@ -1,5 +1,5 @@
 import category_theory.full_subcategory
-import category_theory.limits.preserves
+import category_theory.limits.preserves.basic
 import category_theory.reflects_isomorphisms
 import category_theory.punit
 

@@ -7,6 +7,7 @@ Authors: Bhavik Mehta
 import category_theory.limits.shapes
 import category_theory.limits.shapes.binary_products
 import category_theory.limits.shapes.finite_products
+import category_theory.limits.shapes.finite_limits
 import category_theory.limits.types
 import category_theory.adjunction.limits
 import category_theory.monad.limits
@@ -24,11 +25,11 @@ import subobject_classifier
 # Power objects
 
 Define power objects.
-Show that power objects induces a (contravariant) functor `P_functor`.
+Show that power objects induce a (contravariant) functor `P_functor`.
 Show that this is self-adjoint on the right.
 Define the singleton arrow {} : B ⟶ PB and internal image (for monos only)
 and show the latter is functorial too.
-Show the existence of a subobject classifier and show
+Show the existence of a subobject classifier given power objects and show
 
 -/
 universes v u v₂ u₂
@@ -37,7 +38,6 @@ namespace category_theory
 
 open category_theory category limits
 
-attribute [instance] has_pullbacks_of_has_finite_limits
 attribute [instance] has_finite_wide_pullbacks_of_has_finite_limits
 
 variables {C : Type u} [category.{v} C]
@@ -269,7 +269,7 @@ def self_adj [has_power_objects.{v} C] : is_right_adjoint (P_functor : Cᵒᵖ �
   adj := adjunction.mk_of_hom_equiv
   { hom_equiv := λ A B,
     begin
-      apply equiv.trans (op_equiv (P_functor.obj (opposite.op A)) B),
+      apply equiv.trans (op_equiv (opposite.op (P A)) B),
       apply equiv.trans name_bijection,
       apply equiv.trans _ name_bijection.symm,
       apply postcompose_sub_equiv_of_iso (limits.prod.braiding _ _),
@@ -466,6 +466,8 @@ instance fin_category_op (J : Type v) [small_category J] [fcj : fin_category J] 
   { elems := (@fin_category.fintype_hom J _ fcj Y.unop X.unop).elems.map ⟨has_hom.hom.op, has_hom.hom.op_inj⟩,
     complete := λ f, finset.mem_map_of_mem _ (fintype.complete f.unop) } }
 
+local attribute [instance] has_colimits_of_shape_op_of_has_limits_of_shape
+
 instance pare [has_power_objects.{v} C] : monadic_right_adjoint (P_functor : Cᵒᵖ ⥤ C) :=
 { to_is_right_adjoint := self_adj,
   eqv :=
@@ -505,9 +507,6 @@ def some_colims (J : Type v) [small_category J] [has_power_objects.{v} C] [has_l
       apply monadic_creates_limits F'' P_functor,
     apply_instance
   end }
-
--- def has_colim [has_power_objects.{v} C] : has_finite_colimits.{v} C :=
--- { has_colimits_of_shape := λ J 𝒥₁ 𝒥₂, by exactI { has_colimit := λ F, by apply_instance } }
 
 namespace intersect
 
@@ -1171,6 +1170,8 @@ begin
   apply comp_natural' (star B) infer_instance X.unop Y.unop g.unop,
 end
 
+local attribute [instance] has_finite_products_of_has_finite_limits
+
 def cc_of_pow [has_power_objects.{v} C] : cartesian_closed.{v} C :=
 { closed := λ B,
   begin
@@ -1217,7 +1218,7 @@ instance topos_has_some_colims (J : Type v) [small_category J] [has_subobject_cl
 some_colims J
 
 instance topos_has_finite_colimits [has_subobject_classifier.{v} C] [cartesian_closed.{v} C] : has_finite_colimits.{v} C :=
-{ has_colimits_of_shape := λ J 𝒥₁ 𝒥₂, by { resetI, apply_instance } }
+λ _ _ _, by {resetI, apply_instance}
 
 instance topos_is_lcc [has_subobject_classifier.{v} C] [cartesian_closed.{v} C] : is_locally_cartesian_closed.{v} C :=
 lcc_of_pow

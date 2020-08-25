@@ -1,4 +1,8 @@
-/- Author: E.W.Ayers -/
+/-
+Copyright (c) 2020 Bhavik Mehta. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Bhavik Mehta, E. W. Ayers
+-/
 
 import category_theory.over
 import category_theory.limits.shapes.finite_limits
@@ -77,6 +81,11 @@ protected def inter (S R : sieve X) : sieve X :=
   end
 }
 
+/--
+Sieves on an object `X` form a complete lattice.
+We generate this directly rather than using the galois insertion for nicer definitional
+properties.
+-/
 instance : complete_lattice (sieve X) :=
 { le           := λ S R, ∀ Y (f : Y ⟶ X), over.mk f ∈ S.arrows → over.mk f ∈ R.arrows,
   le_refl      := λ S f q, id,
@@ -88,18 +97,18 @@ instance : complete_lattice (sieve X) :=
   inf          := sieve.inter,
   Sup          := sieve.Sup,
   Inf          := sieve.Inf,
-  le_Sup       := begin intros 𝒮 S hS Y f h, refine ⟨_, ⟨⟨S, hS⟩, rfl⟩, h⟩ end,
+  le_Sup       := λ _ S hS _ _ h, ⟨_, ⟨⟨S, hS⟩, rfl⟩, h⟩,
   Sup_le       := begin rintros 𝒮 S hS Y f ⟨_, ⟨⟨T, hT⟩, rfl⟩, q⟩, apply hS _ hT _ _ q end,
-  Inf_le       := begin intros 𝒮 S hS Y f h, apply h, refine ⟨⟨_, hS⟩, rfl⟩ end,
+  Inf_le       := λ _ S hS _ _ h, h _ ⟨⟨_, hS⟩, rfl⟩,
   le_Inf       := begin rintros 𝒮 S hS Y f h q ⟨⟨T, hT⟩, rfl⟩, apply hS _ hT _ _ h end,
-  le_sup_left  := begin intros _ _ _ _, apply set.subset_union_left end,
-  le_sup_right := begin intros _ _ _ _, apply set.subset_union_right end,
+  le_sup_left  := λ _ _ _ _, or.inl,
+  le_sup_right := λ _ _ _ _, or.inr,
   sup_le       := begin rintros _ _ _ a b _ _ (q | q), apply a _ _ q, apply b _ _ q end,
-  inf_le_left  := begin intros _ _ _ _, apply set.inter_subset_left  end,
-  inf_le_right := begin intros _ _ _ _, apply set.inter_subset_right end,
+  inf_le_left  := λ _ _ _ _, and.left,
+  inf_le_right := λ _ _ _ _, and.right,
   le_inf       := begin intros _ _ _ p q _ _ z, exact ⟨p _ _ z, q _ _ z⟩,  end,
   le_top       := λ _ _ _ _, trivial,
-  bot_le       := begin rintros _ _ _ ⟨⟩ end }
+  bot_le       := by { rintros _ _ _ ⟨⟩ } }
 
 @[simp]
 lemma mem_inter {R S : sieve X} {Y} (f : Y ⟶ X) :
@@ -130,16 +139,16 @@ open order lattice
 
 lemma sets_iff_generate {𝒢 : set (over X)} : generate 𝒢 ≤ S ↔ 𝒢 ⊆ S.arrows :=
 iff.intro
-    (λ H g hg,
-      begin
-        have : over.mk g.hom = g,
-          cases g, dsimp [over.mk],
-          congr' 1, apply subsingleton.elim,
-        rw ← this at *,
-        apply H,
-        apply generate_sets.basic hg,
-      end )
-    (λ ss Y f hf, begin induction hf, apply ss hf_a, apply downward_closed, apply hf_ih end)
+  (λ H g hg,
+    begin
+      have : over.mk g.hom = g,
+        cases g, dsimp [over.mk],
+        congr' 1, apply subsingleton.elim,
+      rw ← this at *,
+      apply H,
+      apply generate_sets.basic hg,
+    end )
+  (λ ss Y f hf, begin induction hf, apply ss hf_a, apply downward_closed, apply hf_ih end)
 
 /-- Show that there is a galois insertion (generate, .arrows). -/
 def gi_generate :
@@ -246,7 +255,7 @@ def as_functor (S : sieve X) : Cᵒᵖ ⥤ Type v :=
   map := λ Y Z f g, ⟨f.unop ≫ g.1, downward_closed _ g.2 _⟩ }
 
 @[simps]
-def le_as_functor {S T : sieve X} (h : S ≤ T) : as_functor S ⟶ as_functor T :=
+def le_as_functor {S T : sieve X} (h : S ≤ T) : S.as_functor ⟶ T.as_functor :=
 { app := λ Y f, ⟨f.1, h _ _ f.2⟩ }.
 
 /-- The natural inclusion from the functor induced by a sieve to the yoneda embedding. -/

@@ -23,12 +23,6 @@ section one
 
 variables {C : Type u₁} [category.{v₁} C] {D : Type u₂} [category.{v₂} D]
 
-@[simps]
-def op_equiv (A : C) (B : Cᵒᵖ) : (opposite.op A ⟶ B) ≃ (B.unop ⟶ A) :=
-{ to_fun := λ f, f.unop,
-  inv_fun := λ g, g.op,
-  left_inv := λ _, rfl,
-  right_inv := λ _, rfl }
 
 @[simps]
 def op_equiv' (A : Cᵒᵖ) (B : C) : (A ⟶ opposite.op B) ≃ (B ⟶ A.unop) :=
@@ -37,70 +31,38 @@ def op_equiv' (A : Cᵒᵖ) (B : C) : (A ⟶ opposite.op B) ≃ (B ⟶ A.unop) :
   left_inv := λ _, rfl,
   right_inv := λ _, rfl }
 
-def adjoint_op {F : C ⥤ D} {G : Dᵒᵖ ⥤ Cᵒᵖ} (h : G ⊣ F.op) : F ⊣ G.unop :=
-adjunction.mk_of_hom_equiv
-{ hom_equiv := λ X Y, (equiv.trans (h.hom_equiv (opposite.op Y) (opposite.op X)) (op_equiv _ _)).symm.trans (op_equiv' _ _),
-  hom_equiv_naturality_left_symm' := λ X X' Y f g,
-  begin
-    dsimp [equiv.symm, op_equiv],
-    apply has_hom.hom.op_inj,
-    simp,
-  end,
-  hom_equiv_naturality_right' := λ X Y Y' f g,
-  begin
-    dsimp [equiv.symm, op_equiv'],
-    apply has_hom.hom.op_inj,
-    simp,
-  end }
-
-def left_adjoint_of_right_adjoint_op {F : C ⥤ D} [h : is_right_adjoint F.op] : is_left_adjoint F :=
-{ right := (left_adjoint F.op).unop,
-  adj := adjoint_op h.adj }
-
-def equiv_of_fully_faithful (i : C ⥤ D) [full i] [faithful i] {X Y} : (X ⟶ Y) ≃ (i.obj X ⟶ i.obj Y) :=
-{ to_fun := λ f, i.map f,
-  inv_fun := λ f, i.preimage f,
-  left_inv := λ f, by simp,
-  right_inv := λ f, by simp }
-
 @[simp]
-lemma equiv_of_fully_faithful_apply (i : C ⥤ D) [full i] [faithful i] {X Y} (f : X ⟶ Y) :
-  equiv_of_fully_faithful i f = i.map f := rfl
+lemma op_equiv'_apply (A : Cᵒᵖ) (B : C) (f : A ⟶ opposite.op B) : op_equiv' _ _ f = f.unop :=
+rfl
 @[simp]
-lemma equiv_of_fully_faithful_symm_apply (i : C ⥤ D) [full i] [faithful i] {X Y} (f : i.obj X ⟶ i.obj Y) :
-  (equiv_of_fully_faithful i).symm f = i.preimage f := rfl
+lemma op_equiv'_symm_apply (A : Cᵒᵖ) (B : C) (f : B ⟶ A.unop) : (op_equiv' _ _).symm f = f.op :=
+rfl
 
 section two
 variables {E : Type u₃} [category.{v₃} E]
 
 def faithful_functor_right_cancel {F G : C ⥤ D} (H : D ⥤ E)
   [full H] [faithful H] (comp_iso: F ⋙ H ≅ G ⋙ H) : F ≅ G :=
-begin
-  refine nat_iso.of_components (λ X, preimage_iso (comp_iso.app X)) (λ X Y f, _),
-  apply H.map_injective,
-  simp only [preimage_iso_hom, H.map_comp, H.image_preimage],
-  exact comp_iso.hom.naturality f,
-end
+nat_iso.of_components
+  (λ X, preimage_iso (comp_iso.app X))
+  (λ X Y f, H.map_injective (by simpa using comp_iso.hom.naturality f))
+
 end two
 
 def left_adjoints_coyoneda_equiv {F F' : C ⥤ D} {G : D ⥤ C}
   (adj1 : F ⊣ G) (adj2 : F' ⊣ G):
   F.op ⋙ coyoneda ≅ F'.op ⋙ coyoneda :=
-begin
-  refine nat_iso.of_components _ _,
-  { intro X,
-    refine nat_iso.of_components _ _,
-    { intro Y,
-      exact ((adj1.hom_equiv X.unop Y).trans (adj2.hom_equiv X.unop Y).symm).to_iso },
-    tidy },
-  tidy
-end
+nat_iso.of_components
+  (λ X, nat_iso.of_components
+    (λ Y, ((adj1.hom_equiv X.unop Y).trans (adj2.hom_equiv X.unop Y).symm).to_iso)
+    (by tidy))
+  (by tidy)
 
 def left_adjoint_uniq {F F' : C ⥤ D} {G : D ⥤ C}
   (adj1 : F ⊣ G) (adj2 : F' ⊣ G) : F ≅ F' :=
-  nat_iso.unop
-    (faithful_functor_right_cancel _
-      (left_adjoints_coyoneda_equiv adj2 adj1))
+nat_iso.unop
+  (faithful_functor_right_cancel _
+    (left_adjoints_coyoneda_equiv adj2 adj1))
 
 def adjunction_op {F : C ⥤ D} {G : D ⥤ C} (adj : F ⊣ G) : G.op ⊣ F.op :=
 adjunction.mk_of_hom_equiv
@@ -123,6 +85,7 @@ variables {D' : Type u₄} [category.{v₄} D']
 lemma hom_congr_symm_apply {X Y X₁ Y₁ : C} (α : X ≅ X₁) (β : Y ≅ Y₁) (f : X₁ ⟶ Y₁) :
   (α.hom_congr β).symm f = α.hom ≫ f ≫ β.inv :=
 rfl
+
 @[simp]
 lemma hom_congr_apply {X Y X₁ Y₁ : C} (α : X ≅ X₁) (β : Y ≅ Y₁) (f : X ⟶ Y) :
   (α.hom_congr β) f = α.inv ≫ f ≫ β.hom :=

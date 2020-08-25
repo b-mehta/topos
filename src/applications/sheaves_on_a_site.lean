@@ -1,5 +1,4 @@
 import applications.topologies
-import topology.sheaves.presheaf_of_functions
 import opens
 
 /-!

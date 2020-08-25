@@ -384,9 +384,10 @@ end construct_limits
 
 variables (j)
 
+-- BM: change this so that the limit is the limit of presheaves not just iso
 def sheaf_has_finite_limits : has_finite_limits.{v} (sheaf j) :=
-{ has_limits_of_shape := λ J 𝒥₁ 𝒥₂, by exactI
-  { has_limit := λ F, has_limit_of_created F (sheaf.forget j) } }
+λ J 𝒥₁ 𝒥₂, by exactI
+{ has_limit := λ F, has_limit_of_created F (sheaf.forget j) }
 
 local attribute [instance, priority 10] sheaf_has_finite_limits
 
@@ -396,6 +397,8 @@ by apply (cones.forget (F ⋙ sheaf.forget j)).map_iso (lifted_limit_maps_to_ori
 def dense_prod_map_id (A : C) {B B' : C} (m : B' ⟶ B) [closure.dense.{v} j m] :
   closure.dense.{v} j (limits.prod.map (𝟙 A) m) :=
 closure.dense_of_pullback j _ (pullback_prod' m A)
+
+local attribute [instance] has_finite_products_of_has_finite_limits
 
 def sheaf_exponential (A : C) (s : sheaf j) : sheaf j :=
 sheaf.mk' (A ⟹ s.A) $ λ B B' m f' d,
@@ -845,7 +848,7 @@ end
 instance mono_post_of_mono {A X Y : C} (f : X ⟶ Y) [mono f] : mono ((exp A).map f) :=
 ⟨λ Z g h eq, by rw [← uncurry_injective.eq_iff, ← cancel_mono f, ← uncurry_natural_right, ← uncurry_natural_right, eq]⟩
 
-local attribute [instance] limits.has_coequalizers_of_has_finite_colimits
+-- local attribute [instance] limits.has_coequalizers_of_has_finite_colimits
 
 def tag' (n : ℕ) (A B : C) (f : A ⟶ B) := f
 set_option pp.implicit false
@@ -1026,7 +1029,7 @@ begin
   apply_instance,
 end
 
-local attribute [instance] has_equalizers_of_has_finite_limits
+-- local attribute [instance] has_equalizers_of_has_finite_limits
 
 variables {B c : C} (f g : B ⟶ c)
 
