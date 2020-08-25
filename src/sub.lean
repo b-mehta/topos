@@ -84,15 +84,15 @@ def restrict_to_sub {Y : D} (F : over Y ⥤ over X)
 
 def restrict_to_sub_iso {Y : D} {F₁ F₂ : over Y ⥤ over X} (h₁ h₂) (i : F₁ ≅ F₂) :
   restrict_to_sub F₁ h₁ ≅ restrict_to_sub F₂ h₂ :=
-faithful_functor_right_cancel (forget_sub X) (iso_whisker_left (forget_sub Y) i)
+fully_faithful_cancel_right (forget_sub X) (iso_whisker_left (forget_sub Y) i)
 
 def restrict_to_sub_comp {X Z : C} {Y : D} (F : over X ⥤ over Y) (G : over Y ⥤ over Z) (h₁ h₂) :
   restrict_to_sub F h₁ ⋙ restrict_to_sub G h₂ ≅ restrict_to_sub (F ⋙ G) (λ f, h₂ ⟨_, h₁ f⟩) :=
-faithful_functor_right_cancel (forget_sub _) (iso.refl _)
+fully_faithful_cancel_right (forget_sub _) (iso.refl _)
 
 def restrict_to_sub_id :
   restrict_to_sub (𝟭 (over X)) (λ f, f.2) ≅ 𝟭 _ :=
-faithful_functor_right_cancel (forget_sub _) (iso.refl _)
+fully_faithful_cancel_right (forget_sub _) (iso.refl _)
 
 @[simp]
 lemma restrict_comm (F : over Y ⥤ over X)
@@ -281,7 +281,7 @@ end
 
 /-- post is adjoint to pullback for monos -/
 def sub.pull_post_adj (f : X ⟶ Y) [mono f] [has_pullbacks C] : sub.post f ⊣ sub.pullback f :=
-restrict_adjunction (forget_sub X) (forget_sub Y) (radj f) (iso.refl _) (iso.refl _)
+adjunction.restrict_fully_faithful (forget_sub X) (forget_sub Y) (radj f) (iso.refl _) (iso.refl _)
 
 def subq.lower_adjunction {A : C} {B : D} {R : sub B ⥤ sub A} {L : sub A ⥤ sub B} (h : L ⊣ R) :
   lower_sub L ⊣ lower_sub R :=
