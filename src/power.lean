@@ -1177,7 +1177,8 @@ def cc_of_pow [has_power_objects.{v} C] : cartesian_closed.{v} C :=
   begin
     haveI : is_right_adjoint (star B) := ⟨over.forget, forget_adj_star B⟩,
     haveI := monad.adjoint_lifting (logical_star B).symm (λ f g X Y r, by apply_instance),
-    exact exponentiable_of_star_is_left_adj B left_adjoint_of_right_adjoint_op,
+    refine exponentiable_of_star_is_left_adj B _,
+    apply left_adjoint_of_right_adjoint_op,
   end }
 
 def lcc_of_pow [has_power_objects.{v} C] : is_locally_cartesian_closed.{v} C :=
