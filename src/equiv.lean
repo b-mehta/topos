@@ -177,6 +177,7 @@ begin
   { rw [assoc, prod.lift_snd] }
 end
 
+local attribute [instance] has_finite_products_of_has_finite_limits
 variables [has_subobject_classifier.{v} C] [cartesian_closed.{v} C]
 
 def named [mono rel] : A ⟶ P A := hat rel

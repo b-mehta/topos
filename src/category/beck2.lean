@@ -5,7 +5,7 @@ Authors: E.W.Ayers, Bhavik Mehta
 -/
 
 import category_theory.limits.limits
-import category_theory.limits.preserves
+import category_theory.limits.preserves.basic
 import category_theory.limits.creates
 import category_theory.monad.limits
 import category_theory.monad.adjunction

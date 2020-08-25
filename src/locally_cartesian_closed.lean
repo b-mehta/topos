@@ -29,6 +29,7 @@ open category limits
 universes v u
 variables (C : Type u) [category.{v} C]
 
+local attribute [instance] has_finite_products_of_has_finite_limits
 local attribute [instance] has_finite_wide_pullbacks_of_has_finite_limits
 
 class is_locally_cartesian_closed [has_finite_limits.{v} C] :=
@@ -84,7 +85,6 @@ lemma over_epi {B : C} {f g : over B} (k : f ⟶ g) [epi k.left] : epi k :=
 lemma over_epi' [has_binary_products.{v} C] {B : C} {f g : over B} (k : f ⟶ g) [ke : epi k] : epi k.left :=
 left_adjoint_preserves_epi (forget_adj_star _) ke
 
-local attribute [instance] has_pullbacks_of_has_finite_limits
 variables [has_finite_limits.{v} C] [is_locally_cartesian_closed.{v} C]
 
 def dependent_product {A B : C} (f : A ⟶ B) : over A ⥤ over B :=

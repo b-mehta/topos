@@ -5,17 +5,9 @@ Authors: Bhavik Mehta
 -/
 import category_theory.opposites
 import category_theory.sparse
-import category_theory.limits.lattice
-import category_theory.limits.shapes.finite_products
-import category_theory.limits.shapes.terminal
 import category_theory.full_subcategory
-import category_theory.limits.shapes.regular_mono
-import category_theory.closed.cartesian
-import category_theory.limits.shapes.pullbacks
-import category_theory.limits.over
 import category_theory.currying
 import tactic
-import category.adjunction
 
 universes v v₂ v₃ u u₂ u₃
 

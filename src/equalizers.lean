@@ -1,4 +1,4 @@
-import category_theory.limits.preserves
+import category_theory.limits.preserves.shapes
 import category_theory.limits.shapes.equalizers
 
 namespace category_theory

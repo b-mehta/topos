@@ -18,8 +18,7 @@ variables {X} (U V : opens X)
 def opens_sieve' := {s : set (opens X) // ∀ V ∈ s, V ≤ U ∧ ∀ W ≤ V, W ∈ s }
 
 @[simps]
-def equivalence' :
-  ((≤) : opens_sieve' U → opens_sieve' U → Prop) ≃o ((≤) : sieve U → sieve U → Prop) :=
+def equivalence' : opens_sieve' U ≃o sieve U :=
 { inv_fun := λ S,
   { val := λ V, ∃ (h : V ≤ U), S.arrows (over.mk (hom_of_le h)),
     property := by { rintro V ⟨VU, hVU⟩, exact ⟨VU, λ W WV, ⟨_, S.downward_closed hVU (hom_of_le WV)⟩⟩ } },
@@ -30,7 +29,7 @@ def equivalence' :
     ⟨by { rintro ⟨_, q⟩, convert q }, by { rintro hf, refine ⟨le_of_hom VU, _⟩, convert hf }⟩,
   left_inv := λ S, subtype.ext_val $ funext $ λ V,
     propext ⟨by {rintro ⟨_, q⟩, exact q}, λ hV, ⟨(S.2 V hV).1, hV⟩⟩,
-  ord' := λ a b, ⟨λ h V VU hVU, h hVU, λ h V hV, h _ (hom_of_le (a.2 _ hV).1) hV⟩ }
+  map_rel_iff' := λ a b, ⟨λ h V VU hVU, h hVU, λ h V hV, h _ (hom_of_le (a.2 _ hV).1) hV⟩ }
 
 instance : order_top (opens_sieve' U) :=
 { top := ⟨λ V, V ≤ U, by tidy⟩,
@@ -80,7 +79,7 @@ instance : grothendieck (covering X) :=
 { max := λ U,
   begin
     change U.is_covering' _,
-    rw order_iso.map_top (equivalence' U).symm,
+    rw rel_iso.map_top (equivalence' U).symm,
     intros x hx,
     exact ⟨U, le_refl _, hx⟩,
   end,
@@ -88,10 +87,10 @@ instance : grothendieck (covering X) :=
   begin
     equiv_rw (equivalence' U).to_equiv.symm at s,
     change ∀ (x ∈ U), _ at hs,
-    simp only [order_iso.coe_fn_to_equiv, equiv.symm_symm, order_iso.symm_apply_apply] at hs,
-    simp only [order_iso.coe_fn_to_equiv],
+    simp only [rel_iso.coe_fn_to_equiv, equiv.symm_symm, rel_iso.symm_apply_apply] at hs,
+    simp only [rel_iso.coe_fn_to_equiv],
     rw ← restrict_equivalence,
-    simp only [order_iso.symm_apply_apply],
+    simp only [rel_iso.symm_apply_apply],
     dsimp [restrict', subtype.map],
     obtain ⟨W, hW₁, hW₂⟩ := hs x (le_of_hom f hx),
     refine ⟨_ ⊓ _, ⟨W, hW₁, rfl⟩, hW₂, hx⟩,
@@ -102,13 +101,13 @@ instance : grothendieck (covering X) :=
     equiv_rw (equivalence' U).to_equiv.symm at r,
     change is_covering' _ _,
     change is_covering' _ _ at hs,
-    simp only [order_iso.coe_fn_to_equiv, order_iso.symm_apply_apply, equiv.symm_symm] at ⊢ hs h,
+    simp only [rel_iso.coe_fn_to_equiv, rel_iso.symm_apply_apply, equiv.symm_symm] at ⊢ hs h,
     refine U.covering'_trans r s hs _,
     intros V VU Vs,
     specialize h (hom_of_le VU) _,
     rw ← restrict_equivalence at h,
     change is_covering' _ _ at h,
-    simp only [order_iso.coe_fn_to_equiv, order_iso.symm_apply_apply, equiv.symm_symm] at h,
+    simp only [rel_iso.coe_fn_to_equiv, rel_iso.symm_apply_apply, equiv.symm_symm] at h,
     apply h,
     apply Vs,
   end }

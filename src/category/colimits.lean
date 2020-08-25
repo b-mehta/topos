@@ -11,7 +11,6 @@ namespace category_theory
 open category limits
 universes v₁ v₂ u₁ u₂
 
--- check what happens if we allow C's homs to be in another universe
 variables {C : Type u₁} [small_category C]
 
 namespace colimit_adj
@@ -28,8 +27,6 @@ def R : ℰ ⥤ (Cᵒᵖ ⥤ Type u₁) :=
 private def L_obj (P : Cᵒᵖ ⥤ Type u₁) : ℰ :=
 colimit ((category_of_elements.π P).left_op ⋙ A)
 
-set_option pp.universes false
-
 private def Le (P : Cᵒᵖ ⥤ Type u₁) (E : ℰ) : (L_obj A P ⟶ E) ≃ (P ⟶ (R A).obj E) :=
 (colimit.hom_iso' ((category_of_elements.π P).left_op ⋙ A) E).to_equiv.trans
 { to_fun := λ k,
@@ -37,8 +34,8 @@ private def Le (P : Cᵒᵖ ⥤ Type u₁) (E : ℰ) : (L_obj A P ⟶ E) ≃ (P 
     naturality' := λ c c' f,
     begin
       ext p,
-      let p' : (P.elements)ᵒᵖ := (opposite.op ⟨c, p⟩),
-      let p'' : (P.elements)ᵒᵖ := (opposite.op ⟨c', P.map f p⟩),
+      let p' : P.elementsᵒᵖ := opposite.op ⟨c, p⟩,
+      let p'' : P.elementsᵒᵖ := opposite.op ⟨c', P.map f p⟩,
       let f' : p'' ⟶ p' := has_hom.hom.op ⟨f, rfl⟩,
       apply (k.2 f').symm,
     end },

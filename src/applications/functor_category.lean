@@ -293,6 +293,11 @@ def transpose (φ : P ⨯ R ⟶ Q) : R ⟶ exponential_functor P Q :=
     rw R.map_comp, refl,
   end }.
 
+example : has_limits (Cᵒᵖ ⥤ Type u) := infer_instance
+instance : has_finite_limits (Cᵒᵖ ⥤ Type u) :=
+λ _ _ _, { has_limit := λ F, infer_instance }
+local attribute [instance] has_finite_products_of_has_finite_limits
+
 def exponentiables (P : Cᵒᵖ ⥤ Type u) : exponentiable P :=
 begin
   apply make_exponential P (exponential_functor P) (eval P) (λ R Q, transpose _ _ _) _ _,

@@ -440,10 +440,9 @@ def preorder_functor {α β : Type*} [preorder α] [preorder β] (f : α → β)
   map := λ X Y ⟨⟨h⟩⟩, ⟨⟨hf h⟩⟩ }
 
 @[simps]
-def preorder_equivalence {α β : Type*} [preorder α] [preorder β] (f : ((≤) : α → α → Prop) ≃o ((≤) : β → β → Prop))
-  : α ≌ β :=
-{ functor := preorder_functor f (λ x y, f.ord.1),
-  inverse := preorder_functor f.symm (λ a b h, by rwa [f.ord, f.apply_symm_apply, f.apply_symm_apply]),
+def preorder_equivalence {α β : Type*} [preorder α] [preorder β] (f : α ≃o β) : α ≌ β :=
+{ functor := preorder_functor f (λ x y h, by rwa [← rel_iso.map_rel_iff f]),
+  inverse := preorder_functor f.symm (λ x y h, by rwa [← rel_iso.map_rel_iff f.symm]),
   unit_iso := nat_iso.of_components (λ X, eq_to_iso (f.left_inv _).symm) (λ X Y f, rfl),
   counit_iso := nat_iso.of_components (λ X, eq_to_iso (f.right_inv _)) (λ X Y f, rfl) }
 
@@ -546,7 +545,12 @@ def over.coprod' [has_finite_coproducts.{v} C] {A : C} : over A → over A ⥤ o
 def over.coprod [has_finite_coproducts.{v} C] {A : C} : over A ⥤ over A ⥤ over A :=
 { obj := λ f, over.coprod' f,
   map := λ f₁ f₂ k,
-  { app := λ g, over.hom_mk (coprod.map k.left (𝟙 _)) (by { dsimp, rw [coprod.map_desc, id_comp, over.w k] }) } }.
+  { app := λ g, over.hom_mk (coprod.map k.left (𝟙 _)) (by { dsimp, rw [coprod.map_desc, id_comp, over.w k] }),
+    naturality' := λ f g k, -- tidy can do this but it takes ages
+    begin
+      ext1,
+      apply coprod_map_map,
+    end } }.
 
 def sub.union [has_images.{v} C] [has_finite_coproducts.{v} C] {A : C} : sub A ⥤ sub A ⥤ sub A :=
 curry_obj ((forget_sub A).prod (forget_sub A) ⋙ uncurry.obj over.coprod ⋙ sub.image)
@@ -662,7 +666,8 @@ lemma subq.pullback_self {A B : C} (f : A ⟶ B) [mono f] [has_pullbacks.{v} C] 
   (subq.pullback f).obj ⟦sub.mk' f⟧ = ⊤ :=
 quotient.sound ⟨sub.pullback_self f⟩
 
-variable [has_finite_limits.{v} C]
+section
+variable [has_binary_products.{v} C]
 
 instance mono_prod_lift_of_left {X Y Z : C} (f : X ⟶ Y) (g : X ⟶ Z) [mono f] : mono (limits.prod.lift f g) :=
 begin
@@ -679,7 +684,10 @@ begin
   simp at this,
   rwa cancel_mono at this,
 end
+end
 
+section
+variable [has_finite_products.{v} C]
 instance subterminal_ideal {A B : C} [exponentiable B] [mono (default (A ⟶ ⊤_ C))] :
   mono (default (A^^B ⟶ ⊤_ C)) :=
 ⟨λ Z f g eq, begin
@@ -717,8 +725,10 @@ end
 /-- Candidate for the exponential functor in sub 1. -/
 def sub.exp (f : sub (⊤_ C)) [cartesian_closed C] : sub (⊤_ C) ⥤ sub (⊤_ C) :=
 sub.exp_aux f.val.left
+end
 
-local attribute [instance] has_finite_wide_pullbacks_of_has_finite_limits has_pullbacks_of_has_finite_limits
+variable [has_finite_limits.{v} C]
+local attribute [instance] has_finite_products_of_has_finite_limits
 
 def sub.exp_equiv [cartesian_closed C] (f₁ f₂ f₃ : sub (⊤_ C)) :
   ((sub.intersection.obj f₂).obj f₁ ⟶ f₃) ≃ (f₁ ⟶ (sub.exp f₂).obj f₃) :=
@@ -752,7 +762,8 @@ begin
   rw [← sub_exp_aux_left_comp, ih, sub_exp_aux_left_id], exact rfl,
 end
 
-instance [cartesian_closed C] : cartesian_closed (subq (⊤_ C)) :=
+variable (C)
+def top_cc [cartesian_closed C] : cartesian_closed (subq (⊤_ C)) :=
 { closed := λ f₁,
   { is_adj :=
     { right := subq.exp f₁,

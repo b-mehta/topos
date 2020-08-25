@@ -17,6 +17,8 @@ universes v u u₂
 
 variables (C : Type u) [category.{v} C]
 
+local attribute [instance] has_finite_products_of_has_finite_limits
+
 class topos :=
 [lim : has_finite_limits.{v} C]
 [sub : has_subobject_classifier.{v} C]
@@ -116,9 +118,7 @@ def pullback_exp {X Y A B : C} (f g : over A) (k : B ⟶ A) :
 (test f k).app g
 
 instance subq_cc (A : C) : cartesian_closed (subq A) :=
-cartesian_closed_of_equiv (sub_one_over A).symm
-
--- local attribute [-simp] subtype.val_eq_coe
+@cartesian_closed_of_equiv _ _ (id _) _ _ _ (sub_one_over A).symm (top_cc _)
 
 /-- The bottom of the subobject category. -/
 def sub_bot (B : C) : sub B := sub.mk' (initial.to B)
@@ -147,8 +147,8 @@ begin
   apply subsingleton.elim,
 end
 
-local attribute [instance] limits.has_coequalizers_of_has_finite_colimits
-local attribute [instance] limits.has_finite_coproducts_of_has_finite_colimits
+-- local attribute [instance] limits.has_coequalizers_of_has_finite_colimits
+local attribute [instance] has_finite_coproducts_of_has_finite_colimits
 
 example (A B : C) (f : A ⟶ B) : regular_epi (factor_thru_image f) := by apply_instance
 

@@ -5,7 +5,7 @@ Authors: Bhavik Mehta, Edward Ayers
 -/
 
 import category_theory.limits.shapes
-import category_theory.limits.preserves
+import category_theory.limits.preserves.shapes
 import category_theory.limits.over
 import category_theory.limits.shapes.constructions.over
 import tactic
@@ -54,11 +54,7 @@ def has_pullback_top_of_is_pb {U V W X : C}
 def is_limit.mk' (t : pullback_cone f g)
   (create : Π (s : pullback_cone f g), {l : s.X ⟶ t.X // l ≫ t.fst = s.fst ∧ l ≫ t.snd = s.snd ∧ ∀ {m : s.X ⟶ t.X}, m ≫ t.fst = s.fst → m ≫ t.snd = s.snd → m = l}) :
 is_limit t :=
-pullback_cone.is_limit_aux t
-  (λ s, (create s).1)
-  (λ s, (create s).2.1)
-  (λ s, (create s).2.2.1)
-  (λ s m w, (create s).2.2.2 (w walking_cospan.left) (w walking_cospan.right))
+pullback_cone.is_limit_aux' t create
 
 def is_limit.mk'' (t : pullback_cone f g) [mono f]
   (create : Π (s : pullback_cone f g), {l : s.X ⟶ t.X // l ≫ t.snd = s.snd ∧ ∀ {m : s.X ⟶ t.X}, m ≫ t.fst = s.fst → m ≫ t.snd = s.snd → m = l}) :

@@ -128,9 +128,9 @@ begin
 end
 
 def sieve_subq (c : C) :
-  ((≤) : sieve c → sieve c → Prop) ≃o ((≤) : subq (yoneda.obj c) → subq (yoneda.obj c) → Prop) :=
+sieve c ≃o subq (yoneda.obj c) :=
 { to_equiv := sub_repr c,
-  ord' :=
+  map_rel_iff' :=
   begin
     intros S T,
     rw [sub_repr_eq, sub_repr_eq],
@@ -152,7 +152,7 @@ def sieve_subq (c : C) :
 
 lemma inclusion_inter (c : C) (S T : sieve c) :
   sieve_subq _ (S ⊓ T) = sieve_subq _ S ⊓ sieve_subq _ T :=
-order_iso.map_inf _
+rel_iso.map_inf _
 
 @[reassoc]
 lemma and_arrow_sieve (c : Cᵒᵖ) (S T : sieve c.unop) :
@@ -208,7 +208,7 @@ begin
   rw classification.symm_apply_apply,
   erw ← equiv_close,
   change sieve_subq _ _ = _,
-  rw ← order_iso.map_top (sieve_subq c),
+  rw ← rel_iso.map_top (sieve_subq c),
   congr' 1,
   ext d f,
   change S.pullback f ∈ J d ↔ true,
@@ -226,7 +226,7 @@ begin
   rw classification.symm_apply_apply at this,
   erw ← equiv_close at this,
   change sieve_subq _ _ = _ at this,
-  rw ← order_iso.map_top (sieve_subq c) at this,
+  rw ← rel_iso.map_top (sieve_subq c) at this,
   erw (sieve_subq c).to_equiv.apply_eq_iff_eq at this,
   rw close at this,
   refine grothendieck.trans ⊤ (grothendieck.max _) _ _,
