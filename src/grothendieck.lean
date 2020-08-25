@@ -42,7 +42,7 @@ Definition of a Grothendieck Topology: a set of sieves `J X` on each object `X` 
 3. If `S ∈ J X` and `R` is a sieve on `X`, then provided that the pullback of `R` along any arrow
    `f : Y ⟶ X` in `S` is in `J Y`, we have that `R` itself is in `J X`.
 -/
-class grothendieck {C : Type u} [category.{v} C] (J : sieve_set C) :=
+class grothendieck {C : Type u} [category.{v} C] (J : sieve_set C) : Prop :=
 (max : ∀ X, ⊤ ∈ J X)
 (stab : ∀ {X Y} (S ∈ J X) (h : Y ⟶ X), sieve.pullback S h ∈ J Y)
 (trans : ∀ ⦃X⦄ (S : sieve X) (hS : S ∈ J X) (R : sieve X), (∀ {Y} (f : Y ⟶ X), over.mk f ∈ S.arrows → R.pullback f ∈ J Y) → R ∈ J X)
@@ -65,51 +65,6 @@ over.mk (pullback.fst : pullback f g.hom ⟶ _)
 @[simp] lemma over_pullback_def [has_pullbacks.{v} C] {X Y : C} (f : X ⟶ Y) (g : over Y) :
   (over.pullback f g).hom = pullback.fst := rfl
 
-class basis [has_pullbacks.{v} C] (K : arrow_set C) :=
-(has_isos      : ∀ {X Y : C} (e : Y ⟶ X) [is_iso e], {over.mk e} ∈ K X)
-(has_pullbacks : ∀ {X Y : C} {ℱ : set (over Y)} (h₁ : ℱ ∈ K Y) (g : X ⟶ Y), over.pullback g '' ℱ ∈ K X)
-(trans : ∀ {X} {ℱ : set (over X)},
-         ∀ (h₁ : ℱ ∈ K X),
-         ∀ (𝒢 : ∀ {Y} {f : Y ⟶ X}, over.mk f ∈ ℱ → set (over Y)),
-         ∀ (h₃ : ∀ {Y} {f : Y ⟶ X} (hf : over.mk f ∈ ℱ), 𝒢 hf ∈ K Y),
-         {h : over X | ∃ {Y Z} (f : Y ⟶ X) (g : Z ⟶ Y) (hf : over.mk f ∈ ℱ) (hg : over.mk g ∈ 𝒢 hf), over.mk (g ≫ f) = h} ∈ K X)
-
-/-- Uses choice! -/
-instance of_basis [has_pullbacks.{v} C] {K : arrow_set C} [basis K] : grothendieck (sieve_set.generate K) :=
-{ max := λ X, ⟨{over.mk (𝟙 X)}, basis.has_isos _, λ f h, ⟨⟩⟩,
-  stab :=
-  begin
-    rintros X Y S ⟨R, hR, RS⟩ h,
-    refine ⟨over.pullback h '' R, basis.has_pullbacks hR _, _⟩,
-    rintros g ⟨f, hf, rfl⟩,
-    rw [over.pullback, mem_pullback],
-    rw pullback.condition,
-    apply downward_closed,
-    apply RS,
-    convert hf,
-    cases f,
-    dsimp [over.mk],
-    congr;
-    apply subsingleton.elim,
-  end,
-  trans :=
-  begin
-    rintros X S ⟨F, hF, FS⟩ R hR,
-    show ∃ (T : set (over X)) (H : T ∈ K X), T ⊆ R.arrows,
-    refine ⟨_, basis.trans hF _ _, _⟩,
-    intros Y f hf,
-    apply classical.some (hR f (FS hf)),
-    intros Y f hf,
-    dsimp,
-    obtain ⟨_, _⟩ := classical.some_spec (hR f (FS hf)),
-    apply w,
-    rintros _ ⟨Y, Z, f, g, hf, hg, rfl⟩,
-    obtain ⟨_, _⟩ := classical.some_spec (hR f (FS hf)),
-    dsimp at hg,
-    rw ← mem_pullback,
-    apply h hg,
-  end }
-
 def superset_covering (Hss : S ≤ R) (sjx : S ∈ J X) : R ∈ J X :=
 begin
   apply grothendieck.trans _ sjx,
@@ -127,26 +82,8 @@ begin
   apply grothendieck.max,
 end
 
--- def trans2
---   (sjx : S ∈ J(X))
---   (R : Π (f : over X), sieve f.left)
---   (hR : Π f (H : f ∈ S.arrows), R f ∈ J f.left)
---   : comps R S ∈ J(X) :=
---   begin
---     apply grothendieck.trans,
---       apply sjx,
---     rintros f Hf,
---     apply superset_covers,
---       apply sieve.pullback_le_map,
---       apply comp_le_comps,
---       apply Hf,
---     apply superset_covers,
---       apply le_pullback_comp,
---     apply hR,
---     apply Hf,
---   end
-
 def covers (J : sieve_set C) (S : sieve X) (f : Y ⟶ X) : Prop := S.pullback f ∈ J Y
+
 lemma arrow_max (f : Y ⟶ X) (S : sieve X) [grothendieck J] (hf : over.mk f ∈ S.arrows) : covers J S f :=
 begin
   rw [covers, (pullback_eq_top_iff_mem f).1 hf],

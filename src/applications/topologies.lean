@@ -17,9 +17,66 @@ open classifier limits category
 
 noncomputable theory
 
+@[ext]
+structure closure_operator (α : Type*) [has_le α] :=
+(to_fun : α → α)
+(ord' : ∀ {x y : α}, x ≤ y → to_fun x ≤ to_fun y)
+(inflate' : ∀ x, x ≤ to_fun x)
+(idem' : ∀ x, to_fun (to_fun x) = to_fun x)
+
+instance (α : Type*) [has_le α] : has_coe_to_fun (closure_operator α) :=
+⟨_, closure_operator.to_fun⟩
+
+instance (α : Type*) [has_le α] : has_le (closure_operator α) :=
+⟨λ c₁ c₂, ∀ x, c₁ x ≤ c₂ x⟩
+
+lemma closure_operator.ord {α : Type*} [has_le α] (c : closure_operator α) {x y : α} (h : x ≤ y) :
+  c x ≤ c y :=
+c.ord' h
+
+lemma closure_operator.inflate {α : Type*} [has_le α] (c : closure_operator α) (x : α) :
+  x ≤ c x := c.inflate' x
+
+lemma closure_operator.idem {α : Type*} [has_le α] (c : closure_operator α) (x : α) :
+  c (c x) = c x := c.idem' x
+
+/-- The sieve-set induced by a closure operator on sieves. -/
+def grothendieck_from_natural_operator (c : Π (X : C), closure_operator (sieve X)) :
+  sieve_set C :=
+λ X S, c X S = ⊤
+
+/-- If a closure operator on sieves is natural, it induces a Grothendieck topology. -/
+instance natural_operator_is_grothendieck (c : Π (X : C), closure_operator (sieve X))
+  (hc : ∀ (X Y : C) (f : X ⟶ Y) (S : sieve Y), (c Y S).pullback f = c _ (S.pullback f)) :
+grothendieck (grothendieck_from_natural_operator c) :=
+{ max := λ X,
+  begin
+    apply top_unique,
+    apply (c _).inflate,
+  end,
+  stab := λ X Y S hS f,
+  begin
+    change _ = _ at hS,
+    change _ = _,
+    rw [← hc, hS, sieve.pullback_top],
+  end,
+  trans := λ X S hS T hT,
+  begin
+    change _ = _,
+    rw ← (c X).idem,
+    apply top_unique,
+    change _ = _ at hS,
+    rw ← hS,
+    apply (c _).ord,
+    intros Y g hg,
+    rw sieve.pullback_eq_top_iff_mem,
+    rw hc,
+    apply hT g hg,
+  end }
+
 @[simps]
-def close (J : sieve_set C) [grothendieck J] {c : Cᵒᵖ} (S : sieve c.unop) : sieve c.unop :=
-{ arrows := λ g, S.pullback g.hom ∈ J g.left,
+def close {c : C} (S : sieve c) : sieve c :=
+{ arrows := λ g, grothendieck.covers J S g.hom,
   subs := λ d e f h k,
   begin
     change S.pullback (h ≫ f) ∈ J e,
@@ -28,7 +85,8 @@ def close (J : sieve_set C) [grothendieck J] {c : Cᵒᵖ} (S : sieve c.unop) : 
     apply grothendieck.stab (S.pullback f) k h,
   end }
 
-lemma close_preserves_order {c : Cᵒᵖ} {S T : sieve c.unop} (h : S ≤ T) :
+
+lemma close_preserves_order {c : C} {S T : sieve c} (h : S ≤ T) :
   close J S ≤ close J T :=
 begin
   intros d g hg,
@@ -36,7 +94,7 @@ begin
   apply grothendieck.superset_covering (sieve.pullback_le_map h g) hg,
 end
 
-lemma close_inflationary {c : Cᵒᵖ} (S : sieve c.unop) :
+lemma close_inflationary {c : C} (S : sieve c) :
   S ≤ close J S :=
 begin
   intros d g hg,
@@ -46,7 +104,7 @@ begin
   apply grothendieck.max,
 end
 
-lemma close_idem (c : Cᵒᵖ) (S : sieve c.unop) :
+lemma close_idem (c : C) (S : sieve c) :
   close J (close J S) = close J S :=
 begin
   apply le_antisymm,
@@ -60,7 +118,7 @@ begin
   apply close_preserves_order J (close_inflationary _ _),
 end
 
-lemma close_inter (c : Cᵒᵖ) (S T : sieve c.unop) :
+lemma close_inter (c : C) (S T : sieve c) :
   close J (S ⊓ T) = close J S ⊓ close J T :=
 begin
   apply le_antisymm,
@@ -72,13 +130,51 @@ begin
   apply grothendieck.intersection_covering hg₁ hg₂,
 end
 
-lemma close_pullback (c d : Cᵒᵖ) (S : sieve c.unop) (f : d.unop ⟶ c.unop) :
+lemma close_pullback (c d : C) (S : sieve c) (f : d ⟶ c) :
   close J (S.pullback f) = (close J S).pullback f :=
 begin
   ext e g,
   change (S.pullback f).pullback g ∈ J e ↔ S.pullback (g ≫ f) ∈ J e,
   rw S.pullback_comp,
 end
+
+lemma incl_iff_closure_eq_top (c : C) (S : sieve c) : S ∈ J c ↔ close J S = ⊤ :=
+begin
+  split,
+    intro h,
+    ext d f,
+    change S.pullback f ∈ J d ↔ true,
+    simpa using grothendieck.stab S h f,
+  rw [close],
+  intro q,
+  refine grothendieck.trans ⊤ (grothendieck.max _) _ _,
+  intros d g hg,
+  rw ← q at hg,
+  exact hg,
+end
+
+/-- Natural closure operators on the set of sieves are the same thing as Grothendieck topologies. -/
+def operators_equiv_topology :
+  {c : Π (X : C), closure_operator (sieve X) // ∀ X Y f S, (c Y S).pullback f = c X (S.pullback f)}
+≃ {J : sieve_set C // grothendieck J} :=
+{ to_fun := λ c, ⟨grothendieck_from_natural_operator c.1, category_theory.natural_operator_is_grothendieck _ c.2⟩,
+  inv_fun := λ J, by { haveI := J.2, refine ⟨λ X, ⟨close J.1, λ x y, close_preserves_order _, close_inflationary _, close_idem _ _⟩, λ X Y f S, _⟩, symmetry, apply close_pullback, },
+  left_inv :=
+  begin
+    rintro ⟨c₁, c₂⟩,
+    ext x S y f,
+    dsimp [close, grothendieck.covers, grothendieck_from_natural_operator],
+    change c₁ y (S.pullback f) = ⊤ ↔ over.mk f ∈ (c₁ x S).arrows,
+    rw ← c₂,
+    rw sieve.pullback_eq_top_iff_mem,
+  end,
+  right_inv :=
+  begin
+    rintro ⟨J, _⟩,
+    resetI,
+    ext c S,
+    apply (incl_iff_closure_eq_top J c S).symm,
+  end }
 
 @[simps]
 def j : Ω (Cᵒᵖ ⥤ Type u) ⟶ Ω (Cᵒᵖ ⥤ Type u) :=
@@ -104,9 +200,10 @@ begin
   exact z,
 end
 
-def sieve_equiv_arrow (c : Cᵒᵖ) : sieve c.unop ≃ (yoneda.obj c.unop ⟶ Ω _) :=
-(yoneda_sections_small c.unop (Ω _)).to_equiv.symm
-def equiv_close (c : Cᵒᵖ) (S : sieve c.unop) :
+def sieve_equiv_arrow (c : C) : sieve c ≃ (yoneda.obj c ⟶ Ω _) :=
+(yoneda_sections_small c (Ω _)).to_equiv.symm
+
+lemma equiv_close (c : C) (S : sieve c) :
   sieve_equiv_arrow _ (close J S) = sieve_equiv_arrow _ S ≫ j J :=
 begin
   ext d f : 3,
@@ -115,7 +212,7 @@ begin
 end
 
 def sub_repr (c : C) : sieve c ≃ subq (yoneda.obj c) :=
-(sieve_equiv_arrow (opposite.op c)).trans classification
+(sieve_equiv_arrow c).trans classification
 
 lemma sub_repr_eq (c : C) (S : sieve c) : sub_repr c S = subq.mk S.functor_inclusion :=
 begin
@@ -155,7 +252,7 @@ lemma inclusion_inter (c : C) (S T : sieve c) :
 rel_iso.map_inf _
 
 @[reassoc]
-lemma and_arrow_sieve (c : Cᵒᵖ) (S T : sieve c.unop) :
+lemma and_arrow_sieve (c : C) (S T : sieve c) :
   (prod.lift (sieve_equiv_arrow _ S) (sieve_equiv_arrow _ T) ≫ and_arrow _) = sieve_equiv_arrow _ (S ⊓ T) :=
 begin
   have : ∀ (S : sieve _), sieve_equiv_arrow c S = classify (sieve_subq _ S),
@@ -190,13 +287,14 @@ instance : topology (j J) :=
     cases k with k₁ k₂,
     change prod.lift k₁ k₂ ≫ _ = prod.lift k₁ k₂ ≫ _ ≫ _,
     rw prod.lift_map_assoc,
-    equiv_rw (sieve_equiv_arrow c).symm at k₁,
-    equiv_rw (sieve_equiv_arrow c).symm at k₂,
+    equiv_rw (sieve_equiv_arrow c.unop).symm at k₁,
+    equiv_rw (sieve_equiv_arrow c.unop).symm at k₂,
 
     rw [← equiv_close, ← equiv_close, and_arrow_sieve, and_arrow_sieve_assoc, ← equiv_close],
     rw (sieve_equiv_arrow _).apply_eq_iff_eq,
     rw close_inter,
   end }.
+
 
 def dense_inclusion (c : C) (S : sieve c) (h : S ∈ J c) : closure.dense (j J) S.functor_inclusion :=
 begin
