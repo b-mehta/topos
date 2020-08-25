@@ -28,8 +28,8 @@ open category limits
 universes v u
 variables {C : Type u} [category.{v} C]
 
-def has_finite_products_of_has_finite_limits [has_finite_limits.{v} C] : has_finite_products.{v} C :=
-λ _ _ _, by resetI; apply_instance
+-- def has_finite_products_of_has_finite_limits [has_finite_limits.{v} C] : has_finite_products.{v} C :=
+-- λ _ _ _, by resetI; apply_instance
 def has_finite_coproducts_of_has_finite_colimits [has_finite_colimits.{v} C] : has_finite_coproducts.{v} C :=
 λ _ _ _, by resetI; apply_instance
 

@@ -14,7 +14,8 @@ Show that Type has a subobject classifier (assuming unique choice).
 
 open category_theory category_theory.category category_theory.limits
 
-instance types_has_pullbacks: has_pullbacks.{u} (Type u) := ⟨limits.has_limits_of_shape_of_has_limits⟩
+local attribute [instance] has_finite_limits_of_has_limits
+local attribute [instance] has_finite_products_of_has_finite_limits
 
 lemma set_classifier {U X : Type} {f : U ⟶ X} {χ₁ : X ⟶ Prop} (q : @classifying _ category_theory.types _ unit _ _ (λ _, true) f χ₁) :
   ∀ x, χ₁ x ↔ ∃ a, f a = x :=
@@ -112,25 +113,26 @@ def currying_equiv (A X Y : Type u) : ((prod_functor.obj A).obj X ⟶ Y) ≃ (X 
   left_inv := λ f, by { ext ⟨ba⟩, dsimp, congr, ext ⟨j⟩, simp },
   right_inv := λ _, rfl }
 
-instance type_exponentiable (A : Type u) : exponentiable A :=
-{ is_adj :=
-  { right := adjunction.right_adjoint_of_equiv (currying_equiv A) (
-    begin
-      intros X X' Y f g,
-      dsimp [currying_equiv],
-      ext,
-      congr,
-      dunfold limits.prod.map,
-      rw types.types_limit_map,
-      congr, ext ⟨j⟩,
-      simp,
-      simp,
-    end),
-    adj := adjunction.adjunction_of_equiv_right _ _ } }
+-- instance type_exponentiable (A : Type u) : exponentiable A :=
+-- { is_adj :=
+--   { right := adjunction.right_adjoint_of_equiv (currying_equiv A) (
+--     begin
+--       intros X X' Y f g,
+--       dsimp [currying_equiv],
+--       ext,
+--       congr,
+--       dunfold limits.prod.map,
 
-instance type_cc : cartesian_closed (Type u) :=
-begin
-  split,
-  intro A,
-  apply_instance
-end
+--       -- rw types.types_limit_map,
+--       -- congr, ext ⟨j⟩,
+--       -- simp,
+--       -- simp,
+--     end),
+--     adj := adjunction.adjunction_of_equiv_right _ _ } }
+
+-- instance type_cc : cartesian_closed (Type u) :=
+-- begin
+--   split,
+--   intro A,
+--   apply_instance
+-- end

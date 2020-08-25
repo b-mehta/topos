@@ -224,8 +224,8 @@ begin
 end
 
 end
--- def internal_category_struct.C₃ : A :=
--- pullback c.second_hom c.first_hom
+
+local attribute [instance] has_finite_limits_of_has_limits
 
 def to_C₃ (C : Type u) [category_struct.{u} C] : alt_pb C ≅ (internal_category_struct_type_of_category_struct C).C₃ :=
 limits.is_limit.cone_point_unique_up_to_iso (is_pb C) (limit.is_limit _)

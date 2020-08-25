@@ -119,7 +119,7 @@ instance subsingleton_transitive [mono rel] :
   apply prod.hom_ext,
   { simp [h₁r₁, h₁r₂] },
   { simp [h₂r₁, h₂r₂] },
-end⟩
+end⟩.
 
 -- That was nice and easy!
 
