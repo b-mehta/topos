@@ -293,32 +293,44 @@ def transpose (φ : P ⨯ R ⟶ Q) : R ⟶ exponential_functor P Q :=
     rw R.map_comp, refl,
   end }.
 
-instance : has_finite_limits (Cᵒᵖ ⥤ Type u) :=
-λ _ _ _, { has_limit := λ F, infer_instance }
+local attribute [instance] has_finite_limits_of_has_limits
 local attribute [instance] has_finite_products_of_has_finite_limits
+-- instance : has_finite_products (Cᵒᵖ ⥤ Type u) := infer_instance
+
+set_option trace.class_instances false
 
 def exponentiables (P : Cᵒᵖ ⥤ Type u) : exponentiable P :=
 begin
   apply make_exponential P (exponential_functor P) (eval P) (λ R Q, transpose _ _ _) _ _,
-  intros R Q φ,
-  ext _ ⟨uy, _⟩,
-  change φ.app x ⟨_, _⟩ = φ.app x ⟨_, _⟩,
-  congr' 2,
-  ext1 ⟨j⟩,
-  refl,
-  change R.map (𝟙 x) (uy walking_pair.right) = uy walking_pair.right,
-  rw [R.map_id, types_id_apply],
-  intros R Q φ t ht,
-  ext c u D ⟨fx, _⟩,
-  dsimp,
-  rw ← ht,
-  change (((R.map (has_hom.hom.op (fx walking_pair.left)) ≫ t.app _) u)).app D _ = (t.app c u).app D _,
-  rw t.naturality,
-  change (t.app c u).app D _ = (t.app c u).app D _,
-  congr' 1,
-  ext ⟨j⟩,
-  apply id_comp,
-  refl,
+  { intros R Q φ,
+    apply nat_trans.ext,
+    ext1,
+    apply funext,
+    rintro ⟨uy, _⟩,
+    change φ.app x ⟨_, _⟩ = φ.app x ⟨_, _⟩,
+    congr' 2,
+    ext1 ⟨j⟩,
+    refl,
+    change R.map (𝟙 x) (uy walking_pair.right) = uy walking_pair.right,
+    rw [R.map_id, types_id_apply] },
+  { intros R Q φ t ht,
+    apply nat_trans.ext,
+    ext1 c,
+    apply funext,
+    intro u,
+    apply nat_trans.ext,
+    ext1 D,
+    apply funext,
+    rintro ⟨fx, _⟩,
+    dsimp,
+    rw ← ht,
+    change (((R.map (has_hom.hom.op (fx walking_pair.left)) ≫ t.app _) u)).app D _ = (t.app c u).app D _,
+    rw t.naturality,
+    change (t.app c u).app D _ = (t.app c u).app D _,
+    congr' 1,
+    ext ⟨j⟩,
+    apply id_comp,
+    refl }
 end
 
 def presheaf_cc : cartesian_closed.{u} (Cᵒᵖ ⥤ Type u) :=
