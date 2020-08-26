@@ -13,8 +13,6 @@ open category_theory limits order lattice
 /-- A set of sieves for every object in the category: a candidate to be a Grothendieck topology. -/
 def sieve_set (C : Type u) [category.{v} C] := Π (X : C), set (sieve X)
 
-def arrow_set (C : Type u) [category.{v} C] := Π (X : C), set (set (over X))
-
 def sieve_set.trivial (C : Type u) [category.{v} C] : sieve_set C := λ X, {⊤}
 
 lemma mem_trivial (C : Type u) [category.{v} C] {X : C} (S : sieve X) :
@@ -28,10 +26,6 @@ def sieve_set.dense (C : Type u) [category.{v} C] : sieve_set C :=
 /-- The atomic sieve_set just contains all of the non-empty sieves. -/
 def sieve_set.atomic (C : Type u) [category.{v} C] : sieve_set C :=
 λ X, {S | ∃ {Y} (f : Y ⟶ X), over.mk f ∈ S.arrows}
-
-/-- The smallest sieve set containing the given arrow set. -/
-def sieve_set.generate {C : Type u} [category.{v} C] (K : arrow_set C) : sieve_set C :=
-λ X, {S | ∃ R ∈ K X, R ⊆ S.arrows}
 
 open sieve category
 
@@ -58,12 +52,6 @@ namespace grothendieck
 variables {C : Type u} [category.{v} C]
 variables {X Y : C} {S R : sieve X}
 variables {J : sieve_set C} [grothendieck J]
-
-def over.pullback [has_pullbacks.{v} C] {X Y : C} (f : X ⟶ Y) (g : over Y) : over X :=
-over.mk (pullback.fst : pullback f g.hom ⟶ _)
-
-@[simp] lemma over_pullback_def [has_pullbacks.{v} C] {X Y : C} (f : X ⟶ Y) (g : over Y) :
-  (over.pullback f g).hom = pullback.fst := rfl
 
 def superset_covering (Hss : S ≤ R) (sjx : S ∈ J X) : R ∈ J X :=
 begin
