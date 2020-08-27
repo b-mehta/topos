@@ -1,14 +1,16 @@
 import category_theory.closed.cartesian
 import category_theory.isomorphism
+import category_theory.adjunction.limits
 import tactic.ring
 
-universes v u
+universes v v₂ u u₂
 
 namespace category_theory
 open category limits limits.prod
 
 variables (C : Type u) [category.{v} C]
-variables [has_finite_products C] [cartesian_closed C]
+variables {D : Type u₂} [category.{v} D]
+variables [has_finite_products C]
 
 structure natural_number_object :=
 (N : C)
@@ -23,7 +25,13 @@ attribute [reassoc] natural_number_object.fac₁ natural_number_object.fac₂
 
 namespace natural_number_object
 
+-- variable
+
 variables (N : natural_number_object C) {Q A B : C}
+
+def terminal_iso (F : C ⥤ D) [preserves_limits_of_shape (discrete pempty) F] [has_terminal D] :
+  ⊤_ D ≅ F.obj (⊤_ C) :=
+is_limit.cone_points_iso_of_nat_iso (limit.is_limit _) (preserves_limit.preserves (limit.is_limit _)) (functor.empty_ext _ _)
 
 -- lemma hom_ext (f g : N.N ⟶ A) (hf₁ : N.o ≫ f = N.o ≫ g) (hf₂ : N.succ ≫ f = N.succ ≫ g) : f = g :=
 -- begin
@@ -32,7 +40,7 @@ variables (N : natural_number_object C) {Q A B : C}
 
 lemma eq_id_of_comm_zero_succ (f : N.N ⟶ N.N) (hf₁ : N.o ≫ f = N.o) (hf₂ : N.succ ≫ f = f ≫ N.succ) :
   f = 𝟙 _ :=
-by rw [N.uniq _ N.o N.succ f hf₁ hf₂, N.uniq _ N.o N.succ (𝟙 _) (comp_id _) (by simp)]
+by rw [N.uniq _ _ _ _ hf₁ hf₂, N.uniq _ _ _ _ (comp_id _) (by simp)]
 
 def os_closed {N' : C} (m : N' ⟶ N.N) [mono m] (o' : ⊤_ C ⟶ N') (s' : N' ⟶ N') (ho : o' ≫ m = N.o)
   (hs : m ≫ N.succ = s' ≫ m) : is_iso m :=
@@ -180,7 +188,7 @@ end
 end
 
 /-- Define a function with parameters by primitive recursion. -/
-def recurse (g : A ⟶ B) (h : A ⨯ N.N ⨯ B ⟶ B) : A ⨯ N.N ⟶ B :=
+def recurse [cartesian_closed C] (g : A ⟶ B) (h : A ⨯ N.N ⨯ B ⟶ B) : A ⨯ N.N ⟶ B :=
 cartesian_closed.uncurry
   (N.recurse'
     (internalize_hom g)
@@ -193,7 +201,7 @@ variables (g : A ⟶ B) (h : A ⨯ N.N ⨯ B ⟶ B)
 -- TODO: these lemmas are stated as commutative diagrams but they're
 -- probably much easier to understand if they're in terms of
 -- elements
-lemma recurse_zero :
+lemma recurse_zero [cartesian_closed C] :
   limits.prod.map (𝟙 A) N.o ≫ N.recurse g h = (prod.right_unitor _).hom ≫ g :=
 begin
   dsimp [recurse],
@@ -257,7 +265,7 @@ begin
   rw [← func_assoc, one_apply]
 end
 
-lemma int_recurse_zero (a : Q ⟶ _) :
+lemma int_recurse_zero [cartesian_closed C] (a : Q ⟶ _) :
   N.recurse g h ❲a, N.zero❳ = g a :=
 begin
   have : ❲a, N.zero❳ = limits.prod.map (𝟙 A) N.o ❲a, unit❳,
@@ -265,7 +273,7 @@ begin
   rw [this, thing, N.recurse_zero, ← thing, right_unitor_hom],
 end
 
-lemma recurse_succ :
+lemma recurse_succ [cartesian_closed C] :
   limits.prod.map (𝟙 A) N.succ ≫ N.recurse g h = limits.prod.lift (𝟙 _) (N.recurse g h) ≫ h :=
 begin
   dsimp [recurse],
@@ -279,7 +287,7 @@ begin
   rw [prod.lift_snd, assoc, prod.lift_snd, ← prod_map_id_comp_assoc, prod.lift_snd, uncurry_eq],
 end
 
-lemma int_recurse_succ (a : Q ⟶ A) (n : Q ⟶ N.N):
+lemma int_recurse_succ [cartesian_closed C] (a : Q ⟶ A) (n : Q ⟶ N.N):
   N.recurse g h ❲a, N.succ n❳ = h ❲❲a, n❳, N.recurse g h ❲a, n❳❳ :=
 begin
   rw [map_pair, thing, recurse_succ, ← thing],
@@ -287,7 +295,7 @@ begin
   apply prod.hom_ext; simp [expand_apply],
 end
 
-lemma recurse_uniq (q) :
+lemma recurse_uniq [cartesian_closed C] (q) :
   limits.prod.map (𝟙 A) N.o ≫ q = (prod.right_unitor _).hom ≫ g →
   limits.prod.map (𝟙 A) N.succ ≫ q = limits.prod.lift (𝟙 _) q ≫ h →
   q = N.recurse g h :=
@@ -308,7 +316,7 @@ begin
       uncurry_curry],
 end
 
-lemma recurse_hom_ext (q₁ q₂ : A ⨯ N.N ⟶ B) :
+lemma recurse_hom_ext [cartesian_closed C] (q₁ q₂ : A ⨯ N.N ⟶ B) :
   limits.prod.map (𝟙 A) N.o ≫ q₁ = limits.prod.map (𝟙 A) N.o ≫ q₂ →
   limits.prod.map (𝟙 A) N.succ ≫ q₁ = limits.prod.map (𝟙 A) N.succ ≫ q₂ →
   q₁ = q₂ :=
@@ -356,12 +364,12 @@ begin
 end
 
 
-lemma int_curry_natural_left {B' : C} (g : A ⨯ B' ⟶ B) (q : Q ⟶ _) :
+lemma int_curry_natural_left [cartesian_closed C] {B' : C} (g : A ⨯ B' ⟶ B) (q : Q ⟶ _) :
   cartesian_closed.curry g q = cartesian_closed.curry (g (map (𝟙 A) q)) :=
 (curry_natural_left _ _).symm
 
 
-lemma int_recurse_uniq (q : A ⨯ N.N ⟶ B) :
+lemma int_recurse_uniq [cartesian_closed C] (q : A ⨯ N.N ⟶ B) :
   (∀ Q (a : Q ⟶ _), q ❲a, N.zero❳ = g a)
 → (∀ Q (a : Q ⟶ _) n, q ❲a, N.succ n❳ = h ❲❲a, n❳, q ❲a, n❳❳)
 → q = N.recurse g h :=
@@ -383,6 +391,8 @@ begin
     apply q₂ }
 end
 end recursion
+
+variable [cartesian_closed C]
 
 def add : N.N ⨯ N.N ⟶ N.N :=
 N.recurse (𝟙 _) (limits.prod.snd ≫ N.succ)
@@ -789,29 +799,130 @@ begin
   rw [sub, N.int_recurse_succ, ← sub, ← thing, snd_pair],
 end
 
--- def coprod_fork : is_colimit (binary_cofan.mk N.o N.succ) :=
--- { desc := λ s, N.lift (N.N ⨯ s.X) ❲N.o, binary_cofan.inl s❳ (❲N.succ, binary_cofan.inr s❳ fst) ≫ snd,
---   fac' := λ s j,
---   begin
---     cases j,
---       change N.o ≫ N.lift _ _ _ ≫ _ = _,
---       rw [N.fac₁_assoc, prod.lift_snd],
---     change N.succ ≫ _ ≫ _ = binary_cofan.inr s,
---     rw [N.fac₂_assoc, expand_apply, assoc, prod.lift_snd, ← assoc],
---     convert id_comp _,
---     apply eq_id_of_comm_zero_succ,
---       rw [N.fac₁_assoc, prod.lift_fst],
---     rw [N.fac₂_assoc, assoc, prod.lift_fst, assoc],
---   end,
---   uniq' := λ s m j,
---   begin
---     apply N.uniq,
+def coprod_cofan : is_colimit (binary_cofan.mk N.o N.succ) :=
+{ desc := λ s, N.lift (N.N ⨯ s.X) ❲N.o, binary_cofan.inl s❳ (❲N.succ, binary_cofan.inr s❳ fst) ≫ snd,
+  fac' := λ s j,
+  begin
+    cases j,
+      change N.o ≫ N.lift _ _ _ ≫ _ = _,
+      rw [N.fac₁_assoc, prod.lift_snd],
+    change N.succ ≫ _ ≫ _ = binary_cofan.inr s,
+    rw [N.fac₂_assoc, expand_apply, assoc, prod.lift_snd, ← assoc],
+    convert id_comp _,
+    apply eq_id_of_comm_zero_succ,
+      rw [N.fac₁_assoc, prod.lift_fst],
+    rw [N.fac₂_assoc, assoc, prod.lift_fst, assoc],
+  end,
+  uniq' := λ s m j,
+  begin
+    have := N.uniq (N.N ⨯ s.X) ❲N.o, binary_cofan.inl s❳ (❲N.succ, binary_cofan.inr s❳ fst) ❲𝟙 _, m❳ _ _,
+      rw [← this, prod.lift_snd],
+    apply prod.hom_ext,
+      rw [assoc, prod.lift_fst, comp_id, prod.lift_fst],
+    rw [assoc, prod.lift_snd, prod.lift_snd], apply j walking_pair.left,
+    rw [expand_apply, prod.lift_fst_assoc, id_comp],
+    apply prod.hom_ext,
+      rw [assoc, prod.lift_fst, comp_id, prod.lift_fst],
+    rw [prod.lift_snd, assoc, prod.lift_snd],
+    apply j walking_pair.right,
+  end }
 
+instance : split_epi (terminal.from N.N) :=
+{ section_ := N.o }
 
+def coeq_cofork : is_colimit (cofork.of_π (terminal.from N.N) (by tidy) : cofork (𝟙 N.N) N.succ) :=
+cofork.is_colimit.mk' _ $
+begin
+  intro s,
+  have : N.succ ≫ s.π = s.π,
+    rw [← s.condition, id_comp],
+  have : s.π = N.lift s.X (N.o ≫ s.π) (𝟙 _),
+    apply N.uniq _ _ _ _ rfl (by rw [this, comp_id]),
+  have : s.π = terminal.from N.N ≫ N.o ≫ s.π,
+    apply this.trans (eq.symm _),
+    apply N.uniq _ _,
+    rw reassoc_of (subsingleton.elim (N.o ≫ terminal.from N.N) (𝟙 _)),
+    rw [reassoc_of (subsingleton.elim (N.succ ≫ terminal.from N.N) (terminal.from N.N)), comp_id],
+  refine ⟨N.o ≫ s.π, ‹_ = _›.symm, _⟩,
+  intros m w,
+  rw ← cancel_epi (terminal.from N.N),
+  erw w,
+  assumption,
+end
 
---   end
+/-- Transfer a natural numbers object across a left adjoint functor. -/
+-- Note this is alternatively doable if F is cocartesian and D is a topos
+def functor.map_nno (F : C ⥤ D) [is_left_adjoint F] [preserves_limits_of_shape (discrete pempty) F]
+  [has_finite_products D] :
+  natural_number_object D :=
+{ N := F.obj N.N,
+  o := (terminal_iso _ F).hom ≫ F.map N.o,
+  succ := F.map N.succ,
+  lift := λ A a t,
+  begin
+    apply ((adjunction.of_left_adjoint F).hom_equiv _ _).symm _,
+    haveI := adjunction.right_adjoint_preserves_limits (adjunction.of_left_adjoint F),
+    apply N.lift _ ((terminal_iso _ (right_adjoint F)).hom ≫ (right_adjoint F).map a) ((right_adjoint F).map t),
+  end,
+  fac₁ := λ A a t,
+  begin
+    rw [assoc, ← adjunction.hom_equiv_naturality_left_symm, N.fac₁,
+        adjunction.hom_equiv_naturality_right_symm, ← assoc],
+    convert id_comp _,
+  end,
+  fac₂ := λ A a t,
+  begin
+    rw [← adjunction.hom_equiv_naturality_left_symm, N.fac₂, adjunction.hom_equiv_naturality_right_symm],
+  end,
+  uniq := λ A a t f f₁ f₂,
+  begin
+    rw ← adjunction.hom_equiv_apply_eq,
+    apply N.uniq,
+      rw [← adjunction.hom_equiv_naturality_left, ← f₁, adjunction.hom_equiv_apply_eq,
+          adjunction.hom_equiv_naturality_right_symm, assoc, ← assoc],
+      convert (id_comp _).symm,
+      rw iso.comp_hom_eq_id,
+      refine subsingleton.elim _ _,
+    rw [← adjunction.hom_equiv_naturality_right, ← adjunction.hom_equiv_naturality_left, f₂],
+  end }
 
--- }
+-- n - n = 0
+-- (n+1) - (n+1) = pred ((n + 1) - n) = 0
+
+-- @[simp] lemma succ_sub_succ_eq_sub (a b : ℕ) : succ a - succ b = a - b :=
+-- nat.rec_on b
+--   (show succ a - succ zero = a - zero, from (eq.refl (succ a - succ zero)))
+--   (λ b, congr_arg pred)
+
+lemma succ_sub_succ_eq_sub (n m : Q ⟶ N.N) : N.sub ❲N.succ n, N.succ m❳ = N.sub ❲n, m❳ :=
+begin
+  suffices : N.sub ❲N.succ fst, N.succ snd❳ = N.sub,
+    simpa only [← func_assoc, pair_apply, snd_pair, fst_pair] using congr_element ❲n, m❳ this,
+  apply N.int_recurse_uniq,
+    intros Q n,
+    rw [← func_assoc, pair_apply, ← func_assoc, ← func_assoc, fst_pair, snd_pair, sub_succ,
+        sub_zero, pred_succ, id_apply],
+  intros Q a n,
+  rw [← func_assoc, ← thing, pair_apply, ← func_assoc, fst_pair, ← func_assoc, snd_pair, sub_succ,
+      snd_pair, ← func_assoc, pair_apply, ← func_assoc, fst_pair, ← func_assoc, snd_pair],
+end
+lemma sub_self (n : Q ⟶ N.N) : N.sub ❲n, n❳ = N.zero :=
+begin
+  suffices : N.sub ❲𝟙 _, 𝟙 _❳ = N.zero,
+    simpa only [← func_assoc, pair_apply, id_apply, zero_apply] using congr_element n this,
+  have : N.sub ❲𝟙 _, 𝟙 _❳ = N.recurse' N.zero snd,
+    apply N.int_recurse'_uniq,
+      rw [← func_assoc, pair_apply, id_apply, sub_zero],
+    intros Q n,
+      rw [← func_assoc, pair_apply, id_apply, succ_sub_succ_eq_sub, snd_pair, ← func_assoc,
+          pair_apply, id_apply],
+  rw this,
+  symmetry,
+  apply N.int_recurse'_uniq,
+  rw zero_apply,
+  intros Q n,
+  rw [snd_pair, zero_apply, zero_apply],
+end
 
 end natural_number_object
 end category_theory
