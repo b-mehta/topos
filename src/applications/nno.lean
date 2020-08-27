@@ -1,4 +1,6 @@
 import category_theory.closed.cartesian
+import category_theory.isomorphism
+import tactic.ring
 
 universes v u
 
@@ -32,13 +34,25 @@ lemma eq_id_of_comm_zero_succ (f : N.N ⟶ N.N) (hf₁ : N.o ≫ f = N.o) (hf₂
   f = 𝟙 _ :=
 by rw [N.uniq _ N.o N.succ f hf₁ hf₂, N.uniq _ N.o N.succ (𝟙 _) (comp_id _) (by simp)]
 
+def os_closed {N' : C} (m : N' ⟶ N.N) [mono m] (o' : ⊤_ C ⟶ N') (s' : N' ⟶ N') (ho : o' ≫ m = N.o)
+  (hs : m ≫ N.succ = s' ≫ m) : is_iso m :=
+begin
+  have : split_epi m,
+    refine ⟨N.lift _ o' s', _⟩,
+    apply eq_id_of_comm_zero_succ,
+    rw [fac₁_assoc, ho],
+    rw [fac₂_assoc, assoc, hs],
+  resetI,
+  apply is_iso_of_mono_of_split_epi,
+end
+
 variable {C}
 def unit : Q ⟶ ⊤_ C := terminal.from Q
 def apply {A B} (f : A ⟶ B) (h : Q ⟶ A) : Q ⟶ B := h ≫ f
 instance {A B : C} : has_coe_to_fun (A ⟶ B) :=
 { F := λ f, Π {Q}, (Q ⟶ A) → (Q ⟶ B),
   coe := λ f Q h, h ≫ f }
-abbreviation zero : Q ⟶ N.N := N.o unit
+def zero : Q ⟶ N.N := N.o unit
 
 lemma expand_apply {A B : C} (f : A ⟶ B) (h : Q ⟶ A) : f h = h ≫ f := rfl
 @[simp]
@@ -144,6 +158,25 @@ begin
     rw [q₂], refl }
 end
 
+lemma int_recurse'_hom_ext (q₁ q₂ : N.N ⟶ B) [has_equalizers C] :
+  (∀ Q, q₁ N.zero = q₂ (N.zero : Q ⟶ _))
+→ (∀ Q (n : Q ⟶ N.N), q₁ n = q₂ n → q₁ (N.succ n) = q₂ (N.succ n))
+→ q₁ = q₂ :=
+begin
+  intros h₁ h₂,
+  let i := equalizer q₁ q₂,
+  let i' : i ⟶ N.N := equalizer.ι q₁ q₂,
+  have : (_ ≫ _) ≫ _ = (_ ≫ _) ≫ _ := h₂ i i' (equalizer.condition _ _),
+  have : N.o ≫ q₁ = N.o ≫ q₂,
+    rw ← term_zero,
+    apply h₁,
+  have := N.os_closed _ i' (equalizer.lift N.o ‹_›) (equalizer.lift (i' ≫ N.succ) ‹_›) _ _,
+  resetI,
+  rw [← cancel_epi i'], apply equalizer.condition,
+  rw equalizer.lift_ι,
+  rw equalizer.lift_ι,
+end
+
 end
 
 /-- Define a function with parameters by primitive recursion. -/
@@ -179,11 +212,56 @@ by rw [expand_apply, expand_apply, prod.lift_map, comp_id]
 lemma real_map_pair {A' B' : C} (a : Q ⟶ A) (b : Q ⟶ B) (f : A ⟶ A') (g : B ⟶ B') : limits.prod.map f g ❲a, b❳ = ❲f a, g b❳ :=
 by { rw [expand_apply, prod.lift_map], refl }
 
+lemma id_apply (x : Q ⟶ A) : (𝟙 A : _ ⟶ _) x = x :=
+comp_id _
+
+lemma pair_apply {B' : C} (x : Q ⟶ B') (g h) : (❲g, h❳ : B' ⟶ A ⨯ B) x = ❲g x, h x❳ :=
+begin
+  rw [expand_apply],
+  apply prod.hom_ext,
+    rw [assoc, prod.lift_fst, prod.lift_fst, expand_apply],
+  rw [assoc, prod.lift_snd, prod.lift_snd, expand_apply],
+end
+
+lemma pair_fst_snd : ❲fst, snd❳ = 𝟙 (A ⨯ B) :=
+begin
+  apply prod.hom_ext; simp,
+end
+
+lemma pair_ext (a : Q ⟶ A ⨯ B) : ❲(fst : A ⨯ B ⟶ _) a, (snd : A ⨯ B ⟶ B) a❳ = a :=
+begin
+  rw [← pair_apply, pair_fst_snd, id_apply],
+end
+
+lemma func_assoc {W X Y Z : C} (x : X ⟶ Y) (g : Y ⟶ W) (f : W ⟶ Z) : f (g x) = (f g) x :=
+begin
+  apply assoc,
+end
+
+lemma zero_apply (x : Q ⟶ A) : N.zero x = N.zero :=
+begin
+  change _ ≫ _ ≫ _ = _ ≫ _,
+  rw ← assoc, congr' 1,
+end
+
+@[reducible] def two : Q ⟶ N.N := N.succ N.one
+@[reducible] def three : Q ⟶ N.N := N.succ N.two
+@[reducible] def four : Q ⟶ N.N := N.succ N.three
+
+lemma one_apply (x : Q ⟶ A) : N.one x = N.one :=
+begin
+  rw [← func_assoc, zero_apply]
+end
+lemma two_apply (x : Q ⟶ A) : N.two x = N.two :=
+begin
+  rw [← func_assoc, one_apply]
+end
+
 lemma int_recurse_zero (a : Q ⟶ _) :
   N.recurse g h ❲a, N.zero❳ = g a :=
 begin
   have : ❲a, N.zero❳ = limits.prod.map (𝟙 A) N.o ❲a, unit❳,
-  { rw ← map_pair },
+    rw [real_map_pair, id_apply], refl,
   rw [this, thing, N.recurse_zero, ← thing, right_unitor_hom],
 end
 
@@ -255,11 +333,6 @@ begin
 end
 
 
-lemma pair_fst_snd : ❲fst, snd❳ = 𝟙 (A ⨯ B) :=
-begin
-  apply prod.hom_ext; simp,
-end
-
 lemma fst_pair {Q : C} (a : Q ⟶ A) (b : Q ⟶ B) : (fst : A ⨯ B ⟶ A) ❲a, b❳ = a :=
 begin
   rw [expand_apply, prod.lift_fst],
@@ -267,6 +340,12 @@ end
 lemma snd_pair {Q : C} (a : Q ⟶ A) (b : Q ⟶ B) : (snd : A ⨯ B ⟶ B) ❲a, b❳ = b :=
 begin
   rw [expand_apply, prod.lift_snd],
+end
+
+lemma swap_pair {Q : C} (a : Q ⟶ A) (b : Q ⟶ B) : ((braiding _ _).hom : A ⨯ B ⟶ _) ❲a, b❳ = ❲b, a❳ :=
+begin
+  rw [expand_apply],
+  apply prod.hom_ext; simp,
 end
 
 lemma test_pair {X Y Z : C} (f g : X ⨯ Y ⟶ Z) :
@@ -303,89 +382,6 @@ begin
     rw [map_pair, pair_fst_snd, apply_id, apply_id] at q₂,
     apply q₂ }
 end
-
-lemma func_assoc {W X Y Z : C} (x : X ⟶ Y) (g : Y ⟶ W) (f : W ⟶ Z) : f (g x) = (f g) x :=
-begin
-  apply assoc,
-end
-
-
-lemma pair_apply {B' : C} (x : Q ⟶ B') (g h) : (❲g, h❳ : B' ⟶ A ⨯ B) x = ❲g x, h x❳ :=
-begin
-  rw [expand_apply],
-  apply prod.hom_ext,
-    rw [assoc, prod.lift_fst, prod.lift_fst, expand_apply],
-  rw [assoc, prod.lift_snd, prod.lift_snd, expand_apply],
-end
-
-lemma id_apply (x : Q ⟶ A) : (𝟙 A : _ ⟶ _) x = x :=
-comp_id _
-
-lemma int_recurse_hom_ext (q₁ q₂ : A ⨯ N.N ⟶ B) :
-  (∀ Q (a : Q ⟶ A), q₁ ❲a, N.zero❳ = q₂ ❲a, N.zero❳) →
-  (∀ Q (a : Q ⟶ A) (n : Q ⟶ N.N), q₁ ❲a, n❳ = q₂ ❲a, n❳ → q₁ ❲a, N.succ n❳ = q₂ ❲a, N.succ n❳) →
-  q₁ = q₂ :=
-begin
-  intros h0 hsucc,
-  let g := q₂ ❲𝟙 _, N.zero❳,
-  let h : A ⨯ N.N ⨯ B ⟶ B := limits.prod.fst ≫ limits.prod.map (𝟙 _) N.succ ≫ q₂,
-  have : map (𝟙 A) N.o ≫ q₂ = (right_unitor A).hom ≫ g,
-    change _ ≫ _ = _ ≫ _ ≫ _,
-    rw ← assoc,
-    congr' 1,
-    apply prod.hom_ext,
-      rw [limits.prod.map_fst, assoc, prod.lift_fst], refl,
-    rw [limits.prod.map_snd, assoc, prod.lift_snd],
-    change _ = _ ≫ _ ≫ _,
-    rw ← assoc,
-    congr' 1,
-  have : map (𝟙 A) N.succ ≫ q₂ = limits.prod.lift (𝟙 (A ⨯ N.N)) q₂ ≫ h,
-    rw [prod.lift_fst_assoc, id_comp],
-  have := N.recurse_uniq g h q₂ ‹_› ‹_›,
-  rw this,
-  apply N.recurse_uniq g h q₁ _ _,
-  { rw ← ‹_ = _›,
-    sorry, },
-  { apply test_pair,
-    intros Q a n,
-    rw [← thing, real_map_pair, id_apply, ← thing, pair_apply, id_apply],
-    sorry
-  }
-
-  -- rw N.int_recurse_uniq g h q₂,
-  -- apply N.int_recurse_uniq g h q₁,
-  -- { intros Q a,
-  --   rw h0,
-  --   change _ = (q₂ _) _,
-  --   rw [← func_assoc],
-  --   congr' 1,
-  --   rw [expand_apply],
-  --   apply prod.hom_ext,
-  --     simp,
-  --   rw [prod.lift_snd, assoc, prod.lift_snd],
-  --   change _ ≫ _ = _ ≫ _ ≫ _,
-  --   rw ← assoc, congr' 1 },
-  -- { intros Q a n,
-  --   change _ = (fst ≫ map (𝟙 A) N.succ ≫ q₂) ❲❲a, n❳, q₁ ❲a, n❳❳,
-  --   rw [← thing, fst_pair, ← thing, ← map_pair],
-  --   apply hsucc,
-
-  --    },
-  -- { intros Q a,
-  --   change _ = (q₂ _) _,
-  --   rw [← func_assoc],
-  --   congr' 1,
-  --   rw [expand_apply],
-  --   apply prod.hom_ext,
-  --     simp,
-  --   rw [prod.lift_snd, assoc, prod.lift_snd],
-  --   change _ ≫ _ = _ ≫ _ ≫ _,
-  --   rw ← assoc, congr' 1 },
-  -- { intros Q a n,
-  --   change _ = (fst ≫ map (𝟙 A) N.succ ≫ q₂) ❲❲a, n❳, q₂ ❲a, n❳❳,
-  --   rw [← thing, ← thing, fst_pair, ← map_pair] },
-end
-
 end recursion
 
 def add : N.N ⨯ N.N ⟶ N.N :=
@@ -405,9 +401,6 @@ begin
   refl,
 end
 
-@[reducible] def two : Q ⟶ N.N := N.succ N.one
-@[reducible] def three : Q ⟶ N.N := N.succ N.two
-@[reducible] def four : Q ⟶ N.N := N.succ N.three
 
 lemma kevin : N.add ❲N.two, N.two❳ = (N.four : Q ⟶ _) :=
 begin
@@ -431,13 +424,6 @@ end
 -- ⇑(N.add) (⇑❲N.zero, 𝟙 N.N❳ N.zero)
 -- ⇑(⇑(N.add) ❲N.zero, 𝟙 N.N❳) N.zero
 
-
-
-lemma zero_apply (x : Q ⟶ A) : N.zero x = N.zero :=
-begin
-  change _ ≫ _ ≫ _ = _ ≫ _,
-  rw ← assoc, congr' 1,
-end
 
 lemma zero_add (n : Q ⟶ N.N) : N.add ❲N.zero, n❳ = n :=
 begin
@@ -463,24 +449,369 @@ begin
   rintro rfl, refl,
 end
 
+lemma add_three_one : N.add (limits.prod.map N.add (𝟙 _)) = N.recurse N.add (N.succ snd) :=
+begin
+  apply int_recurse_uniq,
+    intros Q a,
+    rw [← func_assoc, real_map_pair, id_apply, add_zero],
+  intros Q a n,
+  rw [← func_assoc, ← func_assoc, ← func_assoc, real_map_pair, real_map_pair, id_apply, id_apply,
+      add_succ, snd_pair],
+end
+
+lemma add_three_two :
+  ❲limits.prod.fst ≫ limits.prod.fst, limits.prod.map limits.prod.snd (𝟙 _) ≫ N.add❳ ≫ N.add = N.recurse N.add (N.succ snd) :=
+begin
+  apply int_recurse_uniq,
+    intros Q a,
+    rw [← thing, pair_apply, ← thing, fst_pair, ← thing, real_map_pair, id_apply, add_zero,
+        ← pair_apply, pair_fst_snd, id_apply],
+  intros Q a n,
+  rw [← thing, ← thing, ← func_assoc, snd_pair, pair_apply, ← thing, fst_pair, ← thing,
+      real_map_pair, id_apply, add_succ, add_succ, pair_apply, ← thing, fst_pair, ← thing,
+      real_map_pair, id_apply],
+end
+
 lemma add_assoc (n m p : Q ⟶ N.N) : N.add ❲N.add ❲n, m❳, p❳ = N.add ❲n, N.add ❲m, p❳❳ :=
 begin
-  -- rw [expand_apply, expand_apply, expand_apply, expand_apply],
   suffices : limits.prod.map N.add (𝟙 _) ≫ N.add = ❲limits.prod.fst ≫ limits.prod.fst, limits.prod.map limits.prod.snd (𝟙 _) ≫ N.add❳ ≫ N.add,
     have := congr_element ❲❲n, m❳, p❳ this,
     rw [← thing, real_map_pair, id_apply] at this,
     rw this,
     rw [← thing, pair_apply, ← thing, fst_pair, fst_pair, ← thing, real_map_pair, snd_pair,
         id_apply],
-  sorry
-  -- apply int_recurse_hom_ext,
-  --   intros Q mn,
-  --   rw [← thing, real_map_pair, id_apply, add_zero, ← thing, pair_apply, ← thing, fst_pair,
-  --       ← thing, real_map_pair, id_apply, add_zero, ← pair_apply, pair_fst_snd, id_apply],
-  -- intros Q mn p,
-
-
+  rw ← expand_apply,
+  rw add_three_one,
+  rw ← add_three_two,
 end
+
+lemma succ_eq_add_one (n : Q ⟶ N.N) : N.succ n = N.add ❲n, N.one❳ :=
+begin
+  rw [add_succ, add_zero],
+end
+
+lemma succ_add (n m : Q ⟶ N.N) : N.add ❲N.succ n, m❳ = N.succ (N.add ❲n, m❳) :=
+begin
+  suffices : N.add (limits.prod.map (N.succ) (𝟙 _)) = N.succ N.add,
+  { have := congr_element ❲n, m❳ this,
+    rwa [← func_assoc, ← func_assoc, real_map_pair, id_apply] at this },
+  { have : N.succ N.add = N.recurse N.succ (N.succ snd),
+      apply N.int_recurse_uniq,
+      { intros Q a,
+        rw [← func_assoc, add_zero] },
+      { intros Q a n,
+        rw [← func_assoc, ← func_assoc, ← func_assoc, add_succ, snd_pair] },
+    rw this,
+    apply N.int_recurse_uniq,
+    { intros Q a,
+      rw [← func_assoc, real_map_pair, id_apply, add_zero] },
+    { intros Q a n,
+      rw [← func_assoc, ← func_assoc, ← func_assoc, real_map_pair, real_map_pair, id_apply,
+          add_succ, snd_pair, id_apply] } }
+end
+
+lemma add_comm (n m : Q ⟶ N.N) : N.add ❲n, m❳ = N.add ❲m, n❳ :=
+begin
+  suffices : N.add (limits.prod.braiding _ _).hom = N.add,
+    conv_lhs {rw ← this},
+    rw [← func_assoc, swap_pair],
+  apply N.int_recurse_uniq,
+  { intros Q m,
+    rw [id_apply, ← func_assoc, swap_pair, zero_add] },
+  { intros Q a m,
+    rw [← func_assoc, swap_pair, succ_add, ← func_assoc, swap_pair, ← thing, snd_pair] }
+end
+
+lemma add_right_comm (n m p : Q ⟶ N.N) : N.add ❲N.add ❲n, m❳, p❳ = N.add ❲N.add ❲n, p❳, m❳ :=
+begin
+  rw [add_assoc, N.add_comm m p, add_assoc],
+end
+
+section multiplication
+
+def mult : N.N ⨯ N.N ⟶ N.N := N.recurse N.zero (N.add ❲snd, fst ≫ fst❳)
+lemma mul_zero (n : Q ⟶ N.N) : N.mult ❲n, N.zero❳ = N.zero :=
+by rw [mult, N.int_recurse_zero, zero_apply]
+lemma mul_succ (n m : Q ⟶ N.N) : N.mult ❲n, N.succ m❳ = N.add ❲N.mult ❲n, m❳, n❳ :=
+by rw [mult, N.int_recurse_succ, ← func_assoc, pair_apply, snd_pair, ← thing, fst_pair, fst_pair]
+
+lemma zero_mul (n : Q ⟶ N.N) : N.mult ❲N.zero, n❳ = N.zero :=
+begin
+  suffices : N.mult ❲N.zero, 𝟙 _❳ = N.zero,
+    simpa only [← func_assoc, pair_apply, id_apply, zero_apply] using congr_element n this,
+  have : N.mult ❲N.zero, 𝟙 N.N❳ = N.recurse' N.zero snd,
+    apply N.int_recurse'_uniq,
+    simp only [← func_assoc, pair_apply, zero_apply, id_apply, mul_zero],
+    intros Q n,
+    simp only [← func_assoc, pair_apply, zero_apply, id_apply, add_zero, mul_succ, snd_pair],
+  rw this,
+  symmetry,
+  apply N.int_recurse'_uniq,
+  rw zero_apply,
+  intros Q n,
+  rw [zero_apply, snd_pair, zero_apply],
+end
+
+lemma mul_one (n : Q ⟶ N.N) : N.mult ❲n, N.one❳ = n :=
+begin
+  rw [mul_succ, mul_zero, zero_add],
+end
+lemma one_mul (n : Q ⟶ N.N) : N.mult ❲N.one, n❳ = n :=
+begin
+  suffices : N.mult ❲N.one, 𝟙 _❳ = 𝟙 N.N,
+    have := congr_element n this,
+    rw [← func_assoc, pair_apply, id_apply, one_apply] at this,
+    assumption,
+  apply hom_eq_id,
+  intro Q,
+  rw [← func_assoc, pair_apply, id_apply, mul_zero],
+  intros Q n,
+  rw [← func_assoc, ← func_assoc, pair_apply, pair_apply, id_apply, id_apply, mul_succ,
+      one_apply, one_apply, succ_eq_add_one],
+end
+
+lemma mul_add (t a b : Q ⟶ N.N) : N.mult ❲t, N.add ❲a, b❳❳ = N.add ❲N.mult ❲t, a❳, N.mult ❲t, b❳❳ :=
+begin
+  suffices : N.mult ❲fst ≫ fst, N.add ❲fst ≫ snd, snd❳❳ = N.add ❲N.mult ❲fst ≫ fst, fst ≫ snd❳, N.mult ❲fst ≫ fst, snd❳❳,
+    simpa only [← func_assoc, pair_apply, ← thing, fst_pair, snd_pair] using congr_element ❲❲t, a❳, b❳ this,
+  have : N.mult ❲fst ≫ fst, N.add ❲fst ≫ snd, snd❳❳ = N.recurse N.mult (N.add ❲snd, fst ≫ fst ≫ fst❳),
+    apply N.int_recurse_uniq,
+      intros Q a,
+      simp only [← func_assoc, pair_apply, mul_zero, snd_pair, ← thing, fst_pair, add_zero],
+      rw [← pair_apply, pair_fst_snd, id_apply],
+    intros Q a n,
+    simp only [← func_assoc, pair_apply, ← thing, fst_pair, snd_pair, add_succ, mul_succ],
+  rw this,
+  symmetry,
+  apply N.int_recurse_uniq,
+  { intros Q a,
+    simp only [← func_assoc, pair_apply, ← thing, fst_pair, snd_pair, mul_zero, add_zero],
+    rw [← pair_apply, pair_fst_snd, id_apply] },
+  { intros Q a n,
+    simp only [← func_assoc, pair_apply, ← thing, fst_pair, snd_pair, mul_zero, add_zero,
+               mul_succ, add_assoc] }
+end
+lemma mul_assoc (a b c : Q ⟶ N.N) : N.mult ❲N.mult ❲a, b❳, c❳ = N.mult ❲a, N.mult ❲b, c❳❳ :=
+begin
+  suffices : N.mult ❲N.mult ❲fst ≫ fst, fst ≫ snd❳, snd❳ = N.mult ❲fst ≫ fst, N.mult ❲fst ≫ snd, snd❳❳,
+    simpa only [← func_assoc, pair_apply, ← thing, fst_pair, snd_pair] using congr_element ❲❲a, b❳, c❳ this,
+  have : N.mult ❲fst ≫ fst, N.mult ❲fst ≫ snd, snd❳❳ = N.recurse N.zero (N.add ❲snd, N.mult (fst ≫ fst)❳),
+    apply N.int_recurse_uniq,
+      intros Q a,
+      simp only [← func_assoc, pair_apply, fst_pair, snd_pair, ← thing, mul_succ, pair_ext,
+                 zero_apply, mul_zero],
+    intros Q a n,
+    simp only [← func_assoc, pair_apply, fst_pair, snd_pair, ← thing, mul_succ, pair_ext, mul_add],
+  rw this,
+  apply N.int_recurse_uniq,
+  intros Q a,
+  simp only [← func_assoc, pair_apply, fst_pair, snd_pair, ← thing, mul_succ, pair_ext, zero_apply,
+             mul_zero],
+  intros Q a n,
+  simp only [← func_assoc, pair_apply, fst_pair, snd_pair, ← thing, mul_succ, pair_ext],
+end
+lemma succ_mul (a b : Q ⟶ N.N) : N.mult ❲N.succ a, b❳ = N.add ❲N.mult ❲a, b❳, b❳ :=
+begin
+  suffices : N.mult ❲N.succ fst, snd❳ = N.add ❲N.mult (𝟙 _), snd❳,
+    simpa only [← func_assoc, pair_apply, ← thing, fst_pair, snd_pair, id_apply] using congr_element ❲a, b❳ this,
+  have : N.add ❲N.mult (𝟙 _), snd❳ = N.recurse N.zero (N.succ (N.add ❲snd, fst ≫ fst❳)),
+    apply N.int_recurse_uniq,
+    { intros Q a,
+      simp only [← func_assoc, pair_apply, fst_pair, snd_pair, ← thing, pair_ext,
+                 zero_apply, mul_zero, id_apply, add_zero] },
+    { intros Q a n,
+      simp only [← func_assoc, pair_apply, snd_pair, fst_pair, mul_succ, add_succ, ← thing,
+                 id_apply, add_right_comm] },
+  rw this,
+  apply N.int_recurse_uniq,
+  { intros Q a,
+    simp only [← func_assoc, pair_apply, fst_pair, snd_pair, ← thing, pair_ext,
+                zero_apply, mul_zero, id_apply, add_zero] },
+  { intros Q a n,
+    simp only [← func_assoc, pair_apply, snd_pair, fst_pair, mul_succ, add_succ, ← thing] }
+end
+
+instance {Q : C} : has_add (Q ⟶ N.N) := ⟨λ f g, N.add ❲f, g❳⟩
+instance {Q : C} : has_mul (Q ⟶ N.N) := ⟨λ f g, N.mult ❲f, g❳⟩
+
+lemma add_mul (a b t : Q ⟶ N.N) : N.mult ❲a + b, t❳ = N.add ❲N.mult ❲a, t❳, N.mult ❲b, t❳❳ :=
+begin
+  suffices : N.mult ❲N.add fst, snd❳ = N.add ❲N.mult ❲fst ≫ fst, snd❳, N.mult ❲fst ≫ snd, snd❳❳,
+    simpa only [← func_assoc, pair_apply, ← thing, fst_pair, snd_pair, id_apply] using congr_element ❲❲a, b❳, t❳ this,
+  have : N.mult ❲N.add fst, snd❳ = N.recurse N.zero (N.add ❲snd, N.add (fst ≫ fst)❳),
+  { apply N.int_recurse_uniq,
+    { intros Q a,
+      simp only [← func_assoc, pair_apply, fst_pair, snd_pair, ← thing, pair_ext,
+                 zero_apply, mul_zero, id_apply, add_zero] },
+    { intros Q a n,
+      simp only [← func_assoc, pair_apply, fst_pair, snd_pair, mul_succ, ← thing] } },
+  rw this,
+  symmetry,
+  apply N.int_recurse_uniq,
+  { intros Q a,
+    simp only [← func_assoc, pair_apply, fst_pair, snd_pair, ← thing, pair_ext,
+                zero_apply, mul_zero, id_apply, add_zero] },
+  { intros Q a n,
+    simp only [← func_assoc, pair_apply, fst_pair, snd_pair, ← thing, mul_succ, add_assoc],
+    congr' 2,
+    rw [← add_assoc, add_right_comm, pair_ext, add_comm] }
+end
+
+lemma mul_comm (n m : Q ⟶ N.N) : N.mult ❲n, m❳ = N.mult ❲m, n❳ :=
+begin
+  suffices : N.mult (limits.prod.braiding _ _).hom = N.mult,
+    simpa only [← func_assoc, swap_pair] using congr_element ❲m, n❳ this,
+  apply N.int_recurse_uniq,
+  { intros Q m,
+    rw [← func_assoc, swap_pair, zero_mul, zero_apply] },
+  { intros Q a m,
+    simp only [← func_assoc, swap_pair, succ_mul, pair_apply, snd_pair, ← thing, fst_pair] }
+end
+
+lemma mul_right_comm (n m p : Q ⟶ N.N) : N.mult ❲N.mult ❲n, m❳, p❳ = N.mult ❲N.mult ❲n, p❳, m❳ :=
+begin
+  rw [mul_assoc, N.mul_comm m p, mul_assoc],
+end
+
+instance : comm_semiring (Q ⟶ N.N) :=
+{ add := (+),
+  add_assoc := λ a b c, N.add_assoc a b c,
+  zero := N.zero,
+  zero_add := λ a, N.zero_add a,
+  add_zero := λ a, N.add_zero a,
+  add_comm := λ a b, N.add_comm a b,
+  mul := (*),
+  mul_assoc := λ a b c, N.mul_assoc a b c,
+  one := N.one,
+  one_mul := λ a, N.one_mul a,
+  mul_one := λ a, N.mul_one a,
+  zero_mul := λ a, N.zero_mul a,
+  mul_zero := λ a, N.mul_zero a,
+  left_distrib := λ a b c, N.mul_add a b c,
+  right_distrib := λ a b c, N.add_mul a b c,
+  mul_comm := λ a b, N.mul_comm a b }
+
+end multiplication
+
+section exponentiation
+
+def pow : N.N ⨯ N.N ⟶ N.N := N.recurse N.one (N.mult ❲snd, fst ≫ fst❳)
+
+instance : has_pow (Q ⟶ N.N) (Q ⟶ N.N) := ⟨λ a b, N.pow ❲a, b❳⟩
+
+lemma pow_zero (a : Q ⟶ N.N) : N.pow ❲a, N.zero❳ = N.one :=
+begin
+  rw [pow, N.int_recurse_zero, one_apply],
+end
+lemma pow_succ (a b : Q ⟶ N.N) : N.pow ❲a, N.succ b❳ = N.mult ❲N.pow ❲a, b❳, a❳ :=
+begin
+  rw [pow, N.int_recurse_succ, ← pow, ← func_assoc, pair_apply, snd_pair, ← thing, fst_pair, fst_pair],
+end
+
+lemma zero_pow_zero : N.pow ❲N.zero, N.zero❳ = (N.one : Q ⟶ _) :=
+begin
+  rw pow_zero,
+end
+lemma zero_pow_succ (m : Q ⟶ N.N) : N.pow ❲N.zero, N.succ m❳ = N.zero :=
+begin
+  rw [pow_succ, mul_zero],
+end
+
+lemma pow_one (a : Q ⟶ N.N) : N.pow ❲a, N.one❳ = a :=
+begin
+  rw [N.pow_succ, pow_zero, one_mul],
+end
+
+lemma one_pow (a : Q ⟶ N.N) : N.pow ❲N.one, a❳ = N.one :=
+begin
+  suffices : N.pow ❲N.one, 𝟙 _❳ = N.one,
+    simpa only [← func_assoc, pair_apply, one_apply, id_apply] using congr_element a this,
+  have : N.pow ❲N.one, 𝟙 N.N❳ = N.recurse' N.one snd,
+    apply N.int_recurse'_uniq,
+    rw [← func_assoc, pair_apply, one_apply, id_apply, pow_zero],
+    intros Q n,
+    simp only [snd_pair, ← func_assoc, pair_apply, zero_apply, id_apply, pow_succ, mul_one],
+  rw this,
+  symmetry,
+  apply N.int_recurse'_uniq,
+  rw one_apply,
+  intros Q n,
+  rw [snd_pair, one_apply, one_apply],
+end
+
+lemma pow_two_eq_mul (n : Q ⟶ N.N) : N.pow ❲n, N.two❳ = N.mult ❲n, n❳ :=
+begin
+  rw [pow_succ, pow_one],
+end
+
+
+lemma add_square (a b : Q ⟶ N.N) : N.pow ❲a + b, N.two❳ = N.pow ❲a, N.two❳ + 2 * a * b + N.pow ❲b, N.two❳ :=
+begin
+  rw [pow_two_eq_mul, pow_two_eq_mul, pow_two_eq_mul],
+  change (a + b) * (a + b) = a * a + 2 * a * b + b * b,
+  ring,
+end
+
+-- pow_add
+--   (a m n : mynat) : a ^ (m + n) = a ^ m * a ^ n
+-- mul_pow
+--   (a b n : mynat) : (a * b) ^ n = a ^ n * b ^ n
+-- pow_pow
+--   (a m n : mynat) : (a ^ m) ^ n = a ^ (m * n)
+
+end exponentiation
+
+def pred : N.N ⟶ N.N := N.recurse' N.o fst
+lemma pred_zero' : N.pred N.zero = N.o :=
+N.int_recurse'_zero _ _
+lemma pred_zero : N.pred (N.zero : Q ⟶ N.N) = N.zero :=
+begin
+  change N.pred (N.o unit) = N.o unit,
+  rw [func_assoc, ← term_zero, pred_zero'],
+  simp,
+end
+lemma pred_succ (n : Q ⟶ N.N) : N.pred (N.succ n) = n :=
+begin
+  change N.recurse' _ _ _ = _,
+  rw int_recurse'_succ,
+  rw fst_pair,
+end
+
+instance : split_mono N.succ := ⟨N.pred, by simpa using N.pred_succ (𝟙 _)⟩
+
+def sub : N.N ⨯ N.N ⟶ N.N := N.recurse (𝟙 _) (snd ≫ N.pred)
+lemma sub_zero (n : Q ⟶ N.N) : N.sub ❲n, N.zero❳ = n :=
+begin
+  rw [sub, N.int_recurse_zero, id_apply],
+end
+lemma sub_succ (n m : Q ⟶ N.N) : N.sub ❲n, N.succ m❳ = N.pred (N.sub ❲n, m❳) :=
+begin
+  rw [sub, N.int_recurse_succ, ← sub, ← thing, snd_pair],
+end
+
+-- def coprod_fork : is_colimit (binary_cofan.mk N.o N.succ) :=
+-- { desc := λ s, N.lift (N.N ⨯ s.X) ❲N.o, binary_cofan.inl s❳ (❲N.succ, binary_cofan.inr s❳ fst) ≫ snd,
+--   fac' := λ s j,
+--   begin
+--     cases j,
+--       change N.o ≫ N.lift _ _ _ ≫ _ = _,
+--       rw [N.fac₁_assoc, prod.lift_snd],
+--     change N.succ ≫ _ ≫ _ = binary_cofan.inr s,
+--     rw [N.fac₂_assoc, expand_apply, assoc, prod.lift_snd, ← assoc],
+--     convert id_comp _,
+--     apply eq_id_of_comm_zero_succ,
+--       rw [N.fac₁_assoc, prod.lift_fst],
+--     rw [N.fac₂_assoc, assoc, prod.lift_fst, assoc],
+--   end,
+--   uniq' := λ s m j,
+--   begin
+--     apply N.uniq,
+
+
+
+--   end
+
+-- }
 
 end natural_number_object
 end category_theory
