@@ -131,21 +131,17 @@ def preserves_limit_of_equiv {J₁ J₂ : Type v} [small_category J₁] [small_c
 variables (F : C ⥤ D) [preserves_limits_of_shape (discrete walking_pair) F] [preserves_limits_of_shape (discrete pempty) F]
 variables [has_finite_products.{v} C] [has_finite_products.{v} D]
 
-example : pempty.{u} ≃ ulift (fin 0) :=
-begin
-  apply (equiv.equiv_pempty _).symm,
-  intro,
-  apply a.1.elim0,
-end
+def fin0_equiv_pempty : fin 0 ≃ pempty :=
+equiv.equiv_pempty (λ a, a.elim0)
 
 def preserves_fin_of_preserves_binary_and_terminal  :
   Π (n : ℕ), preserves_limits_of_shape (discrete (ulift (fin n))) F
-| 0 := preserves_limit_of_equiv (begin apply discrete.equivalence (equiv.equiv_pempty _).symm, intro a, apply a.1.elim0, end : discrete pempty ≌ _) F
+| 0 := preserves_limit_of_equiv (discrete.equivalence (equiv.ulift.trans fin0_equiv_pempty).symm) F
 | (n+1) :=
   begin
+    -- Register the instance from n.
     haveI p := preserves_fin_of_preserves_binary_and_terminal n,
     refine ⟨λ K, _⟩,
-
     let K' : discrete (ulift (fin n)) ⥤ C := discrete.functor (λ (i : ulift _), K.obj ⟨i.down.succ⟩),
     have p' : preserves_limit K' F,
       apply_instance,

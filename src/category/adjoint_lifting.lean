@@ -166,7 +166,7 @@ begin
   rw part2.φ',
   dunfold arrow_map,
   conv_lhs {to_lhs, apply_congr ((adj S).hom_equiv_naturality_left_symm _ _).symm},
-  dsimp [equiv.symm],
+  dsimp,
   rw ← adjunction.eq_hom_equiv_apply,
   conv_lhs {to_rhs, apply_congr (adj S).hom_equiv_naturality_right _ _ },
   conv_lhs {to_rhs, congr, apply_congr ((adj S).hom_equiv _ _).right_inv },
@@ -250,7 +250,7 @@ begin
   refine adjunction.left_adjoint_of_equiv (λ a b, L'e R comm_iso hrc a b) _,
   intros a b b' g h,
   ext1,
-  dsimp [L'e, elast, equiv.subtype_congr, arrow_map, e1, coeq_equiv, equiv.trans, equiv.symm],
+  dsimp [L'e, elast, equiv.subtype_congr, arrow_map, e1, coeq_equiv],
   change (ℛ.adj.hom_equiv _ _).to_fun (((adj S).hom_equiv _ _).to_fun (_ ≫ h ≫ g)) ≫ comm_iso.inv.app b' =
         ((ℛ.adj.hom_equiv _ _).to_fun (((adj S).hom_equiv _ _).to_fun (_ ≫ h)) ≫ comm_iso.inv.app b) ≫ (R'.map g).f,
   conv_lhs {congr, congr, skip, conv {congr, skip, rw ← category.assoc}, apply_congr (adj S).hom_equiv_naturality_right},
@@ -289,11 +289,8 @@ begin
     iso_whisker_left (comparison U).inv comm_iso ≪≫ iso_whisker_right (comparison U).inv_fun_id (forget (left_adjoint U ⋙ U) ⋙ R),
   let i₂ : ((comparison U).inv ⋙ Q ⋙ comparison V) ⋙ forget _ ≅ forget _ ⋙ R := i,
   have := lift_algebra_left_adjoint i₂ (reflexive_coeq_of_equiv (comparison U) hrc),
-  have i₃ : comparison U ⋙ (comparison U).inv ⋙ Q ⋙ comparison V ⋙ (comparison V).inv ≅ Q,
-    exact calc comparison U ⋙ (comparison U).inv ⋙ Q ⋙ comparison V ⋙ (comparison V).inv ≅ Q ⋙ comparison V ⋙ (comparison V).inv :
-      begin
-        exact iso_whisker_right (comparison U).fun_inv_id (Q ⋙ comparison V ⋙ (comparison V).inv),
-      end
+  have i₃ : comparison U ⋙ (comparison U).inv ⋙ Q ⋙ comparison V ⋙ (comparison V).inv ≅ Q :=
+    calc comparison U ⋙ (comparison U).inv ⋙ Q ⋙ comparison V ⋙ (comparison V).inv ≅ Q ⋙ comparison V ⋙ (comparison V).inv : iso_whisker_right (comparison U).fun_inv_id (Q ⋙ comparison V ⋙ (comparison V).inv)
           ... ≅ Q : by exact iso_whisker_left Q (comparison V).fun_inv_id ≪≫ Q.right_unitor,
   suffices: is_right_adjoint (comparison U ⋙ (comparison U).inv ⋙ Q ⋙ comparison V ⋙ (comparison V).inv),
     apply @adjunction.right_adjoint_of_nat_iso _ _ _ _ _ _ i₃ this,
