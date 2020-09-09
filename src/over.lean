@@ -28,6 +28,22 @@ open category limits
 universes v u
 variables {C : Type u} [category.{v} C]
 
+instance over_mono {B : C} {f g : over B} (m : f ⟶ g) [mono m] : mono m.left :=
+⟨λ A h k e,
+begin
+  let A' : over B := over.mk (k ≫ f.hom),
+  have: h ≫ f.hom = k ≫ f.hom,
+    rw ← over.w m, rw reassoc_of e,
+  let h' : A' ⟶ f := over.hom_mk h,
+  let k' : A' ⟶ f := over.hom_mk k,
+  have : h' ≫ m = k' ≫ m := over.over_morphism.ext e,
+  rw cancel_mono m at this,
+  injection this
+end⟩
+
+def over_mono' {B : C} {f g : over B} (m : f ⟶ g) [mono m.left] : mono m :=
+{right_cancellation := λ A h k e, over.over_morphism.ext ((cancel_mono m.left).1 (congr_arg comma_morphism.left e))}
+
 -- def has_finite_products_of_has_finite_limits [has_finite_limits.{v} C] : has_finite_products.{v} C :=
 -- λ _ _ _, by resetI; apply_instance
 def has_finite_coproducts_of_has_finite_colimits [has_finite_colimits.{v} C] : has_finite_coproducts.{v} C :=

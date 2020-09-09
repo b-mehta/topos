@@ -44,10 +44,6 @@ lemma leq_iff_comp_and {E : C} (m n : subq E) :
   m ≤ n ↔ prod.lift (classify m) (classify n) ≫ and_arrow C = classify m :=
 by simp only [← inf_eq_left, and_property, ← classification.apply_eq_iff_eq, classification.apply_symm_apply]
 
-lemma factors_iff_comp_and {E A₁ A₂ : C} (m₁ : A₁ ⟶ E) (m₂ : A₂ ⟶ E) [mono m₁] [mono m₂] :
-  factors_through m₁ m₂ ↔ prod.lift (classifier_of m₁) (classifier_of m₂) ≫ and_arrow C = classifier_of m₁ :=
-leq_iff_comp_and ⟦sub.mk' m₁⟧ ⟦sub.mk' m₂⟧
-
 @[reassoc] lemma classify_postcompose {A A' E : C} (n : A ⟶ A') (m : A' ⟶ E) [mono n] [mono m] :
   classifier_of n = m ≫ classifier_of (n ≫ m) :=
 uniquely _ _ (left_right_hpb_to_both_hpb _ (top_iso_has_pullback_top _ n _ m (id_comp _)) (classifies (n ≫ m)))
@@ -113,20 +109,13 @@ end
 def closure_intersection {E : C} {m m' : subq E} : closure.operator j (m ⊓ m') = closure.operator j m ⊓ closure.operator j m' :=
 by simp only [← classify_eq_iff_eq, closure.classify_op, ← and_property, ← prod.lift_map, assoc, topology.ax3]
 
-def monotone {B : C} (m : A ⟶ E) (n : B ⟶ E) [mono m] [mono n] (h : factors_through m n) :
-  factors_through (arrow j m) (arrow j n) :=
-begin
-  rw [factors_iff_comp_and] at h,
-  rw [factors_iff_comp_and, closure.classifier, closure.classifier, ← prod.lift_map, assoc,
-      ← topology.ax3, reassoc_of h],
-end
 def mono_sub : ∀ {m n : subq E}, m ≤ n → operator j m ≤ operator j n :=
-quotient.ind₂ $
 begin
-  intros a b h,
-  apply monotone,
-  cases h,
-  refine ⟨over.hom_mk h.left (sub.w h)⟩,
+  intros m n h,
+  rw ← inf_eq_left,
+  rw ← closure_intersection,
+  rw ← inf_eq_left at h,
+  rw h,
 end
 lemma comm_pullback (m : subq E) (f : A ⟶ E) :
   (subq.pullback f).obj (operator j m) = operator j ((subq.pullback f).obj m) :=

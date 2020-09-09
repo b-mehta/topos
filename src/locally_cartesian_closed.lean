@@ -40,6 +40,17 @@ attribute [instance] is_locally_cartesian_closed.overs_cc
 universe u₂
 
 variable {C}
+
+def id_is_terminal (X : C) : is_terminal (over.mk (𝟙 X)) :=
+{ lift := λ s, over.hom_mk s.X.hom (comp_id _),
+  uniq' := λ s m j,
+  begin
+    refine over.over_morphism.ext _,
+    dsimp,
+    rw ← over.w m,
+    apply (comp_id _).symm,
+  end }
+
 lemma equiv_reflects_mono {D : Type u₂} [category.{v} D] {X Y : C} (f : X ⟶ Y) (e : C ≌ D)
   (hef : mono (e.functor.map f)) : mono f :=
 faithful_reflects_mono e.functor hef
@@ -98,6 +109,26 @@ adjunction.of_nat_iso_left (ladj' f) (iso_pb f)
 
 instance other_thing {A B : C} (f : A ⟶ B) : is_left_adjoint (real_pullback f) :=
 ⟨dependent_product f, ladj _⟩
+
+def dep_prod_preserves_mono {A B : C}
+  (f : A ⟶ B) (g : over A) (hg : mono g.hom) :
+  mono ((dependent_product f).obj g).hom :=
+begin
+  let g' : g ⟶ over.mk (𝟙 A) := over.hom_mk g.hom,
+  haveI : mono g'.left := hg,
+  haveI := right_adjoint_preserves_mono (ladj f) (over_mono' g'),
+  haveI := (ladj f).right_adjoint_preserves_limits,
+  have : is_limit ((dependent_product f).map_cone _):= preserves_limit.preserves (id_is_terminal A),
+  let i : (dependent_product f).obj (over.mk (𝟙 A)) ≅ over.mk (𝟙 B),
+    exact this.cone_points_iso_of_nat_iso (id_is_terminal B) (functor.empty_ext _ _),
+  have : (dependent_product f).map g' ≫ i.hom = (id_is_terminal _).from _,
+    apply (id_is_terminal _).hom_ext,
+  have : ((dependent_product f).obj g).hom = ((dependent_product f).map g' ≫ i.hom).left,
+    rw this, refl,
+  rw this,
+  apply category_theory.over_mono _,
+  apply mono_comp,
+end
 
 /--
  P ⟶ D

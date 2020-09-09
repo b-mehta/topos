@@ -789,14 +789,14 @@ end
 
 instance : split_mono N.succ := ⟨N.pred, by simpa using N.pred_succ (𝟙 _)⟩
 
-def sub : N.N ⨯ N.N ⟶ N.N := N.recurse (𝟙 _) (snd ≫ N.pred)
-lemma sub_zero (n : Q ⟶ N.N) : N.sub ❲n, N.zero❳ = n :=
+def subtract : N.N ⨯ N.N ⟶ N.N := N.recurse (𝟙 _) (snd ≫ N.pred)
+lemma sub_zero (n : Q ⟶ N.N) : N.subtract ❲n, N.zero❳ = n :=
 begin
-  rw [sub, N.int_recurse_zero, id_apply],
+  rw [subtract, N.int_recurse_zero, id_apply],
 end
-lemma sub_succ (n m : Q ⟶ N.N) : N.sub ❲n, N.succ m❳ = N.pred (N.sub ❲n, m❳) :=
+lemma sub_succ (n m : Q ⟶ N.N) : N.subtract ❲n, N.succ m❳ = N.pred (N.subtract ❲n, m❳) :=
 begin
-  rw [sub, N.int_recurse_succ, ← sub, ← thing, snd_pair],
+  rw [subtract, N.int_recurse_succ, ← subtract, ← thing, snd_pair],
 end
 
 def coprod_cofan : is_colimit (binary_cofan.mk N.o N.succ) :=
@@ -886,17 +886,9 @@ def functor.map_nno (F : C ⥤ D) [is_left_adjoint F] [preserves_limits_of_shape
     rw [← adjunction.hom_equiv_naturality_right, ← adjunction.hom_equiv_naturality_left, f₂],
   end }
 
--- n - n = 0
--- (n+1) - (n+1) = pred ((n + 1) - n) = 0
-
--- @[simp] lemma succ_sub_succ_eq_sub (a b : ℕ) : succ a - succ b = a - b :=
--- nat.rec_on b
---   (show succ a - succ zero = a - zero, from (eq.refl (succ a - succ zero)))
---   (λ b, congr_arg pred)
-
-lemma succ_sub_succ_eq_sub (n m : Q ⟶ N.N) : N.sub ❲N.succ n, N.succ m❳ = N.sub ❲n, m❳ :=
+lemma succ_sub_succ_eq_sub (n m : Q ⟶ N.N) : N.subtract ❲N.succ n, N.succ m❳ = N.subtract ❲n, m❳ :=
 begin
-  suffices : N.sub ❲N.succ fst, N.succ snd❳ = N.sub,
+  suffices : N.subtract ❲N.succ fst, N.succ snd❳ = N.subtract,
     simpa only [← func_assoc, pair_apply, snd_pair, fst_pair] using congr_element ❲n, m❳ this,
   apply N.int_recurse_uniq,
     intros Q n,
@@ -906,11 +898,11 @@ begin
   rw [← func_assoc, ← thing, pair_apply, ← func_assoc, fst_pair, ← func_assoc, snd_pair, sub_succ,
       snd_pair, ← func_assoc, pair_apply, ← func_assoc, fst_pair, ← func_assoc, snd_pair],
 end
-lemma sub_self (n : Q ⟶ N.N) : N.sub ❲n, n❳ = N.zero :=
+lemma sub_self (n : Q ⟶ N.N) : N.subtract ❲n, n❳ = N.zero :=
 begin
-  suffices : N.sub ❲𝟙 _, 𝟙 _❳ = N.zero,
+  suffices : N.subtract ❲𝟙 _, 𝟙 _❳ = N.zero,
     simpa only [← func_assoc, pair_apply, id_apply, zero_apply] using congr_element n this,
-  have : N.sub ❲𝟙 _, 𝟙 _❳ = N.recurse' N.zero snd,
+  have : N.subtract ❲𝟙 _, 𝟙 _❳ = N.recurse' N.zero snd,
     apply N.int_recurse'_uniq,
       rw [← func_assoc, pair_apply, id_apply, sub_zero],
     intros Q n,

@@ -5,14 +5,16 @@ import category_theory.limits.shapes.finite_limits
 import category_theory.limits.shapes.finite_products
 import category.kernel_pair
 import power
+import topos
 
 universes v u
 
 open category_theory category_theory.category category_theory.limits
-
+variables {C : Type u} [category.{v} C]
 namespace category_theory
 
-variables {C : Type u} [category.{v} C] [has_finite_limits.{v} C]
+section
+variables [has_finite_limits.{v} C]
 
 -- A relation should be mono, but we restrict this at the use site instead.
 abbreviation relation (R A : C) := R ⟶ A ⨯ A
@@ -177,8 +179,12 @@ begin
   { rw [assoc, prod.lift_snd] }
 end
 
+end
+
 local attribute [instance] has_finite_products_of_has_finite_limits
-variables [has_subobject_classifier.{v} C] [cartesian_closed.{v} C]
+local attribute [instance] has_finite_coproducts_of_has_finite_colimits
+variables [topos C]
+variables {A R : C} (rel : relation.{v} R A)
 
 def named [mono rel] : A ⟶ P A := hat rel
 
@@ -341,6 +347,19 @@ def A243_part2 {W X Y Z : C} {g : W ⟶ Y} {d : Y ⟶ Z} {f : W ⟶ X} {e : X �
   (t : is_colimit (pushout_cocone.mk _ _ comm)) : is_limit (pullback_cone.mk _ _ comm) :=
 kata_is_pullback (A242_commutes _ _) _ (A242_pullback _ _) t
 
+def is_pushout_is_coprod {I A B AB : C} (inl : A ⟶ AB) (inr : B ⟶ AB)
+  (init : is_initial I) (cop : is_colimit (binary_cofan.mk inl inr)) :
+  is_colimit (pushout_cocone.mk inl inr (init.hom_ext _ _) : pushout_cocone (init.to _) (init.to _)) :=
+pushout_cocone.is_colimit.mk _ _ _
+  (λ s, (limits.binary_cofan.is_colimit.desc' cop s.inl s.inr).1)
+  (λ s, (limits.binary_cofan.is_colimit.desc' cop s.inl s.inr).2.1)
+  (λ s, (limits.binary_cofan.is_colimit.desc' cop s.inl s.inr).2.2) $ λ s m w₁ w₂,
+begin
+  apply binary_cofan.is_colimit.hom_ext cop,
+  rwa (limits.binary_cofan.is_colimit.desc' cop s.inl s.inr).2.1,
+  rwa (limits.binary_cofan.is_colimit.desc' cop s.inl s.inr).2.2,
+end
+
 def pushout_coprod {A B : C} :
   is_colimit (pushout_cocone.mk coprod.inl coprod.inr (subsingleton.elim _ _) : pushout_cocone (default (⊥_ C ⟶ A)) (default (⊥_ C ⟶ B))) :=
 pushout_cocone.is_colimit.mk _ _ _
@@ -362,11 +381,68 @@ begin
   simp only [coprod.inr_desc, coprod.braiding_hom]
 end
 
-def intersect_coprojections {A B : C} : pullback (coprod.inl : A ⟶ A ⨿ B) coprod.inr ≅ ⊥_ C :=
+def mono_coproj_inl {A B AB : C} {inl : A ⟶ AB} {inr : B ⟶ AB}
+  (cop : is_colimit (binary_cofan.mk inl inr)) : mono inl :=
+@A243_part1 _ _ _ _ _ _ _ _ _ (initial.to _) _ _ _ (is_pushout_is_coprod _ _ initial_is_initial cop)
+
+lemma mono_coproj_inr {A B AB : C} {inl : A ⟶ AB} {inr : B ⟶ AB}
+  (cop : is_colimit (binary_cofan.mk inl inr)) : mono inr :=
+begin
+  apply @A243_part1 _ _ _ _ _ _ _ _ _ (initial.to _) _ _ _ (pushout_cocone.flip_is_colimit (is_pushout_is_coprod _ _ initial_is_initial cop)),
+  apply initial_is_initial.hom_ext,
+end
+
+def intersect_coprojections (A B : C) : pullback (coprod.inl : A ⟶ A ⨿ B) coprod.inr ≅ ⊥_ C :=
 begin
   have : is_limit (pullback_cone.mk (default (⊥_ C ⟶ A)) (default (⊥_ C ⟶ B)) _) := A243_part2 _ pushout_coprod,
   apply is_limit.cone_point_unique_up_to_iso (limit.is_limit _) this,
 end
+
+def intersect_coprojections' {A B AB : C} {inl : A ⟶ AB} {inr : B ⟶ AB}
+  (cop : is_colimit (binary_cofan.mk inl inr)) : pullback inl inr ≅ ⊥_ C :=
+begin
+  have : is_limit (pullback_cone.mk (default (⊥_ C ⟶ A)) (default (⊥_ C ⟶ B)) _) := A243_part2 _ (is_pushout_is_coprod _ _ initial_is_initial cop),
+  apply is_limit.cone_point_unique_up_to_iso (limit.is_limit _) this,
+end
+
+lemma disjoint_coproj {A B : C} : subq.mk (coprod.inl : A ⟶ A ⨿ B) ⊓ subq.mk coprod.inr = ⊥ :=
+begin
+  rw inf_comm,
+  refine quotient.sound ⟨sub.iso_mk (intersect_coprojections A B) _⟩,
+  rw ← iso.eq_inv_comp,
+  dsimp,
+  exact subsingleton.elim (initial.to _) _,
+end
+
+def inl_subq {A B AB : C} {inl : A ⟶ AB} {inr : B ⟶ AB} (cop : is_colimit (binary_cofan.mk inl inr)) :
+  subq AB :=
+⟦⟨over.mk inl, mono_coproj_inl cop⟩⟧
+
+def inr_subq {A B AB : C} {inl : A ⟶ AB} {inr : B ⟶ AB} (cop : is_colimit (binary_cofan.mk inl inr)) :
+  subq AB :=
+⟦⟨over.mk inr, mono_coproj_inr cop⟩⟧
+
+lemma disjoint_is_coproj {A B AB : C} {inl : A ⟶ AB} {inr : B ⟶ AB}
+  (cop : is_colimit (binary_cofan.mk inl inr)) :
+  inl_subq cop ⊓ inr_subq cop = ⊥ :=
+begin
+  rw inf_comm,
+  refine quotient.sound ⟨sub.iso_mk (intersect_coprojections' cop) _⟩,
+  rw ← iso.eq_inv_comp,
+  dsimp,
+  exact subsingleton.elim (initial.to AB) _,
+end
+
+lemma coproj_union {A B AB : C} {inl : A ⟶ AB} {inr : B ⟶ AB}
+  (cop : is_colimit (binary_cofan.mk inl inr)) :
+  inl_subq cop ⊔ inr_subq cop = ⊤ :=
+@union_coproj_eq_top _ _ _ _ A B AB inl inr (mono_coproj_inl cop) (mono_coproj_inr cop) cop
+
+lemma compl_coproj {A B AB : C} {inl : A ⟶ AB} {inr : B ⟶ AB}
+  (cop : is_colimit (binary_cofan.mk inl inr)) :
+is_compl (inl_subq cop) (inr_subq cop) :=
+{ inf_le_bot := (disjoint_is_coproj cop).symm ▸ le_refl _,
+  top_le_sup := (coproj_union cop).symm ▸ le_refl _ }
 
 end disjoint
 

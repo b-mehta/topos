@@ -327,6 +327,11 @@ adjunction.mk_of_hom_equiv
 def subq.exists_pull_adj (f : X ⟶ Y) [has_pullbacks C] [has_images C] : subq.exists f ⊣ subq.pullback f :=
 subq.lower_adjunction (sub.exists_pull_adj f)
 
+lemma subq.exists_le_iff (f : X ⟶ Y) [has_pullbacks C] [has_images C] {x y : subq _} :
+  (subq.exists f).obj x ≤ y ↔ x ≤ (subq.pullback f).obj y :=
+⟨le_of_hom ∘ (subq.exists_pull_adj f).hom_equiv x y ∘ hom_of_le,
+ le_of_hom ∘ ((subq.exists_pull_adj f).hom_equiv x y).symm ∘ hom_of_le⟩
+
 -- Is this actually necessary?
 def factors_through {X Y Z : C} (f : X ⟶ Z) (g : Y ⟶ Z) : Prop := nonempty (over.mk f ⟶ over.mk g)
 lemma factors_through_iff_le {X Y Z : C} (f : X ⟶ Z) (g : Y ⟶ Z) [mono f] [mono g] :
@@ -417,23 +422,6 @@ begin
   apply quotient.sound,
   exact ⟨(sub.pull_post_self f g).app _⟩,
 end
-
-instance over_mono {B : C} {f g : over B} (m : f ⟶ g) [mono m] : mono m.left :=
-⟨λ A h k e,
-begin
-  let A' : over B := over.mk (k ≫ f.hom),
-  have: h ≫ f.hom = k ≫ f.hom,
-    rw ← over.w m, rw reassoc_of e,
-  let h' : A' ⟶ f := over.hom_mk h,
-  let k' : A' ⟶ f := over.hom_mk k,
-  have : h' ≫ m = k' ≫ m := over.over_morphism.ext e,
-  rw cancel_mono m at this,
-  injection this
-end⟩
-
-def over_mono' {B : C} {f g : over B} (m : f ⟶ g) [mono m.left] : mono m :=
-{right_cancellation := λ A h k e, over.over_morphism.ext ((cancel_mono m.left).1 (congr_arg comma_morphism.left e))}
-
 @[simps]
 def preorder_functor {α β : Type*} [preorder α] [preorder β] (f : α → β) (hf : monotone f) : α ⥤ β :=
 { obj := f,
@@ -619,6 +607,25 @@ instance [has_finite_coproducts.{v} C] [has_images.{v} C] {B : C} : semilattice_
   le_sup_right := λ m n, quotient.induction_on₂ m n (λ a b, ⟨sub.le_union_right _ _⟩),
   sup_le := λ m n k, quotient.induction_on₃ m n k (λ a b c ⟨i⟩ ⟨j⟩, ⟨sub.union_le _ _ _ i j⟩),
   ..category_theory.subq.partial_order B }
+
+lemma union_coproj_eq_top [has_finite_coproducts C] [has_images C]
+  {A B AB : C} {inl : A ⟶ AB} {inr : B ⟶ AB} [mono inl] [mono inr]
+  (cop : is_colimit (binary_cofan.mk inl inr)) :
+  subq.mk inl ⊔ subq.mk inr = ⊤ :=
+begin
+  apply top_unique,
+  refine ⟨sub.hom_mk _ _⟩,
+  apply (binary_cofan.is_colimit.desc' cop coprod.inl coprod.inr).1 ≫ factor_thru_image (coprod.desc inl inr),
+  change (_ ≫ _) ≫ image.ι _ = 𝟙 AB,
+  rw [assoc, image.fac],
+  apply binary_cofan.is_colimit.hom_ext cop,
+  rw [← assoc, (binary_cofan.is_colimit.desc' cop coprod.inl coprod.inr).2.1, coprod.inl_desc],
+  symmetry,
+  apply comp_id,
+  rw [← assoc, (binary_cofan.is_colimit.desc' cop coprod.inl coprod.inr).2.2, coprod.inr_desc],
+  symmetry,
+  apply comp_id,
+end
 
 lemma prod_eq_inter {A : C} {f₁ f₂ : subq A} [has_pullbacks.{v} C] : (f₁ ⨯ f₂) = f₁ ⊓ f₂ :=
 begin

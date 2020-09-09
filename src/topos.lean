@@ -121,7 +121,7 @@ instance subq_cc (A : C) : cartesian_closed (subq A) :=
 @cartesian_closed_of_equiv _ _ (id _) _ _ _ (sub_one_over A).symm (top_cc _)
 
 /-- The bottom of the subobject category. -/
-def sub_bot (B : C) : sub B := sub.mk' (initial.to B)
+def sub_bot (B : C) : sub B := ⟨over.mk (initial.to B), initial_mono B initial_is_initial⟩
 @[simp] lemma sub_bot_left {B : C} : (↑(sub_bot B) : over B).left = ⊥_ C := rfl
 @[simp] lemma sub_bot_arrow {B : C} : (sub_bot B).arrow = initial.to B := rfl
 def subq_bot (B : C) : subq B := ⟦sub_bot B⟧
@@ -142,7 +142,9 @@ begin
   apply quotient.sound,
   symmetry,
   refine ⟨sub.iso_mk _ _⟩,
-  refine (as_iso pullback.fst).symm,
+  refine (as_iso _).symm,
+  apply pullback.fst,
+  exact strict_initial initial_is_initial pullback.fst,
   dsimp,
   apply subsingleton.elim,
 end
@@ -330,6 +332,23 @@ begin
   refine @as_iso _ _ _ _ _ (this x y),
 end
 
+def sub.forall {X Y : C} (f : X ⟶ Y) : sub X ⥤ sub Y :=
+restrict_to_sub (dependent_product f) (λ g, dep_prod_preserves_mono _ _ g.2)
+
+/-- post is adjoint to pullback for monos -/
+def sub.pull_forall_adj {X Y : C} (f : X ⟶ Y) : sub.pullback f ⊣ sub.forall f :=
+adjunction.restrict_fully_faithful (forget_sub Y) (forget_sub X) (ladj f) (iso.refl _) (iso.refl _)
+
+def subq.forall {X Y : C} (f : X ⟶ Y) := lower_sub (sub.forall f)
+
+def subq.pull_forall_adj {X Y : C} (f : X ⟶ Y) : subq.pullback f ⊣ subq.forall f :=
+subq.lower_adjunction (sub.pull_forall_adj f)
+
+lemma subq.le_pullback_iff {X Y : C} (f : X ⟶ Y) {x y : subq _} :
+  (subq.pullback f).obj x ≤ y ↔ x ≤ (subq.forall f).obj y :=
+⟨le_of_hom ∘ (subq.pull_forall_adj f).hom_equiv x y ∘ hom_of_le,
+ le_of_hom ∘ ((subq.pull_forall_adj f).hom_equiv x y).symm ∘ hom_of_le⟩
+
 instance : bounded_distrib_lattice (subq A) :=
 { le_sup_inf := le_sup_inf_of_inf_sup_le subq.distrib,
   ..category_theory.bounded_lattice }
@@ -337,6 +356,20 @@ instance : bounded_distrib_lattice (subq A) :=
 instance : has_compl (subq A) := { compl := λ x, x ⟹ ⊥ }
 
 variables (x y z : subq A)
+
+lemma inf_compl : x ⊓ xᶜ = ⊥ :=
+begin
+  apply bot_unique,
+  rw exp_transpose,
+  apply le_refl,
+end
+lemma le_compl_iff : x ≤ yᶜ ↔ x ⊓ y = ⊥ :=
+begin
+  rw eq_bot_iff,
+  rw inf_comm,
+  rw exp_transpose,
+  refl,
+end
 
 lemma imp_eq_top_iff_le : (x ⟹ y) = ⊤ ↔ x ≤ y :=
 by rw [eq_top_iff, ← exp_transpose, inf_top_eq]
