@@ -2,7 +2,7 @@
 
 # Topos theory for Lean
 
-This is a WIP project to define some topos theory within the Lean theorem prover.
+This repository contains formal verification of results in Topos Theory, drawing from "Sheaves in Geometry and Logic" and "Sketches of an Elephant". 
 
 ## What's here?
 - Cartesian closed categories
