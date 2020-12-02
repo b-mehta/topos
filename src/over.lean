@@ -22,6 +22,7 @@ This right adjoint is written `Π_B` and is interpreted as dependent product.
 Given `f : A ⟶ B` in `C/B`, the iterated slice `(C/B)/f` is isomorphic to
 `C/A`.
 -/
+noncomputable theory
 namespace category_theory
 open category limits
 
@@ -57,8 +58,23 @@ variable [has_binary_products.{v} C]
 
 @[simps]
 def star : C ⥤ over B :=
-{ obj := λ A, @over.mk _ _ _ (B ⨯ A) limits.prod.fst,
-  map := λ X Y f, over.hom_mk (limits.prod.map (𝟙 _) f) }
+{ obj := λ A, over.mk (limits.prod.fst : B ⨯ A ⟶ B),
+  map := λ X Y f, over.hom_mk (limits.prod.map (𝟙 _) f),
+  map_id' := λ X,
+  begin
+    apply over.over_morphism.ext,
+    dsimp,
+    simp,
+  end,
+  map_comp' := λ X Y Z f g,
+  begin
+    apply over.over_morphism.ext,
+    dsimp,
+    ext,
+    { rw [limits.prod.map_fst, comp_id, assoc, limits.prod.map_fst, comp_id, limits.prod.map_fst,
+          comp_id] },
+    { rw [limits.prod.map_snd, assoc, limits.prod.map_snd, limits.prod.map_snd_assoc] }
+  end }
 
 local attribute [tidy] tactic.case_bash
 
@@ -67,8 +83,25 @@ adjunction.mk_of_hom_equiv
 { hom_equiv := λ g A,
   { to_fun := λ f, over.hom_mk (prod.lift g.hom f),
     inv_fun := λ k, k.left ≫ limits.prod.snd,
-    left_inv := by tidy,
-    right_inv := by tidy } }
+    left_inv := λ f, prod.lift_snd _ _,
+    right_inv := λ k,
+    begin
+      ext;
+      dsimp,
+      rw prod.lift_fst,
+      rw ← over.w k,
+      refl,
+      rw prod.lift_snd,
+    end },
+  hom_equiv_naturality_right' := λ X Y Y' f g,
+  begin
+    dsimp,
+    ext1,
+    dsimp,
+    rw prod.lift_map,
+    rw comp_id,
+  end,
+  hom_equiv_naturality_left_symm' := λ X' X Y f g, begin dsimp, rw assoc end }
 end
 
 def exponentiable_of_star_is_left_adj [has_finite_products C] (h : is_left_adjoint (star B)) :
@@ -93,10 +126,10 @@ begin
 end
 
 def over_map_id {A : C} : over.map (𝟙 A) ≅ 𝟭 _ :=
-nat_iso.of_components (λ X, over_iso (iso.refl _) (by tidy)) (by tidy)
+nat_iso.of_components (λ X, over_iso (iso.refl _) (begin dsimp, simp end)) (λ X Y f, begin ext, dsimp, simp end)
 
 def over_map_comp {X Y Z : C} (f : X ⟶ Y) (g : Y ⟶ Z) : over.map (f ≫ g) ≅ over.map f ⋙ over.map g :=
-nat_iso.of_components (λ X, over_iso (iso.refl _) (by tidy)) (by tidy)
+nat_iso.of_components (λ X, over_iso (iso.refl _) (begin dsimp, simp end)) (λ X Y f, begin ext, dsimp, simp end)
 
 -- local attribute [instance] has_finite_wide_pullbacks_of_has_finite_limits
 
@@ -164,11 +197,11 @@ adjunction.mk_of_hom_equiv
 -- (((over.mk f).iterated_slice_equiv.symm.to_adjunction.comp _ _ (forget_adj_star _)).of_nat_iso_left (over_map_iso_dependent_sum f)).of_nat_iso_right (iso_pb f)
 
 def pullback_id {A : C} [has_pullbacks C] : real_pullback (𝟙 A) ≅ 𝟭 _ :=
-right_adjoint_uniq (radj _) (adjunction.id.of_nat_iso_left over_map_id.symm)
+adjunction.right_adjoint_uniq (radj _) (adjunction.id.of_nat_iso_left over_map_id.symm)
 
 def pullback_comp {X Y Z : C} (f : X ⟶ Y) (g : Y ⟶ Z) [has_pullbacks C] :
   real_pullback (f ≫ g) ≅ real_pullback g ⋙ real_pullback f :=
-right_adjoint_uniq (radj _) (((radj _).comp _ _ (radj _)).of_nat_iso_left (over_map_comp _ _).symm)
+adjunction.right_adjoint_uniq (radj _) (((radj _).comp _ _ (radj _)).of_nat_iso_left (over_map_comp _ _).symm)
 
 instance thing {A B : C} (f : A ⟶ B) [has_pullbacks C] : is_right_adjoint (real_pullback f) :=
 ⟨_, radj f⟩

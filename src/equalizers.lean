@@ -7,6 +7,8 @@ open category_theory category_theory.category category_theory.limits
 
 universes v u u₂
 
+noncomputable theory
+
 variables (C : Type u) [category.{v} C]
 
 def of_iso_point {J : Type v} [small_category J] (K : J ⥤ C) (c : cone K) [has_limit K] [i : is_iso (limit.lift K c)] : is_limit c :=

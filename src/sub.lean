@@ -20,6 +20,7 @@ import over
 
 universes v v₂ u u₂
 
+noncomputable theory
 namespace category_theory
 
 open category_theory category_theory.category category_theory.limits
@@ -620,11 +621,15 @@ instance [has_finite_coproducts.{v} C] [has_images.{v} C] {B : C} : semilattice_
   sup_le := λ m n k, quotient.induction_on₃ m n k (λ a b c ⟨i⟩ ⟨j⟩, ⟨sub.union_le _ _ _ i j⟩),
   ..category_theory.subq.partial_order B }
 
-lemma prod_eq_inter {A : C} {f₁ f₂ : subq A} [has_pullbacks.{v} C] : (f₁ ⨯ f₂) = f₁ ⊓ f₂ :=
-begin
-  change f₁ ⊓ (f₂ ⊓ ⊤) = f₁ ⊓ f₂,
-  rw inf_top_eq,
-end
+lemma prod_eq_inter {A : C} [has_pullbacks.{v} C] {f₁ f₂ : subq A} : (f₁ ⨯ f₂) = f₁ ⊓ f₂ :=
+le_antisymm
+  (le_inf
+    (le_of_hom limits.prod.fst)
+    (le_of_hom limits.prod.snd))
+  (le_of_hom
+    (prod.lift
+      (hom_of_le inf_le_left)
+      (hom_of_le inf_le_right)))
 
 lemma inf_eq_intersection {B : C} (m m' : subq B) [has_pullbacks.{v} C] :
   m ⊓ m' = (subq.intersection.obj m).obj m' := rfl

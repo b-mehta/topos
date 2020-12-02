@@ -14,7 +14,7 @@ open category_theory category_theory.category category_theory.limits
 open classifier
 
 universes v u u₂
-
+noncomputable theory
 variables (C : Type u) [category.{v} C]
 
 local attribute [instance] has_finite_products_of_has_finite_limits
@@ -106,7 +106,7 @@ calc over.map k ⋙ prod_functor.obj f ≅ over.map k ⋙ real_pullback f.hom �
 def test {A B : C} (f : over A) (k : B ⟶ A) :
   exp f ⋙ real_pullback k ≅ real_pullback k ⋙ exp ((real_pullback k).obj f) :=
 begin
-  apply right_adjoint_uniq,
+  apply adjunction.right_adjoint_uniq,
   apply adjunction.comp _ _ (radj k) (exp.adjunction _),
   apply adjunction.of_nat_iso_left _ (test' f k).symm,
   apply adjunction.comp _ _ (exp.adjunction _) (radj k),
@@ -233,8 +233,18 @@ instance : bounded_lattice (subq A) :=
 
 lemma coprod_eq_union {A : C} {f₁ f₂ : subq A} : (f₁ ⨿ f₂) = f₁ ⊔ f₂ :=
 begin
-  change f₁ ⊔ (f₂ ⊔ ⊥) = f₁ ⊔ f₂,
-  simp,
+  apply le_antisymm,
+  apply le_of_hom,
+  apply coprod.desc,
+  apply hom_of_le,
+  apply le_sup_left,
+  apply hom_of_le,
+  apply le_sup_right,
+  apply sup_le,
+  apply le_of_hom,
+  apply coprod.inl,
+  apply le_of_hom,
+  apply coprod.inr
 end
 
 -- (x ⊔ y) ⊓ (x ⊔ z) ≤ x ⊔ y ⊓ z

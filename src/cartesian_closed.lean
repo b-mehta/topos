@@ -18,7 +18,7 @@ attribute [instance] cartesian_closed_functor.comparison_iso
 
 variables {F} {L : D ⥤ C}
 
-def frobenius_map (A : C) (B : D) (adj : L ⊣ F) : L.obj (F.obj A ⨯ B) ⟶ A ⨯ L.obj B :=
+noncomputable def frobenius_map (A : C) (B : D) (adj : L ⊣ F) : L.obj (F.obj A ⨯ B) ⟶ A ⨯ L.obj B :=
 prod_comparison _ _ _ ≫ limits.prod.map (adj.counit.app A) (𝟙 _)
 
 @[reassoc]
@@ -60,7 +60,7 @@ end
 
 variables (adj : L ⊣ F) [∀ A B, is_iso (frobenius_map A B adj)]
 
-def biject (adj : L ⊣ F) [∀ A B, is_iso (frobenius_map A B adj)]
+noncomputable def biject (adj : L ⊣ F) [∀ A B, is_iso (frobenius_map A B adj)]
   {A B : C} {c : D} : (c ⟶ F.obj (B ^^ A)) ≃ (c ⟶ F.obj B ^^ F.obj A) :=
 calc (c ⟶ F.obj (B ^^ A)) ≃ (L.obj c ⟶ B ^^ A) : (adj.hom_equiv _ _).symm
      ... ≃ (A ⨯ L.obj c ⟶ B) : ((exp.adjunction A).hom_equiv _ _).symm
@@ -139,7 +139,7 @@ lemma biject_natural_right
 biject adj q ≫ (exp _).map (F.map g) = biject adj (q ≫ F.map ((exp _).map g)) :=
 by simpa using biject_natural adj (𝟙 _) g q
 
-def cartesian_closed_of_frobenius_iso : cartesian_closed_functor F :=
+noncomputable def cartesian_closed_of_frobenius_iso : cartesian_closed_functor F :=
 { preserves_bin_prods :=
   begin
     letI := adj.right_adjoint_preserves_limits,

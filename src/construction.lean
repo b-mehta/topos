@@ -162,7 +162,8 @@ variables [has_finite_products.{v₁} C] [has_finite_products.{v₁} D] [cartesi
 class exponential_ideal extends reflective i :=
 [ strength (A) {B} [in_subcategory' i B] : in_subcategory' i (A ⟹ B) ]
 
-def exponential_ideal_of [reflective i] (h : ∀ (A : C) (B : D), in_subcategory' i (A ⟹ i.obj B)) : exponential_ideal i :=
+noncomputable def exponential_ideal_of [z : reflective i]
+  (h : ∀ (A : C) (B : D), in_subcategory' i (A ⟹ i.obj B)) : exponential_ideal i :=
 { strength := λ A B inst,
   begin
     resetI,
@@ -183,11 +184,11 @@ def exponential_ideal_of [reflective i] (h : ∀ (A : C) (B : D), in_subcategory
     rw [← (exp A ⋙ L ⋙ _).map_comp, iso.hom_inv_id, functor.map_id],
     erw comp_id,
   end,
-  ..reflective.to_faithful
+  ..z }
 
-}
 variables [exponential_ideal i]
 
+noncomputable
 def bijection (A B : C) (C' : D) : ((left_adjoint i).obj (A ⨯ B) ⟶ C') ≃ ((left_adjoint i).obj A ⨯ (left_adjoint i).obj B ⟶ C') :=
 calc _ ≃ (A ⨯ B ⟶ i.obj C') : _inst_6.to_reflective.adj.hom_equiv _ _
 ... ≃ (B ⨯ A ⟶ i.obj C') : equiv_homset_left_of_iso _ (limits.prod.braiding _ _)
@@ -266,6 +267,7 @@ end
 
 open limits.prod
 
+noncomputable
 def preserves_pair_of_exponential_ideal (A B : C) : preserves_limit (pair.{v₁} A B) (is_right_adjoint.left i) :=
 begin
   let ir : is_right_adjoint i := by apply_instance,
@@ -280,6 +282,7 @@ begin
 end
 
 variable (i)
+noncomputable
 def preserves_binary_products_of_exponential_ideal : preserves_limits_of_shape (discrete walking_pair) (is_right_adjoint.left i) :=
 { preserves_limit := λ K,
   begin

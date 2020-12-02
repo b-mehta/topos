@@ -15,6 +15,7 @@ import category.pullbacks
 
 universes v u u' u₂
 
+noncomputable theory
 open category_theory category_theory.category category_theory.limits
 namespace category_theory
 
@@ -134,7 +135,7 @@ variables [has_finite_products.{v} C] [has_finite_products.{v} D]
 def fin0_equiv_pempty : fin 0 ≃ pempty :=
 equiv.equiv_pempty (λ a, a.elim0)
 
-def preserves_fin_of_preserves_binary_and_terminal  :
+noncomputable def preserves_fin_of_preserves_binary_and_terminal  :
   Π (n : ℕ), preserves_limits_of_shape (discrete (ulift (fin n))) F
 | 0 := preserves_limit_of_equiv (discrete.equivalence (equiv.ulift.trans fin0_equiv_pempty).symm) F
 | (n+1) :=

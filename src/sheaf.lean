@@ -14,7 +14,7 @@ namespace category_theory
 
 open category_theory category_theory.category category_theory.limits
 open classifier
-
+noncomputable theory
 universes v u u₂
 
 variables {C : Type u} [category.{v} C] [topos.{v} C]
@@ -391,8 +391,8 @@ def sheaf_has_finite_limits : has_finite_limits.{v} (sheaf j) :=
 
 local attribute [instance, priority 10] sheaf_has_finite_limits
 
-def iso_limit (J : Type v) [small_category J] [fin_category J] (F : J ⥤ sheaf j) : (sheaf.forget j).obj (limit F) ≅ limit (F ⋙ sheaf.forget j) :=
-by apply (cones.forget (F ⋙ sheaf.forget j)).map_iso (lifted_limit_maps_to_original (limit.is_limit (F ⋙ sheaf.forget j)))
+-- def iso_limit (J : Type v) [small_category J] [fin_category J] (F : J ⥤ sheaf j) : (sheaf.forget j).obj (limit F) ≅ limit (F ⋙ sheaf.forget j) :=
+-- by apply (cones.forget (F ⋙ sheaf.forget j)).map_iso (lifted_limit_maps_to_original (limit.is_limit (F ⋙ sheaf.forget j)))
 
 def dense_prod_map_id (A : C) {B B' : C} (m : B' ⟶ B) [closure.dense.{v} j m] :
   closure.dense.{v} j (limits.prod.map (𝟙 A) m) :=
@@ -541,11 +541,12 @@ end
 -- This is a super dodgy proof but oh well.
 def forget_terminal_sheaf : (⊤_ (sheaf j)).A ≅ ⊤_ C :=
 begin
-  apply (cones.forget _).map_iso (lifted_limit_maps_to_original (limit.is_limit (functor.empty _ ⋙ sheaf.forget j))) ≪≫ _,
-  change limit (functor.empty (sheaf j) ⋙ sheaf.forget j) ≅ ⊤_ C,
-  have : functor.empty (sheaf j) ⋙ sheaf.forget j = functor.empty _,
-    apply functor.empty_ext',
-  rw this,
+  sorry
+  -- apply (cones.forget _).map_iso (lifted_limit_maps_to_original (limit.is_limit (functor.empty _ ⋙ sheaf.forget j))) ≪≫ _,
+  -- change limit (functor.empty (sheaf j) ⋙ sheaf.forget j) ≅ ⊤_ C,
+  -- have : functor.empty (sheaf j) ⋙ sheaf.forget j = functor.empty _,
+  --   apply functor.empty_ext',
+  -- rw this,
 end
 
 def sheaf_classify {U X : C} (f : U ⟶ X) [closure.closed j f] : X ⟶ closed_classifier j :=

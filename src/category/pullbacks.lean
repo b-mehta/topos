@@ -17,6 +17,7 @@ Many, many lemmas to work with pullbacks.
 -/
 open category_theory category_theory.category category_theory.limits
 
+noncomputable theory
 universes u v
 variables {C : Type u} [category.{v} C]
 variables {J : Type v} [small_category J]

@@ -33,6 +33,7 @@ Show the existence of a subobject classifier given power objects and show
 
 -/
 universes v u v₂ u₂
+noncomputable theory
 
 namespace category_theory
 

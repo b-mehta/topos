@@ -6,7 +6,7 @@ import category.preserve_binary_products
 import category.pullbacks
 
 namespace category_theory
-
+noncomputable theory
 open category limits
 
 universes v u v₂ u₂
@@ -100,7 +100,7 @@ begin
     suffices : has_limit (pair X Y ⋙ T),
       resetI,
       apply has_limit_of_iso (diagram_iso_pair (pair X Y ⋙ T)),
-    refine ⟨T.map_cone (limit.cone (pair X Y)), preserves_limit.preserves (limit.is_limit _)⟩,
+    refine has_limit.mk ⟨T.map_cone (limit.cone (pair X Y)), preserves_limit.preserves (limit.is_limit _)⟩,
   resetI,
   have p := limits.prod_comparison_iso_of_preserves_binary_prods' T X Y,
   refine ⟨λ s, _, _, _⟩,

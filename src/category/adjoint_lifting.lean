@@ -11,6 +11,8 @@ universes v₁ v₂ v₃ v₄ u₁ u₂ u₃ u₄
 namespace category_theory
 namespace monad
 
+noncomputable theory
+
 variables {C : Type u₁} [𝒞 : category.{v₁} C] {D : Type u₂} [𝒟 : category.{v₂} D]
 include 𝒞
 variables {T : C ⥤ C} [monad.{v₁} T]

@@ -12,6 +12,8 @@ open category_theory category_theory.category category_theory.limits
 
 namespace category_theory
 
+noncomputable theory
+
 variables {C : Type u} [category.{v} C] [has_finite_limits.{v} C]
 
 -- A relation should be mono, but we restrict this at the use site instead.

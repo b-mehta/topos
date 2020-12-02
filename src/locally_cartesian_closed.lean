@@ -23,6 +23,8 @@ From here, we can show that if `C` is locally cartesian closed and has
 reflexive coequalizers, then every morphism factors into a regular epic
 and monic.
 -/
+
+noncomputable theory
 namespace category_theory
 open category limits
 
@@ -310,7 +312,7 @@ instance pullback_regular_epi {X Y Z : C} (f : Y ⟶ Z) (g : X ⟶ Z) [gr : regu
         apply pullback.hom_ext; simp },
       { cases k₁,
         { dsimp, rw [id_comp], simp only [functor.map_id, comp_id], apply pullback.hom_ext,
-          { simp only [pullback.lift_fst], erw [id_comp, comp_id, comp_id] },
+          { simp only [pullback.lift_fst], dsimp, simp },
           { simp only [pullback.lift_snd], erw [id_comp] } },
         { dsimp, simp only [functor.map_id, comp_id, id_comp], conv_rhs {apply_congr comp_id},
           apply pullback.hom_ext,

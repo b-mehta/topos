@@ -12,6 +12,7 @@ import category_theory.monad.adjunction
 import category_theory.limits.shapes.equalizers
 universes u₁ u₂ v
 
+noncomputable theory
 namespace category_theory
 
 open limits
@@ -390,8 +391,8 @@ def reflexive_monadicity_theorem
   is_equivalence (monad.comparison G) :=
 begin
   apply is_equivalence.of_equivalence_inverse (adjoint_to_equivalence (forms_adjoint (λ α, hrc (algebra_pair_reflexive α)))),
-  { apply unit_iso _ (λ _ _ _ _, prc) ri },
-  { apply counit_iso _ (λ _ _ _ _, prc) ri }
+  { apply unit_iso hrc (λ _ _ _ _, prc) ri },
+  { apply counit_iso hrc (λ _ _ _ _, prc) ri }
 end
 
 -- /- Plan:

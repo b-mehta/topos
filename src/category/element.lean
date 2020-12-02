@@ -7,6 +7,7 @@ namespace category_theory
 
 open limits
 
+noncomputable theory
 universes v u
 variables {C : Type u} [category.{v} C]
 variable {Q : C}

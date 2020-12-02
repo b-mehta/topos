@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Bhavik Mehta
 -/
 import category_theory.opposites
-import category_theory.sparse
+import category_theory.thin
 import category_theory.full_subcategory
 import category_theory.currying
 import tactic
@@ -119,8 +119,8 @@ def skel_map_iso {F₁ F₂ : C ⥤ D} (h : F₁ ≅ F₂) : skel_map F₁ ≅ s
 
 variables [∀ X Y : C, subsingleton (X ⟶ Y)]
 
-def iso_of_both_ways {X Y : C} (f : X ⟶ Y) (g : Y ⟶ X) : X ≅ Y :=
-{ hom := f, inv := g }
+-- def iso_of_both_ways {X Y : C} (f : X ⟶ Y) (g : Y ⟶ X) : X ≅ Y :=
+-- { hom := f, inv := g }
 
 lemma equiv_of_both_ways {X Y : C} (f : X ⟶ Y) (g : Y ⟶ X) : X ≈ Y :=
 ⟨iso_of_both_ways f g⟩

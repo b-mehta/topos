@@ -11,6 +11,8 @@ universes v u
 
 open category_theory category_theory.category category_theory.limits
 
+noncomputable theory
+
 section reflects
 variables {C : Type u} [category.{v} C]
 
@@ -235,63 +237,63 @@ def exponential_functor : Cᵒᵖ ⥤ Type u :=
     simp [prod_map_comp_id],
   end }.
 
-@[simps]
-def eval : P ⨯ exponential_functor P Q ⟶ Q :=
-{ app := λ c θy,
-  begin
-    refine ((θy.1 walking_pair.right).app c) ⟨λ j, walking_pair.cases_on j (𝟙 _) (θy.1 walking_pair.left), _⟩,
-    rintros ⟨j₁ | j₁⟩ _ ⟨⟨rfl⟩⟩; refl
-  end,
-  naturality' := λ c c' f,
-  begin
-    ext1 ⟨_, _⟩,
-    dsimp,
-    change _ = ((x_val walking_pair.right).app c ≫ Q.map f) ⟨λ j, walking_pair.cases_on j (𝟙 c.unop) (x_val walking_pair.left), _⟩,
-    rw ← (x_val walking_pair.right).naturality f,
-    change (x_val walking_pair.right).app c' _ = (x_val walking_pair.right).app c' _,
-    congr' 1,
-    apply subtype.ext,
-    ext ⟨j⟩,
-    change 𝟙 _ ≫ _ = _ ≫ 𝟙 _,
-    rw [id_comp, comp_id],
-    refl,
-  end }
+-- @[simps]
+-- def eval : P ⨯ exponential_functor P Q ⟶ Q :=
+-- { app := λ c θy,
+--   begin
+--     refine ((θy.1 walking_pair.right).app c) ⟨λ j, walking_pair.cases_on j (𝟙 _) (θy.1 walking_pair.left), _⟩,
+--     rintros ⟨j₁ | j₁⟩ _ ⟨⟨rfl⟩⟩; refl
+--   end,
+--   naturality' := λ c c' f,
+--   begin
+--     ext1 ⟨_, _⟩,
+--     dsimp,
+--     change _ = ((x_val walking_pair.right).app c ≫ Q.map f) ⟨λ j, walking_pair.cases_on j (𝟙 c.unop) (x_val walking_pair.left), _⟩,
+--     rw ← (x_val walking_pair.right).naturality f,
+--     change (x_val walking_pair.right).app c' _ = (x_val walking_pair.right).app c' _,
+--     congr' 1,
+--     apply subtype.ext,
+--     ext ⟨j⟩,
+--     change 𝟙 _ ≫ _ = _ ≫ 𝟙 _,
+--     rw [id_comp, comp_id],
+--     refl,
+--   end }
 
-@[simps]
-def transpose (φ : P ⨯ R ⟶ Q) : R ⟶ exponential_functor P Q :=
-{ app := λ c u,
-  { app := λ D,
-    begin
-      intro fx,
-      apply φ.app D,
-      refine ⟨λ j, walking_pair.cases_on j _ _, _⟩,
-      exact fx.1 walking_pair.right,
-      exact R.map (fx.1 walking_pair.left).op u,
-      rintros ⟨_ | _⟩ _ ⟨⟨rfl⟩⟩; refl
-    end,
-    naturality' := λ D₁ D₂ k,
-    begin
-      ext1 ⟨x, hx⟩,
-      change φ.app D₂ _ = (φ.app D₁ ≫ Q.map k) _,
-      rw ← φ.naturality k,
-      dsimp [types_comp_apply],
-      congr' 1,
-      ext ⟨j⟩,
-      dsimp,
-      refl,
-      apply congr_fun (R.map_comp (has_hom.hom.op (x walking_pair.left)) k) u,
-    end
-    },
-  naturality' := λ X Y f,
-  begin
-    ext x c ⟨_, _⟩,
-    change φ.app c ⟨_, _⟩ = φ.app c ⟨_, _⟩,
-    congr' 2,
-    ext ⟨j⟩,
-    refl,
-    change R.map (has_hom.hom.op (x_1_val walking_pair.left)) (R.map f x) = R.map (f ≫ has_hom.hom.op (x_1_val walking_pair.left)) x,
-    rw R.map_comp, refl,
-  end }.
+-- @[simps]
+-- def transpose (φ : P ⨯ R ⟶ Q) : R ⟶ exponential_functor P Q :=
+-- { app := λ c u,
+--   { app := λ D,
+--     begin
+--       intro fx,
+--       apply φ.app D,
+--       refine ⟨λ j, walking_pair.cases_on j _ _, _⟩,
+--       exact fx.1 walking_pair.right,
+--       exact R.map (fx.1 walking_pair.left).op u,
+--       rintros ⟨_ | _⟩ _ ⟨⟨rfl⟩⟩; refl
+--     end,
+--     naturality' := λ D₁ D₂ k,
+--     begin
+--       ext1 ⟨x, hx⟩,
+--       change φ.app D₂ _ = (φ.app D₁ ≫ Q.map k) _,
+--       rw ← φ.naturality k,
+--       dsimp [types_comp_apply],
+--       congr' 1,
+--       ext ⟨j⟩,
+--       dsimp,
+--       refl,
+--       apply congr_fun (R.map_comp (has_hom.hom.op (x walking_pair.left)) k) u,
+--     end
+--     },
+--   naturality' := λ X Y f,
+--   begin
+--     ext x c ⟨_, _⟩,
+--     change φ.app c ⟨_, _⟩ = φ.app c ⟨_, _⟩,
+--     congr' 2,
+--     ext ⟨j⟩,
+--     refl,
+--     change R.map (has_hom.hom.op (x_1_val walking_pair.left)) (R.map f x) = R.map (f ≫ has_hom.hom.op (x_1_val walking_pair.left)) x,
+--     rw R.map_comp, refl,
+--   end }.
 
 local attribute [instance] has_finite_limits_of_has_limits
 local attribute [instance] has_finite_products_of_has_finite_limits
@@ -299,42 +301,43 @@ local attribute [instance] has_finite_products_of_has_finite_limits
 
 set_option trace.class_instances false
 
-def exponentiables (P : Cᵒᵖ ⥤ Type u) : exponentiable P :=
-begin
-  apply make_exponential P (exponential_functor P) (eval P) (λ R Q, transpose _ _ _) _ _,
-  { intros R Q φ,
-    apply nat_trans.ext,
-    ext1,
-    apply funext,
-    rintro ⟨uy, _⟩,
-    change φ.app x ⟨_, _⟩ = φ.app x ⟨_, _⟩,
-    congr' 2,
-    ext1 ⟨j⟩,
-    refl,
-    change R.map (𝟙 x) (uy walking_pair.right) = uy walking_pair.right,
-    rw [R.map_id, types_id_apply] },
-  { intros R Q φ t ht,
-    apply nat_trans.ext,
-    ext1 c,
-    apply funext,
-    intro u,
-    apply nat_trans.ext,
-    ext1 D,
-    apply funext,
-    rintro ⟨fx, _⟩,
-    dsimp,
-    rw ← ht,
-    change (((R.map (has_hom.hom.op (fx walking_pair.left)) ≫ t.app _) u)).app D _ = (t.app c u).app D _,
-    rw t.naturality,
-    change (t.app c u).app D _ = (t.app c u).app D _,
-    congr' 1,
-    ext ⟨j⟩,
-    apply id_comp,
-    refl }
-end
+-- def exponentiables (P : Cᵒᵖ ⥤ Type u) : exponentiable P :=
+-- begin
+--   apply make_exponential P (exponential_functor P) (eval P) (λ R Q, transpose _ _ _) _ _,
+--   { intros R Q φ,
+--     apply nat_trans.ext,
+--     ext1,
+--     apply funext,
+--     rintro ⟨uy, _⟩,
+--     change φ.app x ⟨_, _⟩ = φ.app x ⟨_, _⟩,
+--     congr' 2,
+--     ext1 ⟨j⟩,
+--     refl,
+--     change R.map (𝟙 x) (uy walking_pair.right) = uy walking_pair.right,
+--     rw [R.map_id, types_id_apply] },
+--   { intros R Q φ t ht,
+--     apply nat_trans.ext,
+--     ext1 c,
+--     apply funext,
+--     intro u,
+--     apply nat_trans.ext,
+--     ext1 D,
+--     apply funext,
+--     rintro ⟨fx, _⟩,
+--     dsimp,
+--     rw ← ht,
+--     change (((R.map (has_hom.hom.op (fx walking_pair.left)) ≫ t.app _) u)).app D _ = (t.app c u).app D _,
+--     rw t.naturality,
+--     change (t.app c u).app D _ = (t.app c u).app D _,
+--     congr' 1,
+--     ext ⟨j⟩,
+--     apply id_comp,
+--     refl }
+-- end
 
 def presheaf_cc : cartesian_closed.{u} (Cᵒᵖ ⥤ Type u) :=
-{ closed := λ P, exponentiables P }
+sorry
+-- { closed := λ P, exponentiables P }
 
 noncomputable instance : topos (Cᵒᵖ ⥤ Type u) :=
 { sub := presheaf_has_subobj_classifier C,

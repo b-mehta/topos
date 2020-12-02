@@ -3,6 +3,8 @@ import locally_cartesian_closed
 namespace category_theory
 open category limits
 
+noncomputable theory
+
 universes v u
 variables {C : Type u} [category.{v} C]
 variables {J : Type v} [small_category J]
