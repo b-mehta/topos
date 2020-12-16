@@ -1,7 +1,7 @@
 import category_theory.full_subcategory
 import category_theory.limits.creates
 import category_theory.reflects_isomorphisms
-import category_theory.limits.shapes.constructions.preserve_binary_products
+import category_theory.limits.preserves.shapes.binary_products
 import category_theory.adjunction.fully_faithful
 import category_theory.closed.cartesian
 import category.reflects
@@ -517,16 +517,30 @@ def closed_class_equiv {B B' : C} (m : B' ⟶ B) [closure.dense j m] :
   (B ⟶ closed_classifier j) ≃ (B' ⟶ closed_classifier j) :=
 (eq_equiv j B).trans ((closed_equiv j m).trans (eq_equiv j B').symm)
 
-lemma closed_class_equiv_forward {B B' : C} (m : B' ⟶ B) [closure.dense j m] (f : B ⟶ closed_classifier j) : m ≫ f = closed_class_equiv j m f :=
+lemma closed_class_equiv_forward {B B' : C} (m : B' ⟶ B) [closure.dense j m] (f : B ⟶ closed_classifier j) :
+  m ≫ f = closed_class_equiv j m f :=
 begin
-  simp [closed_class_equiv, eq_equiv, closed_equiv, action, closure_equiv, equiv.subtype_congr],
+  dsimp [closed_class_equiv, eq_equiv, closed_equiv, action, closure_equiv, equiv.subtype_congr],
   ext1,
   rw equalizer.lift_ι,
-  change _ = classify _,
-  rw classify_pullback,
-  change _ = m ≫ classification.symm (classification _),
-  rw classification.symm_apply_apply,
-  rw [assoc], refl,
+  change _ = quotient.lift _ _ (quotient.mk _),
+  dsimp,
+  -- change _ = classifier_of ((sub.pullback m).obj (sub.mk' (get_subobject (f ≫ equalizer.ι j (𝟙 (Ω C)))))),
+
+  -- change _ = classify ((subq.pullback m).obj ⟦_⟧),
+  -- sorry,
+  -- dsimp [cl]
+  -- change _ = classify _,
+  -- rw classify_pullback,
+
+  -- simp [closed_class_equiv, eq_equiv, closed_equiv, action, closure_equiv, equiv.subtype_congr],
+  -- ext1,
+  -- rw equalizer.lift_ι,
+  -- change _ = classify _,
+  -- rw classify_pullback,
+  -- change _ = m ≫ classification.symm (classification _),
+  -- rw classification.symm_apply_apply,
+  -- rw [assoc], refl,
 end
 
 def sheaf_classifier : sheaf j :=
@@ -880,7 +894,11 @@ end
 
 def M (A : C) : C := image (named_factors j A).1
 def M_sub (A : C) : M j A ⟶ (Pj j A).A := image.ι _
-instance M_sub_mono (A : C) : mono (M_sub j A) := limits.category_theory.mono _
+instance M_sub_mono (A : C) : mono (M_sub j A) :=
+begin
+  rw [M_sub],
+  apply_instance
+end
 
 def L' (A : C) : C := closure.obj j (M_sub j A)
 -- Sheafification!
@@ -978,7 +996,7 @@ def sheafification_preserves_terminal : preserves_limits_of_shape (discrete pemp
 { preserves_limit := λ K,
   begin
     haveI := nat_iso.is_iso_app_of_is_iso (sheafification_is_adjoint j).counit,
-    apply preserves_limit_of_iso _ (functor.unique_from_empty _).symm,
+    apply preserves_limit_of_iso_diagram _ (functor.unique_from_empty _).symm,
     apply preserves_limit_of_preserves_limit_cone (limit.is_limit (functor.empty C)),
     have i : (sheafification j).obj (⊤_ C) ≅ (⊤_ sheaf j),
       apply functor.map_iso (sheafification j) (forget_terminal_sheaf j).symm ≪≫ (as_iso ((sheafification_is_adjoint j).counit.app _)),
@@ -1168,7 +1186,7 @@ end preserve_equalizers
 def sheafification_preserves_equalizers : preserves_limits_of_shape.{v} walking_parallel_pair (sheafification j) :=
 { preserves_limit := λ K,
   begin
-    apply preserves_limit_of_iso (sheafification j) (diagram_iso_parallel_pair _).symm,
+    apply preserves_limit_of_iso_diagram (sheafification j) (diagram_iso_parallel_pair _).symm,
     apply preserve_equalizers.sheafification_preserves_equalizer,
   end }
 

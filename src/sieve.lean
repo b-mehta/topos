@@ -34,7 +34,7 @@ lemma arrow_ext : Π {R S : sieve X}, R.arrows = S.arrows → R = S
 
 @[ext] lemma ext_iff {R S : sieve X} : (∀ {Y} (f : Y ⟶ X), over.mk f ∈ R.arrows ↔ over.mk f ∈ S.arrows) → R = S :=
 begin
-  intros,
+  intros a,
   apply arrow_ext,
   ext ⟨_, _, _⟩,
   convert a x_hom;
@@ -67,7 +67,7 @@ protected def union (S R : sieve X) : sieve X :=
 { arrows := S.arrows ∪ R.arrows,
   subs :=
   begin
-    rintros Y Z f g (_ | _);
+    rintros Y Z f g (a | a);
     { simp [a] },
   end }
 
@@ -148,7 +148,7 @@ iff.intro
       apply H,
       apply generate_sets.basic hg,
     end )
-  (λ ss Y f hf, begin induction hf, apply ss hf_a, apply downward_closed, apply hf_ih end)
+  (λ ss Y f hf, begin induction hf with hf_f hf_a hf_Y hf_Z hf_f hf_g hf_a hf_ih, apply ss hf_a, apply downward_closed, apply hf_ih end)
 
 /-- Show that there is a galois insertion (generate, .arrows). -/
 def gi_generate :

@@ -59,7 +59,7 @@ begin
   erw equivalence.inv_fun_map,
   apply mono_comp _ _,
   apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
-  apply is_iso.of_iso_inverse,
+  apply_instance,
   apply mono_comp _ _,
   apply_instance,
   apply @is_iso.mono_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
@@ -73,7 +73,7 @@ begin
   erw equivalence.inv_fun_map,
   apply epi_comp _ _,
   apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
-  apply is_iso.of_iso_inverse,
+  apply_instance,
   apply epi_comp _ _,
   apply_instance,
   apply @is_iso.epi_of_iso _ _ _ _ _ (nat_iso.is_iso_app_of_is_iso _ _),
@@ -191,23 +191,23 @@ def long_cone {K : J ⥤ C} (c : cocone K) (r : c.X ⟶ Z) : cocone (long_diagra
 { X := over.mk r,
   ι := { app := λ j, over.hom_mk (c.ι.app j) } }.
 
-def diagram_iso {K : J ⥤ C} (c : cocone K) (r : c.X ⟶ Z) : (long_diagram K c r ⋙ over.forget) ≅ K :=
+def diagram_iso {K : J ⥤ C} (c : cocone K) (r : c.X ⟶ Z) : (long_diagram K c r ⋙ over.forget _) ≅ K :=
 nat_iso.of_components (λ k, iso.refl _) (by tidy)
 
 def forget_long_cocone_iso {K : J ⥤ C} (c : cocone K) (r : c.X ⟶ Z) :
-  over.forget.map_cocone (long_cone c r) ≅ (cocones.precompose (diagram_iso c r).hom).obj c :=
+  (over.forget _).map_cocone (long_cone c r) ≅ (cocones.precompose (diagram_iso c r).hom).obj c :=
 cocones.ext (iso.refl _) (begin intro j, dsimp [diagram_iso], simp end)
 
 def long_colimit {K : J ⥤ C} (c : cocone K) (r : c.X ⟶ Z) (t : is_colimit c) : is_colimit (long_cone c r) :=
 begin
-  suffices : is_colimit (over.forget.map_cocone (long_cone c r)),
+  suffices : is_colimit ((over.forget _).map_cocone (long_cone c r)),
     apply reflects_colimit.reflects this,
   apply limits.is_colimit.of_iso_colimit _ (forget_long_cocone_iso _ _).symm,
   apply is_colimit.of_left_adjoint (cocones.precompose_equivalence (diagram_iso _ r)).functor t,
 end
 
 def pullback_diagram_iso {K : J ⥤ C} (c : cocone K) (r : c.X ⟶ Z) :
-  ((long_diagram K c r ⋙ real_pullback f) ⋙ over.forget) ≅ pullback_diagram f K c r :=
+  ((long_diagram K c r ⋙ real_pullback f) ⋙ over.forget _) ≅ pullback_diagram f K c r :=
 nat_iso.of_components (λ j, iso.refl _) (by tidy)
 
 def pullback_preserves {K : J ⥤ C} (c : cocone K) (t : is_colimit c) (r : c.X ⟶ Z) : is_colimit (pullback_cocone f K c r) :=
@@ -239,35 +239,54 @@ end pullback_preserves_colimits
 variables [has_coequalizers.{v} C]
 section factorise
 
-instance : has_strong_epi_mono_factorisations.{v} C :=
-{ has_fac := λ A B f,
-  { I := coequalizer (pullback.fst : pullback f f ⟶ A) pullback.snd,
-    m := coequalizer.desc f pullback.condition,
-    e := coequalizer.π pullback.fst pullback.snd,
-    m_mono := ⟨λ D g h gmhm,
-    begin
-      let q := coequalizer.π pullback.fst pullback.snd,
-      let E := pullback (limits.prod.map q q) (limits.prod.lift g h),
-      let n : E ⟶ D := pullback.snd,
-      let k : E ⟶ A := pullback.fst ≫ limits.prod.fst,
-      let l : E ⟶ A := pullback.fst ≫ limits.prod.snd,
-      have kqng: k ≫ q = n ≫ g,
-        have: _ = (n ≫ _) ≫ _ := pullback.condition =≫ limits.prod.fst,
-        simpa using this,
-      have lqnh: l ≫ q = n ≫ h,
-        have: _ = (n ≫ _) ≫ _ := pullback.condition =≫ limits.prod.snd,
-        simpa using this,
-      have kflf: k ≫ f = l ≫ f,
-        rw [← coequalizer.π_desc f pullback.condition, ← assoc, kqng, assoc, gmhm, ← assoc, ← lqnh, assoc],
-      have aqbq : _ ≫ q = _ ≫ q := coequalizer.condition _ _,
-      have: n ≫ g = n ≫ h,
-        rw [← kqng, ← pullback.lift_fst k l kflf, assoc, aqbq, pullback.lift_snd_assoc _ _ _, lqnh],
-      rwa ← cancel_epi n,
-    end⟩ } }.
+def coequalizer_strong_epi_fac {A B : C} (f : A ⟶ B) : strong_epi_mono_factorisation f :=
+{ I := coequalizer (pullback.fst : pullback f f ⟶ A) pullback.snd,
+  m := coequalizer.desc f pullback.condition,
+  e := coequalizer.π pullback.fst pullback.snd,
+  m_mono := ⟨λ D g h gmhm,
+  begin
+    let q := coequalizer.π pullback.fst pullback.snd,
+    let E := pullback (limits.prod.map q q) (limits.prod.lift g h),
+    let n : E ⟶ D := pullback.snd,
+    let k : E ⟶ A := pullback.fst ≫ limits.prod.fst,
+    let l : E ⟶ A := pullback.fst ≫ limits.prod.snd,
+    have kqng: k ≫ q = n ≫ g,
+      have: _ = (n ≫ _) ≫ _ := pullback.condition =≫ limits.prod.fst,
+      simpa using this,
+    have lqnh: l ≫ q = n ≫ h,
+      have: _ = (n ≫ _) ≫ _ := pullback.condition =≫ limits.prod.snd,
+      simpa using this,
+    have kflf: k ≫ f = l ≫ f,
+      rw [← coequalizer.π_desc f pullback.condition, ← assoc, kqng, assoc, gmhm, ← assoc, ← lqnh, assoc],
+    have aqbq : _ ≫ q = _ ≫ q := coequalizer.condition _ _,
+    have: n ≫ g = n ≫ h,
+      rw [← kqng, ← pullback.lift_fst k l kflf, assoc, aqbq, pullback.lift_snd_assoc _ _ _, lqnh],
+    rwa ← cancel_epi n,
+  end⟩ }
+
+instance coequalizer_fac : has_strong_epi_mono_factorisations.{v} C :=
+has_strong_epi_mono_factorisations.mk $ λ A B f, coequalizer_strong_epi_fac f.
+
+def regular_epi_of_comp_iso {X Y Z : C} (f : X ⟶ Y) [r : regular_epi f] (g : Y ⟶ Z) [is_iso g] :
+  regular_epi (f ≫ g) :=
+{ W := r.W,
+  left := r.left,
+  right := r.right,
+  w := begin rw [reassoc_of r.w], end,
+  is_colimit := cofork.is_colimit.mk _
+  (λ s, inv g ≫ r.is_colimit.desc _)
+  (λ s, begin change (_ ≫ g) ≫ inv g ≫ _ = _, erw [assoc, (as_iso g).hom_inv_id_assoc, r.is_colimit.fac _ walking_parallel_pair.one], end)
+  (λ s m w, begin erw (as_iso g).eq_inv_comp, apply r.is_colimit.uniq, intro j, rw ← w j, cases j; simp end) }
 
 /-- The strong epi-mono factorisation is actually a regular epi-mono factorisation. -/
 instance {A B : C} (f : A ⟶ B) : regular_epi (factor_thru_image f) :=
-category_theory.coequalizer_regular _ _
+begin
+  have := is_image.e_iso_ext_hom (strong_epi_mono_factorisation.to_mono_is_image (coequalizer_strong_epi_fac f)) (image.is_image f),
+  change _ = factor_thru_image f at this,
+  rw ← this,
+  change regular_epi (coequalizer.π _ _ ≫ _),
+  refine regular_epi_of_comp_iso _ _,
+end
 
 end factorise
 
@@ -400,17 +419,6 @@ end
 def regular_epi_of_is_pullback_alt {W X Y Z : C} (f : W ⟶ X) (g : W ⟶ Y) (h : X ⟶ Z) (k : Y ⟶ Z)
   (comm : f ≫ h = g ≫ k) (l : is_limit (pullback_cone.mk _ _ comm)) [regular_epi k] :
   regular_epi f := regular_epi_of_is_pullback g f k h comm.symm (pullback_flip l)
-
-def regular_epi_of_comp_iso {X Y Z : C} (f : X ⟶ Y) [r : regular_epi f] (g : Y ⟶ Z) [is_iso g] :
-  regular_epi (f ≫ g) :=
-{ W := r.W,
-  left := r.left,
-  right := r.right,
-  w := begin rw [reassoc_of r.w], end,
-  is_colimit := cofork.is_colimit.mk _
-  (λ s, inv g ≫ r.is_colimit.desc _)
-  (λ s, begin change (_ ≫ g) ≫ inv g ≫ _ = _, erw [assoc, (as_iso g).hom_inv_id_assoc, r.is_colimit.fac _ walking_parallel_pair.one], end)
-  (λ s m w, begin erw (as_iso g).eq_inv_comp, apply r.is_colimit.uniq, intro j, rw ← w j, cases j; simp end) }
 
 def regular_epi_of_strong_epi {X Y : C} (f : X ⟶ Y) [strong_epi f] : regular_epi f :=
 begin

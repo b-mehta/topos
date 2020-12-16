@@ -550,8 +550,17 @@ def over.coprod [has_finite_coproducts.{v} C] {A : C} : over A ⥤ over A ⥤ ov
     naturality' := λ f g k, -- tidy can do this but it takes ages
     begin
       ext1,
-      apply coprod_map_map,
-    end } }.
+      dsimp,
+      simp,
+    end },
+  map_id' := λ X,
+  begin
+    ext; dsimp; simp,
+  end,
+  map_comp' := λ X Y Z f g,
+  begin
+    ext; dsimp; simp
+  end }.
 
 def sub.union [has_images.{v} C] [has_finite_coproducts.{v} C] {A : C} : sub A ⥤ sub A ⥤ sub A :=
 curry_obj ((forget_sub A).prod (forget_sub A) ⋙ uncurry.obj over.coprod ⋙ sub.image)

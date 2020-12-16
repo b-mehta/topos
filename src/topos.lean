@@ -1,7 +1,7 @@
 import category_theory.full_subcategory
 import category_theory.limits.creates
 import category_theory.reflects_isomorphisms
-import category_theory.limits.shapes.constructions.preserve_binary_products
+import category_theory.limits.preserves.shapes.binary_products
 import category_theory.adjunction.fully_faithful
 import category_theory.adjunction.limits
 import category_theory.closed.cartesian
@@ -30,12 +30,12 @@ variables [topos.{v} C]
 
 variable {C}
 
-lemma prod_iso_pb {B : C} (f : over B) : prod_functor.obj f = star f ⋙ over.forget := rfl
+lemma prod_iso_pb {B : C} (f : over B) : prod.functor.obj f = star f ⋙ over.forget _ := rfl
 
-def prod_iso_pb' {B : C} (f : over B) : prod_functor.obj f ≅ real_pullback f.hom ⋙ dependent_sum f.hom :=
-calc star f ⋙ over.forget ≅ star f ⋙ (over.iterated_slice_equiv _).functor ⋙ (over.iterated_slice_equiv f).inverse ⋙ over.forget :
-            iso_whisker_left (star f) (iso_whisker_right f.iterated_slice_equiv.unit_iso over.forget)
-     ... ≅ (star f ⋙ (over.iterated_slice_equiv _).functor) ⋙ ((over.iterated_slice_equiv f).inverse ⋙ over.forget) : iso.refl _
+def prod_iso_pb' {B : C} (f : over B) : prod.functor.obj f ≅ real_pullback f.hom ⋙ dependent_sum f.hom :=
+calc star f ⋙ over.forget _ ≅ star f ⋙ (over.iterated_slice_equiv _).functor ⋙ (over.iterated_slice_equiv f).inverse ⋙ over.forget _ :
+            iso_whisker_left (star f) (iso_whisker_right f.iterated_slice_equiv.unit_iso (over.forget _))
+     ... ≅ (star f ⋙ (over.iterated_slice_equiv _).functor) ⋙ ((over.iterated_slice_equiv f).inverse ⋙ over.forget _) : iso.refl _
      ... ≅ (star f ⋙ (over.iterated_slice_equiv _).functor) ⋙ dependent_sum f.hom : iso.refl _
      ... ≅ real_pullback f.hom ⋙ dependent_sum f.hom :
       begin
@@ -45,10 +45,10 @@ calc star f ⋙ over.forget ≅ star f ⋙ (over.iterated_slice_equiv _).functor
         convert iso_pb f.hom,
       end
 
-def prod_iso_pb'' {B : C} (f : over B) : prod_functor.obj f ≅ real_pullback f.hom ⋙ over.map f.hom :=
-calc star f ⋙ over.forget ≅ star f ⋙ (over.iterated_slice_equiv _).functor ⋙ (over.iterated_slice_equiv f).inverse ⋙ over.forget :
-            iso_whisker_left (star f) (iso_whisker_right f.iterated_slice_equiv.unit_iso over.forget)
-     ... ≅ (star f ⋙ (over.iterated_slice_equiv _).functor) ⋙ ((over.iterated_slice_equiv f).inverse ⋙ over.forget) : iso.refl _
+def prod_iso_pb'' {B : C} (f : over B) : prod.functor.obj f ≅ real_pullback f.hom ⋙ over.map f.hom :=
+calc star f ⋙ over.forget _ ≅ star f ⋙ (over.iterated_slice_equiv _).functor ⋙ (over.iterated_slice_equiv f).inverse ⋙ over.forget _ :
+           iso_whisker_left (star f) (iso_whisker_right f.iterated_slice_equiv.unit_iso (over.forget _))
+     ... ≅ (star f ⋙ (over.iterated_slice_equiv _).functor) ⋙ ((over.iterated_slice_equiv f).inverse ⋙ over.forget _) : iso.refl _
      ... ≅ (star f ⋙ (over.iterated_slice_equiv _).functor) ⋙ dependent_sum f.hom : iso.refl _
      ... ≅ real_pullback f.hom ⋙ dependent_sum f.hom :
       begin
@@ -93,15 +93,15 @@ begin
 end
 
 def test' {A B : C} (f : over A) (k : B ⟶ A) :
-  over.map k ⋙ prod_functor.obj f ≅ prod_functor.obj ((real_pullback k).obj f) ⋙ over.map k :=
-calc over.map k ⋙ prod_functor.obj f ≅ over.map k ⋙ real_pullback f.hom ⋙ over.map f.hom :
+  over.map k ⋙ prod.functor.obj f ≅ prod.functor.obj ((real_pullback k).obj f) ⋙ over.map k :=
+calc over.map k ⋙ prod.functor.obj f ≅ over.map k ⋙ real_pullback f.hom ⋙ over.map f.hom :
               iso_whisker_left (over.map k) (prod_iso_pb'' _)
      ... ≅ real_pullback pullback.snd ⋙ over.map pullback.fst ⋙ over.map f.hom :
               iso_whisker_right (pullback_sum_iso (cone_is_pullback _ _)).symm (dependent_sum f.hom)
      ... ≅ real_pullback pullback.snd ⋙ over.map (_ ≫ f.hom) : iso_whisker_left (real_pullback _) (over_map_comp _ _).symm
      ... ≅ real_pullback pullback.snd ⋙ over.map (pullback.snd ≫ k) : iso_whisker_left (real_pullback _) (by rw pullback.condition)
      ... ≅ real_pullback ((real_pullback k).obj f).hom ⋙ over.map pullback.snd ⋙ over.map k : iso_whisker_left (real_pullback _) (over_map_comp _ _)
-     ... ≅ prod_functor.obj ((real_pullback k).obj f) ⋙ over.map k : iso_whisker_right (prod_iso_pb' _).symm (over.map k)
+     ... ≅ prod.functor.obj ((real_pullback k).obj f) ⋙ over.map k : iso_whisker_right (prod_iso_pb' _).symm (over.map k)
 
 def test {A B : C} (f : over A) (k : B ⟶ A) :
   exp f ⋙ real_pullback k ≅ real_pullback k ⋙ exp ((real_pullback k).obj f) :=
@@ -227,9 +227,9 @@ end
 -- end
 
 instance : bounded_lattice (subq A) :=
-{ ..category_theory.semilattice_inf_top,
-  ..category_theory.semilattice_sup,
-  ..category_theory.order_bot }
+{ ..category_theory.subq.semilattice_inf_top,
+  ..category_theory.subq.semilattice_sup,
+  ..category_theory.subq.order_bot }
 
 lemma coprod_eq_union {A : C} {f₁ f₂ : subq A} : (f₁ ⨿ f₂) = f₁ ⊔ f₂ :=
 begin
@@ -342,7 +342,7 @@ end
 
 instance : bounded_distrib_lattice (subq A) :=
 { le_sup_inf := le_sup_inf_of_inf_sup_le subq.distrib,
-  ..category_theory.bounded_lattice }
+  ..category_theory.subq.bounded_lattice }
 
 instance : has_compl (subq A) := { compl := λ x, x ⟹ ⊥ }
 

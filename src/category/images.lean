@@ -2,6 +2,8 @@ import category_theory.limits.shapes.images
 
 universes v u
 
+noncomputable theory
+
 open category_theory category_theory.limits
 
 namespace category_theory.limits

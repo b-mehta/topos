@@ -1,5 +1,5 @@
 import category_theory.limits.shapes.binary_products
-import category_theory.limits.shapes.constructions.preserve_binary_products
+import category_theory.limits.preserves.shapes.binary_products
 import category_theory.adjunction
 import category_theory.monad.adjunction
 import category_theory.adjunction.fully_faithful
@@ -42,6 +42,7 @@ instance inclusion_is_in (B : D) : in_subcategory i (i.obj B) :=
 { witness := B,
   iso := iso.refl _ }
 
+noncomputable
 instance inclusion_is_in' (B : D) [ir : reflective i] : in_subcategory' i (i.obj B) :=
 { returning :=
   begin
@@ -71,6 +72,7 @@ begin
 end
 
 -- Some of the stuff here doesn't need reflectiveness, need to untangle what assumptions are actually used
+noncomputable
 def in_subcategory_of_has_iso [ir : reflective i] (A : C) (B : D) (h : i.obj B ≅ A) : in_subcategory' i A :=
 { returning :=
   begin
@@ -98,6 +100,7 @@ def equiv_homset_right_of_iso
   right_inv := λ f, by simp }.
 
 variable (i)
+noncomputable
 def biject_inclusion [ir : reflective i] {A B : C} [in_subcategory' i B] : (A ⟶ B) ≃ (i.obj ((left_adjoint i).obj A) ⟶ B) :=
 calc (A ⟶ B) ≃ (A ⟶ i.obj ((left_adjoint i).obj B)) : equiv_homset_right_of_iso _ (containment_iso _ _)
     ... ≃ ((left_adjoint i).obj A ⟶ (left_adjoint i).obj B) : (ir.adj.hom_equiv _ _).symm
@@ -227,8 +230,8 @@ lemma comp_inv_eq {X Y Z : C} (f : X ⟶ Y) (g : Z ⟶ Y) (h : Z ⟶ X) [is_iso 
 lemma bijection_id (A B : C) : (bijection i A B _).symm (𝟙 _) = prod_comparison _ _ _ :=
 begin
   dsimp [bijection],
-  rw [equiv.symm_symm, equiv.symm_symm, equiv.symm_symm],
-  dsimp [equiv_of_fully_faithful],
+  -- rw [equiv.symm_symm, equiv.symm_symm, equiv.symm_symm],
+  -- dsimp [equiv_of_fully_faithful],
   rw [i.map_id, comp_id, biject_inclusion_is_comp_unit, biject_inclusion_is_comp_unit],
   let ir : is_right_adjoint i := by apply_instance,
   let L := ir.left,
@@ -286,7 +289,7 @@ noncomputable
 def preserves_binary_products_of_exponential_ideal : preserves_limits_of_shape (discrete walking_pair) (is_right_adjoint.left i) :=
 { preserves_limit := λ K,
   begin
-    apply preserves_limit_of_iso _ (diagram_iso_pair K).symm,
+    apply preserves_limit_of_iso_diagram _ (diagram_iso_pair K).symm,
     apply preserves_pair_of_exponential_ideal,
   end }
 end category_theory

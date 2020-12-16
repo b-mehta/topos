@@ -78,7 +78,7 @@ def star : C ⥤ over B :=
 
 local attribute [tidy] tactic.case_bash
 
-def forget_adj_star : over.forget ⊣ star B :=
+def forget_adj_star : over.forget B ⊣ star B :=
 adjunction.mk_of_hom_equiv
 { hom_equiv := λ g A,
   { to_fun := λ f, over.hom_mk (prod.lift g.hom f),
@@ -111,7 +111,7 @@ def exponentiable_of_star_is_left_adj [has_finite_products C] (h : is_left_adjoi
     adj := adjunction.comp _ _ h.adj (forget_adj_star B) } }
 
 def dependent_sum {A B : C} (f : A ⟶ B) : over A ⥤ over B :=
-(over.iterated_slice_equiv (over.mk f)).inverse ⋙ over.forget
+(over.iterated_slice_equiv (over.mk f)).inverse ⋙ over.forget _
 
 /--
 `over.map f` gives nice definitional equalities but `dependent_sum` makes it easy to prove

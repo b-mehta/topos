@@ -235,7 +235,7 @@ sieve c ≃o subq (yoneda.obj c) :=
     split,
     intro h,
       exact ⟨sub.hom_mk (sieve.le_as_functor h) (sieve.le_as_functor_comm h)⟩,
-    rintro ⟨_⟩ d f hf,
+    rintro ⟨a⟩ d f hf,
     let f' := a.left.app (opposite.op d) ⟨f, hf⟩,
     have := sub.w a,
     dsimp at *,
@@ -249,7 +249,7 @@ sieve c ≃o subq (yoneda.obj c) :=
 
 lemma inclusion_inter (c : C) (S T : sieve c) :
   sieve_subq _ (S ⊓ T) = sieve_subq _ S ⊓ sieve_subq _ T :=
-rel_iso.map_inf _
+order_iso.map_inf _ _ _
 
 @[reassoc]
 lemma and_arrow_sieve (c : C) (S T : sieve c) :
@@ -306,7 +306,7 @@ begin
   rw classification.symm_apply_apply,
   erw ← equiv_close,
   change sieve_subq _ _ = _,
-  rw ← rel_iso.map_top (sieve_subq c),
+  rw ← order_iso.map_top (sieve_subq c),
   congr' 1,
   ext d f,
   change S.pullback f ∈ J d ↔ true,
@@ -324,7 +324,7 @@ begin
   rw classification.symm_apply_apply at this,
   erw ← equiv_close at this,
   change sieve_subq _ _ = _ at this,
-  rw ← rel_iso.map_top (sieve_subq c) at this,
+  rw ← order_iso.map_top (sieve_subq c) at this,
   erw (sieve_subq c).to_equiv.apply_eq_iff_eq at this,
   rw close at this,
   refine grothendieck.trans ⊤ (grothendieck.max _) _ _,

@@ -16,7 +16,7 @@ import category_theory.limits.over
 import category_theory.epi_mono
 import category_theory.limits.shapes.equalizers
 import category_theory.limits.shapes.constructions.limits_of_products_and_equalizers
-import category_theory.limits.shapes.constructions.preserve_binary_products
+import category_theory.limits.preserves.shapes.binary_products
 import category.adjoint_lifting
 import locally_cartesian_closed
 import subobject_classifier
@@ -105,14 +105,14 @@ begin
   have: h₂.hat memA₂ = 𝟙 _,
   { apply h₂.uniquely',
     change has_pullback_top _ _ _,
-    rw prod_map_id_id,
+    rw prod.map_id_id,
     apply top_iso_has_pullback_top (𝟙 _),
     rw [id_comp, comp_id] },
   rw ← this,
   symmetry,
   apply h₂.uniquely',
   change has_pullback_top _ _ _,
-  rw prod_map_comp_id,
+  rw prod.map_comp_id,
   apply left_right_hpb_to_both_hpb _ (h₁.powerises' memA₂) (h₂.powerises' memA₁),
 end
 
@@ -164,7 +164,7 @@ def hat_natural_left {B B' R : C} (k : R ⟶ B ⨯ A) [mono k] (g : B' ⟶ B) :
 begin
   apply unique_hat,
   change has_pullback_top _ _ _,
-  rw prod_map_comp_id,
+  rw prod.map_comp_id,
   apply left_right_hpb_to_both_hpb _ has_pullback_top_of_pb (hat_powerises k),
 end
 
@@ -189,7 +189,7 @@ lemma get_named_subobject_eq_pullback_mem {B : C} (k : B ⟶ P A) :
 
 def get_named_subobject_natural_left {B B' : C} (k : B ⟶ P A) (g : B' ⟶ B) :
   name_bijection (g ≫ k) = (subq.pullback (limits.prod.map g (𝟙 A))).obj (name_bijection k) :=
-by { rw [get_named_subobject_eq_pullback_mem, prod_map_comp_id, subq.pullback_comp], refl }
+by { rw [get_named_subobject_eq_pullback_mem, prod.map_comp_id, subq.pullback_comp], refl }
 
 lemma name_pullback {B' : C} (g : subq (B ⨯ A)) (f : B' ⟶ B) :
   name_subobject ((subq.pullback (limits.prod.map f (𝟙 _))).obj g) = f ≫ name_subobject g :=
@@ -223,10 +223,10 @@ lemma hat_natural_right {D R : C} (m : R ⟶ D ⨯ B) [hm : mono m] :
 begin
   apply unique_hat,
   change has_pullback_top _ _ _,
-  rw prod_map_comp_id,
+  rw prod.map_comp_id,
   apply left_right_hpb_to_both_hpb _ _ (hat_powerises _),
   apply right_both_hpb_to_left_hpb _ _ _ has_pullback_top_of_pb,
-  rw ← prod_map_map,
+  rw ← prod.map_swap,
   apply left_right_hpb_to_both_hpb m has_pullback_top_of_pb (hat_powerises _),
 end
 
@@ -254,7 +254,7 @@ hat_get_named_arrow _
 
 lemma P_map_comp {X Y Z : C} [has_power_object.{v} X] [has_power_object.{v} Y] [has_power_object.{v} Z] (f : X ⟶ Y) (g : Y ⟶ Z) :
   P_map (f ≫ g) = P_map g ≫ P_map f :=
-by { erw [← name_other_pullback, Esubq, ← subq.pullback_comp, ← prod_map_id_comp], refl }
+by { erw [← name_other_pullback, Esubq, ← subq.pullback_comp, ← prod.map_id_comp], refl }
 
 @[simps]
 def P_functor [has_power_objects.{v} C] : Cᵒᵖ ⥤ C :=
@@ -364,7 +364,7 @@ lemma naturalish {A B : C} [has_power_object.{v} A] [has_power_object.{v} B] (f 
   hat m ≫ internal_image f = hat (m ≫ limits.prod.map (𝟙 D) f) :=
 begin
   have comm : limits.prod.map (hat m) (𝟙 _) ≫ limits.prod.map (𝟙 _) f = limits.prod.map (𝟙 _) f ≫ limits.prod.map (hat m) (𝟙 _),
-    rw prod_map_map,
+    rw prod.map_swap,
   change hat m ≫ name_bijection.symm ((subq.post (limits.prod.map _ _)).obj (mem_subq A)) = name_bijection.symm ((subq.post _).obj ⟦sub.mk' m⟧),
   rw [← name_pullback, ← postcompose_pullback_comm comm _, pullback_along_hat_eq_self], refl,
   refine is_limit.mk''' _ _ _,
@@ -383,14 +383,14 @@ lemma internal_image_map_comp {X Y Z : C} [has_power_object.{v} X] [has_power_ob
 begin
   erw [naturalish, internal_image],
   congr' 1,
-  rw [assoc, prod_map_id_comp],
+  rw [assoc, prod.map_id_comp],
 end
 
 lemma internal_image_map_id {X : C} [has_power_object.{v} X] : internal_image (𝟙 X) = 𝟙 (P X) :=
 begin
   change name_subobject ((subq.post (limits.prod.map _ _)).obj (mem_subq _)) = _,
   rw [name_bijection.symm_apply_eq, get_named_subobject_eq_pullback_mem],
-  conv { for (limits.prod.map _ _) [1, 2] { rw prod_map_id_id } },
+  conv { for (limits.prod.map _ _) [1, 2] { rw prod.map_id_id } },
   rw [subq.post_id, subq.pullback_id],
 end
 
@@ -407,9 +407,9 @@ begin
   rw equiv.apply_eq_iff_eq,
   symmetry,
   apply postcompose_pullback_comm _ _,
-  rw [← prod_map_id_comp, comm, prod_map_id_comp],
+  rw [← prod.map_id_comp, comm, prod.map_id_comp],
   haveI : preserves_limits_of_shape walking_cospan _ := prod_preserves_connected_limits (P A),
-  apply preserves_pullback_cone (prod_functor.obj (P A)) _ _ _ _ comm t,
+  apply preserves_pullback_cone (prod.functor.obj (P A)) _ _ _ _ comm t,
 end
 
 variable (C)
@@ -497,15 +497,16 @@ instance pare [has_power_objects.{v} C] : monadic_right_adjoint (P_functor : C�
 def some_colims (J : Type v) [small_category J] [has_power_objects.{v} C] [has_limits_of_shape Jᵒᵖ C] : has_colimits_of_shape J C :=
 { has_colimit := λ F, by exactI
   begin
-    suffices: has_colimit (F ⋙ op_op_equivalence.inverse),
-      resetI,
-      apply adjunction.has_colimit_of_comp_equivalence F op_op_equivalence.inverse,
-    let F'' : Jᵒᵖ ⥤ Cᵒᵖ := (F ⋙ op_op_equivalence.inverse).left_op,
+    suffices: has_colimit (F ⋙ (op_op_equivalence _).inverse),
+    { resetI,
+      apply adjunction.has_colimit_of_comp_equivalence F (op_op_equivalence _).inverse },
+    let F'' : Jᵒᵖ ⥤ Cᵒᵖ := (F ⋙ (op_op_equivalence _).inverse).left_op,
     suffices : has_limit F'',
-      resetI,
-      apply limits.has_colimit_of_has_limit_left_op,
+    { resetI,
+      apply limits.has_colimit_of_has_limit_left_op },
+    haveI := monadic_creates_limits (P_functor : Cᵒᵖ ⥤ C),
     suffices : has_limit (F'' ⋙ P_functor),
-      apply monadic_creates_limits F'' P_functor,
+      refine has_limit_of_created _ P_functor,
     apply_instance
   end }
 
@@ -774,7 +775,7 @@ def square_top (m : r ⟶ g ⨯ f) [mono m] : r ⟶ over.ni f :=
 begin
   refine over.hom_mk (pullback.lift (hat_powerises (m'' m)).top _ _) _,
   { apply (m'' m) ≫ limits.prod.map (h'' m) (𝟙 _) },
-  { rw (hat_powerises (m'' m)).comm, conv_rhs {rw [assoc, ← prod_map_comp_id]}, congr' 2,
+  { rw (hat_powerises (m'' m)).comm, conv_rhs {rw [assoc, ← prod.map_comp_id]}, congr' 2,
     erw [h, hk, h'', limit.lift_π_assoc, prod.lift_fst, mhat] },
   { dsimp [h'], erw [limit.lift_π_assoc, assoc, limits.prod.map_snd_assoc, id_comp],
     erw [← over.w m, assoc, prod.lift_snd_assoc, over.w (limits.prod.snd : g ⨯ f ⟶ f)], refl }
@@ -803,7 +804,7 @@ end
 
 def alt_square_pb : is_limit (pullback_cone.mk _ _ (alt_square_commutes m)) :=
 begin
-  apply reflects_pullback_cone over.forget,
+  apply reflects_pullback_cone (over.forget _),
   -- apply reflect_pullback,
   dsimp [square_top],
   refine is_limit.mk' _ _,
@@ -929,7 +930,7 @@ def main' (f : over B) [has_power_object.{v} f.left] : is_power_object (over.mem
     symmetry,
     apply unique_hat,
     change has_pullback_top _ _ _,
-    rw prod_map_comp_id,
+    rw prod.map_comp_id,
     apply left_right_hpb_to_both_hpb (h' f) _ has_pullback_top_of_pb,
     have: h' f = (over.mem f).left ≫ magic_arrow f (over_pow f),
     { apply prod.hom_ext,
@@ -1089,15 +1090,15 @@ begin
   apply prod.hom_ext,
   rw [assoc, assoc, assoc, prod.lift_fst, prod.lift_fst_assoc, limits.prod.map_fst, comp_id],
   slice_rhs 2 3 {rw ← over.comp_left},
-  rw [prod.lift_fst, over.hom_mk_left, ← assoc, ← prod_map_id_comp, limits.prod.map_fst, comp_id],
+  rw [prod.lift_fst, over.hom_mk_left, ← assoc, ← prod.map_id_comp, limits.prod.map_fst, comp_id],
   rw [assoc, assoc, assoc, prod.lift_snd, limits.prod.map_snd],
   apply prod.hom_ext,
   rw [assoc, assoc, assoc, assoc, prod.lift_fst, prod.lift_fst_assoc],
   slice_rhs 2 3 {rw ← over.comp_left},
-  rw [prod.lift_fst, over.hom_mk_left, ← prod_map_id_comp_assoc, limits.prod.map_snd],
+  rw [prod.lift_fst, over.hom_mk_left, ← prod.map_id_comp_assoc, limits.prod.map_snd],
   rw [assoc, assoc, assoc, assoc, prod.lift_snd, prod.lift_snd],
   slice_rhs 2 3 {rw ← over.comp_left},
-  rw [prod.lift_snd, over.hom_mk_left, ← prod_map_id_comp_assoc, limits.prod.map_snd],
+  rw [prod.lift_snd, over.hom_mk_left, ← prod.map_id_comp_assoc, limits.prod.map_snd],
 end
 
 def seven_eleven_aux (A B : C) [has_power_object.{v} A] (g r : over B) (m : r ⟶ g ⨯ (star B).obj A) [mono m] (k : g.left ⟶ P A) :
@@ -1176,7 +1177,7 @@ local attribute [instance] has_finite_products_of_has_finite_limits
 def cc_of_pow [has_power_objects.{v} C] : cartesian_closed.{v} C :=
 { closed := λ B,
   begin
-    haveI : is_right_adjoint (star B) := ⟨over.forget, forget_adj_star B⟩,
+    haveI : is_right_adjoint (star B) := ⟨over.forget _, forget_adj_star B⟩,
     haveI := monad.adjoint_lifting (logical_star B).symm (λ f g X Y r, by apply_instance),
     refine exponentiable_of_star_is_left_adj B _,
     apply left_adjoint_of_right_adjoint_op,
@@ -1199,7 +1200,7 @@ def power_of_subobj (A : C) [exponentiable A] [has_subobject_classifier.{v} C] :
     begin
       haveI := hm,
       apply right_both_hpb_to_left_hpb _ _ _ has_pullback_top_of_pb,
-      erw [braid_natural_assoc, subobj_hat, curry_eq, prod_map_id_comp, assoc, (ev _).naturality,
+      erw [braid_natural_assoc, subobj_hat, curry_eq, prod.map_id_comp, assoc, (ev _).naturality,
            ev_coev_assoc, iso.hom_inv_id_assoc],
       apply classifier.classifies m,
     end,

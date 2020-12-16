@@ -5,7 +5,7 @@ Authors: Bhavik Mehta
 -/
 
 import category_theory.limits.shapes.binary_products
-import category_theory.limits.shapes.constructions.preserve_binary_products
+import category_theory.limits.preserves.shapes.binary_products
 import category_theory.limits.shapes.pullbacks
 import category_theory.comma
 import category_theory.adjunction.limits
@@ -37,23 +37,7 @@ open category_theory.equivalence
 
 def cone_equivalence_comp (e : K ≌ J) (c : cone F) : cone (e.functor ⋙ F) := cone.whisker e.functor c
 def is_limit_equivalence_comp (e : K ≌ J) {c : cone F} (t : is_limit c) : is_limit (cone_equivalence_comp e c) :=
-let e' := cones.postcompose (e.inv_fun_id_assoc F).hom in
-{ lift := λ s, t.lift (e'.obj (cone.whisker e.inverse s)),
-  fac' := λ s j,
-  begin
-    erw t.fac (e'.obj (cone.whisker e.inverse s)) (e.functor.obj j),
-    dsimp [cones.postcompose, inv_fun_id_assoc],
-    erw [id_comp, comp_id, counit_functor e j, s.w (e.unit_inv.app j)], refl,
-  end,
-  uniq' := λ s m w,
-  begin
-    apply t.hom_ext,
-    intro j,
-    erw [t.fac, ← c.w (e.counit_iso.hom.app j)],
-    dsimp [cone_equivalence_comp, inv_fun_id_assoc],
-    rw [id_comp, comp_id, ← w (e.inverse.obj j), assoc],
-    refl,
-  end }
+is_limit.whisker_equivalence t _
 
 end
 

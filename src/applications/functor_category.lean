@@ -25,13 +25,13 @@ exponentiable A :=
 { is_adj :=
   { right :=
     begin
-      refine @adjunction.right_adjoint_of_equiv _ _ _ _ (prod_functor.obj A) expo _ _,
+      refine @adjunction.right_adjoint_of_equiv _ _ _ _ (prod.functor.obj A) expo _ _,
       intros B B',
       refine ⟨trans, λ g, limits.prod.map (𝟙 _) g ≫ ev _, comm, λ g, unique_trans rfl⟩,
       dsimp,
       intros,
       apply unique_trans,
-      rw [prod_map_id_comp, assoc, comm],
+      rw [prod.map_id_comp, assoc, comm],
     end,
     adj := adjunction.adjunction_of_equiv_right _ _ } }
 
@@ -42,7 +42,7 @@ variables {F : J ⥤ K ⥤ C}
 @[simps]
 def pointwise_cone (k : K) (c : cone F) : cone (F.flip.obj k) :=
 { X := c.X.obj k,
-  π := { app := λ j, (c.π.app j).app k } }.
+  π := { app := λ j, (c.π.app j).app k, naturality' := λ X Y f, begin dsimp, rw ← c.w f, dsimp, simp end } }.
 
 def jointly_reflects (c : cone F) (t : Π k, is_limit (pointwise_cone k c)) : is_limit c :=
 { lift := λ s,
@@ -51,7 +51,9 @@ def jointly_reflects (c : cone F) (t : Π k, is_limit (pointwise_cone k c)) : is
       apply (t k).lift ⟨s.X.obj k, _⟩,
       refine ⟨λ j, (s.π.app j).app k, _⟩,
       dsimp, intros,
-      simp only [cone.functor_w, id_comp],
+      rw ← s.w f,
+      dsimp,
+      simp,
     end,
     naturality' :=
     begin
@@ -227,15 +229,15 @@ noncomputable def presheaf_has_subobj_classifier : has_subobject_classifier.{u} 
 
 variables {C} (P Q R : Cᵒᵖ ⥤ Type u)
 
-@[simps]
-def exponential_functor : Cᵒᵖ ⥤ Type u :=
-{ obj := λ A, yoneda.obj A.unop ⨯ P ⟶ Q,
-  map := λ A A' f g, limits.prod.map (yoneda.map f.unop) (𝟙 _) ≫ g,
-  map_comp' := λ A A' A'' f g,
-  begin
-    ext1,
-    simp [prod_map_comp_id],
-  end }.
+-- @[simps]
+-- def exponential_functor : Cᵒᵖ ⥤ Type u :=
+-- { obj := λ A, yoneda.obj A.unop ⨯ P ⟶ Q,
+--   map := λ A A' f g, limits.prod.map (yoneda.map f.unop) (𝟙 _) ≫ g,
+--   map_comp' := λ A A' A'' f g,
+--   begin
+--     ext1,
+--     simp [prod.map_comp_id],
+--   end }.
 
 -- @[simps]
 -- def eval : P ⨯ exponential_functor P Q ⟶ Q :=

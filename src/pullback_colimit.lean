@@ -23,13 +23,31 @@ include t₂ all_comm all_pb
 def iso_diagrams : K₁ ≅ pullback_diagram f K₂ c₂ (𝟙 c₂.X) :=
 begin
   apply nat_iso.of_components (λ j, _) _,
-  refine is_limit.cone_points_iso_of_nat_iso (all_pb j) (limit.is_limit _) _,
-  { apply nat_iso.of_components _ _,
-    { rintro ⟨j⟩; refl },
-    { rintro ⟨j⟩ ⟨k⟩ ⟨f⟩, simp, cases X, simp, symmetry, apply comp_id, simp, simp, } },
-  { intros,
-    ext;
-    simp }
+  { refine is_limit.cone_points_iso_of_nat_iso (all_pb j) (cone_is_pullback _ _) _,
+    { apply nat_iso.of_components _ _,
+    { intro j, refl },
+    { rintros X Y ⟨f⟩,
+      dsimp, simp,
+      cases f_1_1,
+      dsimp, simp,
+      dsimp, simp } } },
+  { intros X Y g,
+    dsimp only [pullback_diagram_map, is_limit.cone_points_iso_of_nat_iso],
+    ext1,
+    { rw [assoc, assoc, pullback.lift_fst],
+      change _ ≫ _ ≫ (pullback_cone.mk _ _ _).fst = _ ≫ (pullback_cone.mk _ _ _).fst ≫ _,
+      rw is_limit.map_π,
+      rw is_limit.map_π_assoc,
+      dsimp,
+      rw [comp_id, τ.naturality, id_comp] },
+    { rw [assoc, assoc, pullback.lift_snd],
+      change _ ≫ _ ≫ (pullback_cone.mk _ _ _).snd = _ ≫ (pullback_cone.mk _ _ _).snd,
+      rw is_limit.map_π,
+      rw is_limit.map_π,
+      dsimp,
+      rw [comp_id, comp_id],
+      rw c₁.w,
+      } }
 end
 
 def pullback_colimit : is_colimit c₁ :=
@@ -43,7 +61,12 @@ begin
     rw [assoc, pullback.lift_snd, comp_id, id_comp] },
   { intro j,
     dsimp [iso_diagrams],
-    simp }
+    rw [assoc],
+    rw pullback.lift_snd,
+    change _ ≫ (pullback_cone.mk _ _ _).snd = _,
+    rw is_limit.map_π,
+    dsimp,
+    apply comp_id }
 end
 
 end category_theory

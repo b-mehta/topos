@@ -5,7 +5,7 @@ Authors: Bhavik Mehta, Edward Ayers
 -/
 
 import category_theory.limits.shapes
-import category_theory.limits.preserves.shapes
+import category_theory.limits.preserves.limits
 import category_theory.limits.over
 import category_theory.limits.shapes.constructions.over
 import tactic
@@ -507,7 +507,7 @@ has_pullback_top h k g :=
 -- Strictly we don't need the assumption that C has pullbacks but oh well
 def over_forget_preserves_hpb [has_pullbacks.{v} C] {B : C} {X Y Z W : over B} (g : X ⟶ Z) (h : Z ⟶ W) (k : Y ⟶ W) (t : has_pullback_top g h k) :
   has_pullback_top g.left h.left k.left :=
-preserves_hpb over.forget t
+preserves_hpb (over.forget _) t
 
 def over_forget_reflects_hpb {B : C} {X Y Z W : over B} {g : X ⟶ Z} {h : Z ⟶ W} {k : Y ⟶ W}
   (t : has_pullback_top g.left h.left k.left ) :
@@ -520,7 +520,7 @@ def over_forget_reflects_hpb {B : C} {X Y Z W : over B} {g : X ⟶ Z} {h : Z ⟶
   comm := by { ext1, exact t.comm },
   is_pb :=
   begin
-    apply reflects_pullback_cone over.forget,
+    apply reflects_pullback_cone (over.forget _),
     apply t.is_pb,
     refine ⟨λ K, by apply_instance⟩,
   end }
