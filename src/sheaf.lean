@@ -2,6 +2,7 @@ import category_theory.full_subcategory
 import category_theory.limits.creates
 import category_theory.reflects_isomorphisms
 import category_theory.limits.preserves.shapes.binary_products
+import category_theory.limits.preserves.shapes.terminal
 import category_theory.adjunction.fully_faithful
 import category_theory.closed.cartesian
 import category.reflects
@@ -17,7 +18,7 @@ open classifier
 noncomputable theory
 universes v u u₂
 
-variables {C : Type u} [category.{v} C] [topos.{v} C]
+variables {C : Type u} [category.{v} C] [topos C]
 
 def indicators {B : C} (m : B ⟶ Ω C) (n : B ⟶ Ω C) : B ⟶ Ω C :=
 classify (classification m ⊓ classification n)
@@ -132,7 +133,7 @@ lemma comm_pullback (m : subq E) (f : A ⟶ E) :
   (subq.pullback f).obj (operator j m) = operator j ((subq.pullback f).obj m) :=
 by rw [← classify_eq_iff_eq, classify_pullback, classify_op, classify_op, classify_pullback, assoc]
 
-class dense (m : A ⟶ E) extends mono.{v} m :=
+class dense (m : A ⟶ E) extends mono.{v} m : Prop :=
 (closure_eq_top : subobj j m = ⊤)
 
 def dense_of_classifier_eq {m : A ⟶ E} [mono m] (hm : classifier_of m ≫ j = default _ ≫ truth C) : dense j m :=
@@ -384,7 +385,6 @@ end construct_limits
 
 variables (j)
 
--- BM: change this so that the limit is the limit of presheaves not just iso
 def sheaf_has_finite_limits : has_finite_limits.{v} (sheaf j) :=
 λ J 𝒥₁ 𝒥₂, by exactI
 { has_limit := λ F, has_limit_of_created F (sheaf.forget j) }
@@ -553,16 +553,8 @@ begin
   rwa [(closed_class_equiv j m).eq_symm_apply, ← closed_class_equiv_forward],
 end
 
--- This is a super dodgy proof but oh well.
 def forget_terminal_sheaf : (⊤_ (sheaf j)).A ≅ ⊤_ C :=
-begin
-  sorry
-  -- apply (cones.forget _).map_iso (lifted_limit_maps_to_original (limit.is_limit (functor.empty _ ⋙ sheaf.forget j))) ≪≫ _,
-  -- change limit (functor.empty (sheaf j) ⋙ sheaf.forget j) ≅ ⊤_ C,
-  -- have : functor.empty (sheaf j) ⋙ sheaf.forget j = functor.empty _,
-  --   apply functor.empty_ext',
-  -- rw this,
-end
+preserves_terminal.iso (sheaf.forget j)
 
 def sheaf_classify {U X : C} (f : U ⟶ X) [closure.closed j f] : X ⟶ closed_classifier j :=
 equalizer.lift (classifier_of f) (by rw [comp_id, closure.classifier_eq_of_closed])
@@ -905,11 +897,12 @@ def L' (A : C) : C := closure.obj j (M_sub j A)
 -- Sheafification!
 def L (A : C) : sheaf j := subobject_of_closed_sheaf j (Pj j A) (L' j A) (closure.arrow j (M_sub j A))
 
-def main_kernel_pair (A : C) : is_kernel_pair (factor_thru_image (named_factors j A).1) (j_equal j A).a (j_equal j A).b :=
+def main_kernel_pair (A : C) :
+  is_kernel_pair (factor_thru_image (named_factors j A).1) (j_equal j A).a (j_equal j A).b :=
 begin
   have := j_eq_kernel_pair j A,
   rw [← (named_factors j A).2, ← image.fac (named_factors j A).1, assoc] at this,
-  apply is_kernel_pair.sub' this,
+  apply this.cancel_right_of_mono,
 end
 
 def main_coequalizer (A : C) : is_colimit (cofork.of_π (factor_thru_image (named_factors j A).val) (main_kernel_pair j A).comm) :=
@@ -959,10 +952,11 @@ begin
   erw comp_id,
 end
 
-def kernel_pair_unit (A : C) : is_kernel_pair ((sheafification_is_adjoint j).unit.app A) (j_equal j A).a (j_equal j A).b :=
+def kernel_pair_unit (A : C) :
+  is_kernel_pair ((sheafification_is_adjoint j).unit.app A) (j_equal j A).a (j_equal j A).b :=
 begin
   rw sheafy_unit,
-  apply is_kernel_pair.sub'',
+  apply is_kernel_pair.comp_of_mono,
   apply main_kernel_pair
 end
 
@@ -1018,7 +1012,7 @@ end
 def sheafification_preserves_finite_products (J : Type v) [fintype J] [decidable_eq J] :
   preserves_limits_of_shape (discrete J) (sheafification j) :=
 begin
-  apply preserves_finite_limits_of_preserves_binary_and_terminal _,
+  apply preserves_finite_products_of_preserves_binary_and_terminal _,
   apply preserves_binary_products_of_exponential_ideal (sheaf.forget j),
   apply sheafification_preserves_terminal,
   apply_instance,
@@ -1115,7 +1109,7 @@ end
 instance : closure.closed j (k j f g) :=
 closed_of_subsheaf j _ _ _
 
-instance : closure.dense j (k j f g) :=
+noncomputable instance : closure.dense j (k j f g) :=
 begin
   let A := equalizer f g,
   let L := sheafification j,
@@ -1177,8 +1171,8 @@ def sheafification_preserves_equalizer {B c : C} (f g : B ⟶ c) :
 begin
   apply equalizer_of_iso_point,
   suffices : is_iso (k j f g),
-    apply is_iso_of_reflects_iso _ (sheaf.forget j),
-    apply this,
+  { apply is_iso_of_reflects_iso _ (sheaf.forget j),
+    apply this },
   apply closure.is_iso_of_dense_of_closed j,
 end
 

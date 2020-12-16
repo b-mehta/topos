@@ -9,7 +9,9 @@ import category_theory.limits.shapes.binary_products
 import category_theory.limits.shapes.finite_products
 import category_theory.limits.shapes.finite_limits
 import category_theory.limits.types
+import category_theory.monad.monadicity
 import category_theory.adjunction.limits
+import category_theory.adjunction.lifting
 import category_theory.monad.limits
 import category_theory.limits.opposites
 import category_theory.limits.over
@@ -17,7 +19,7 @@ import category_theory.epi_mono
 import category_theory.limits.shapes.equalizers
 import category_theory.limits.shapes.constructions.limits_of_products_and_equalizers
 import category_theory.limits.preserves.shapes.binary_products
-import category.adjoint_lifting
+import category_theory.limits.preserves.shapes.equalizers
 import locally_cartesian_closed
 import subobject_classifier
 
@@ -265,7 +267,7 @@ def P_functor [has_power_objects.{v} C] : Cᵒᵖ ⥤ C :=
 
 end functor_setup
 
-def self_adj [has_power_objects.{v} C] : is_right_adjoint (P_functor : Cᵒᵖ ⥤ C) :=
+instance self_adj [has_power_objects.{v} C] : is_right_adjoint (P_functor : Cᵒᵖ ⥤ C) :=
 { left := P_functor.right_op,
   adj := adjunction.mk_of_hom_equiv
   { hom_equiv := λ A B,
@@ -470,29 +472,35 @@ instance fin_category_op (J : Type v) [small_category J] [fcj : fin_category J] 
 local attribute [instance] has_colimits_of_shape_op_of_has_limits_of_shape
 
 instance pare [has_power_objects.{v} C] : monadic_right_adjoint (P_functor : Cᵒᵖ ⥤ C) :=
-{ to_is_right_adjoint := self_adj,
-  eqv :=
-  begin
-    apply reflexive_monadicity_theorem _ _ category_theory.p_reflects_iso,
-    { intros _ _ _ _ _, apply_instance },
-    { rintros B' A' f' g' ⟨r', rf, rg⟩,
-      refine { preserves := λ c t, _ },
-      let e : c.X.unop ⟶ A'.unop := (cofork.π c).unop,
-      haveI : split_mono g'.unop := ⟨r'.unop, by { rw [auto_param_eq, ← unop_comp, rg], refl }⟩,
-      haveI : epi (cofork.π c) := epi_of_is_colimit_parallel_pair t,
-      haveI mono_e : mono e := category_theory.unop_mono_of_epi _,
-      have : internal_image g'.unop ≫ P_map f'.unop = P_map e ≫ internal_image e := beck_chevalley _ _,
-      apply colimit_of_splits (P_functor.map_cocone c) _ (internal_image g'.unop) (exists_power e) (exists_power g'.unop) this,
-        rw [← unop_comp, ← cofork.condition c], refl,
-      refine is_limit.mk''' _ mono_e (λ s, _),
-      have equal_legs : s.fst = s.snd,
-        simpa [← unop_comp, rf, rg] using s.condition =≫ r'.unop,
-      refine ⟨(cofork.is_colimit.desc' t s.fst.op _).1.unop, _⟩,
-      { rw [← has_hom.hom.unop_inj.eq_iff],
-        dsimp, rw [s.condition, equal_legs] },
-      change (cofork.π c ≫ (cofork.is_colimit.desc' t s.fst.op _).1).unop = _,
-      rwa (cofork.is_colimit.desc' t s.fst.op _).2 }
-  end }
+begin
+  apply monad.monadic_of_has_preserves_reflexive_coequalizers_of_reflects_isomorphisms _,
+  { apply_instance },
+  { apply_instance },
+  { apply_instance },
+  { introsI B' A' f' g' i,
+    apply preserves_colimit_of_preserves_colimit_cocone (coequalizer_is_coequalizer f' g'),
+    apply (is_colimit_map_cocone_cofork_equiv _ _).symm _,
+    let e' := coequalizer.π f' g',
+    let e : (coequalizer f' g').unop ⟶ A'.unop := e'.unop,
+    haveI : split_mono g'.unop := ⟨(common_section f' g').unop, by { simp [←unop_comp] }⟩,
+    change is_colimit (cofork.of_π (P_map e) _),
+    have : is_split_coequalizer (P_functor.map f') (P_functor.map g') (P_functor.map e'),
+    { refine ⟨internal_image e, internal_image g'.unop, _, exists_power _, exists_power _, _⟩,
+      { rw [← functor.map_comp, coequalizer.condition, functor.map_comp] },
+      { apply beck_chevalley _ _,
+        { rw [← unop_comp, ← coequalizer.condition, unop_comp] },
+        { refine is_limit.mk''' _ _ (λ s, _),
+          { dsimp, apply_instance },
+          { have equal_legs : s.fst = s.snd,
+            { simpa [← unop_comp] using s.condition =≫ (common_section f' g').unop },
+            refine ⟨(coequalizer.desc s.fst.op _).unop, _⟩,
+            { rw [← has_hom.hom.unop_inj.eq_iff, unop_comp, unop_comp, has_hom.hom.unop_op,
+                  s.condition, equal_legs] },
+            { change (e' ≫ _).unop = _,
+              rw coequalizer.π_desc,
+              apply equal_legs } } } } },
+    apply this.is_coequalizer }
+end
 
 def some_colims (J : Type v) [small_category J] [has_power_objects.{v} C] [has_limits_of_shape Jᵒᵖ C] : has_colimits_of_shape J C :=
 { has_colimit := λ F, by exactI
@@ -1178,7 +1186,7 @@ def cc_of_pow [has_power_objects.{v} C] : cartesian_closed.{v} C :=
 { closed := λ B,
   begin
     haveI : is_right_adjoint (star B) := ⟨over.forget _, forget_adj_star B⟩,
-    haveI := monad.adjoint_lifting (logical_star B).symm (λ f g X Y r, by apply_instance),
+    haveI := monadic_adjoint_square_lift _ _ _ _ (logical_star B),
     refine exponentiable_of_star_is_left_adj B _,
     apply left_adjoint_of_right_adjoint_op,
   end }

@@ -275,13 +275,11 @@ def preserves_pair_of_exponential_ideal (A B : C) : preserves_limit (pair.{v₁}
 begin
   let ir : is_right_adjoint i := by apply_instance,
   let L := ir.left,
-  let adj : L ⊣ i := ir.adj,
-  let η : _ ⟶ L ⋙ i := adj.unit,
-  let ε : i ⋙ L ⟶ _ := adj.counit,
-  apply preserves_binary_prod_of_prod_comparison_iso L _ _,
   let : L.obj (A ⨯ B) ≅ L.obj A ⨯ L.obj B := coyoneda.ext (λ Z, bijection i A B _) (λ _ _ _ _, bijection_natural _ _ _ _ _ _),
   have equate : prod_comparison L A B = this.hom := (bijection_id A B).symm,
-  convert is_iso.of_iso this,
+  have : is_iso (prod_comparison L A B),
+    rw equate, apply_instance,
+  exactI preserves_pair.of_iso_comparison _ _ _,
 end
 
 variable (i)

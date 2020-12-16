@@ -4,6 +4,7 @@ import category_theory.types
 import category_theory.limits.shapes.binary_products
 import category_theory.limits.functor_category
 import category_theory.functor_category
+import category_theory.closed.types
 import sieve
 import topos
 
@@ -337,10 +338,5 @@ set_option trace.class_instances false
 --     refl }
 -- end
 
-def presheaf_cc : cartesian_closed.{u} (Cᵒᵖ ⥤ Type u) :=
-sorry
--- { closed := λ P, exponentiables P }
-
 noncomputable instance : topos (Cᵒᵖ ⥤ Type u) :=
-{ sub := presheaf_has_subobj_classifier C,
-  cc := presheaf_cc }.
+{ sub := presheaf_has_subobj_classifier C }.

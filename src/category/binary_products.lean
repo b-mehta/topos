@@ -11,6 +11,7 @@ import category_theory.comma
 import category_theory.adjunction.limits
 import category_theory.pempty
 import category_theory.limits.preserves.basic
+import category_theory.limits.preserves.shapes.products
 import category.pullbacks
 
 universes v u u' u₂
@@ -92,25 +93,74 @@ variables [preserves_limits_of_shape (discrete walking_pair) F]
 end
 
 /-- Transfer preservation of limits along a equivalence in the shape. -/
-def preserves_limit_of_equiv {J₁ J₂ : Type v} [small_category J₁] [small_category J₂] (e : J₁ ≌ J₂) (F : C ⥤ D) [preserves_limits_of_shape J₁ F] :
+def preserves_limit_of_equiv {J₁ J₂ : Type v} [small_category J₁] [small_category J₂] (e : J₁ ≌ J₂)
+  (F : C ⥤ D) [preserves_limits_of_shape J₁ F] :
   preserves_limits_of_shape J₂ F :=
 { preserves_limit := λ K,
   begin
     refine ⟨λ c t, _⟩,
     have : is_limit (F.map_cone (cone.whisker e.functor c)),
-      apply preserves_limit.preserves (is_limit_equivalence_comp e t),
-      apply_instance,
-    let l := is_limit_equivalence_comp e.symm this,
+      apply is_limit_of_preserves F (is_limit.whisker_equivalence t e),
+    have := is_limit.whisker_equivalence this e.symm,
     let equ := e.inv_fun_id_assoc (K ⋙ F),
-    apply (is_limit.of_right_adjoint (cones.postcompose_equivalence equ.symm).inverse l).of_iso_limit,
+    apply ((is_limit.postcompose_hom_equiv equ _).symm this).of_iso_limit,
     apply cones.ext _ _,
     { apply iso.refl _ },
     { intro j,
-      dsimp [cone_equivalence_comp, cones.postcompose, equivalence.inv_fun_id_assoc_hom_app],
-      erw [id_comp, ← c.w (e.counit_iso.inv.app j)],
-      change _ ≫ (e.inv_fun_id_assoc (K ⋙ F)).hom.app j = _,
-      dsimp [equivalence.inv_fun_id_assoc],
-      rw [id_comp, comp_id, ← F.map_comp, assoc, ← K.map_comp, cone.w] }
+      dsimp,
+      simp [←functor.map_comp] },
+  end }
+
+@[simps {rhs_md := semireducible}]
+def build_prod {n : ℕ} {f : ulift (fin (n+1)) → C}
+  (c₁ : fan (λ (i : ulift (fin n)), f ⟨i.down.succ⟩))
+  (c₂ : binary_fan (f ⟨0⟩) c₁.X) :
+fan f :=
+fan.mk c₂.X
+begin
+  rintro ⟨i⟩,
+  revert i,
+  refine fin.cases _ _,
+  { apply c₂.fst },
+  { intro i,
+    apply c₂.snd ≫ c₁.π.app (ulift.up i) },
+end
+
+def build_limit {n : ℕ} (f : ulift (fin (n+1)) → C)
+  {c₁ : fan (λ (i : ulift (fin n)), f ⟨i.down.succ⟩)} {c₂ : binary_fan (f ⟨0⟩) c₁.X}
+  (t₁ : is_limit c₁) (t₂ : is_limit c₂) :
+  is_limit (build_prod c₁ c₂) :=
+{ lift := λ s,
+  begin
+    apply (binary_fan.is_limit.lift' t₂ _ _).1,
+    { apply s.π.app ⟨0⟩ },
+    { apply t₁.lift ⟨_, discrete.nat_trans (λ i, s.π.app ⟨i.down.succ⟩)⟩ }
+  end,
+  fac' := λ s,
+  begin
+    rintro ⟨j⟩,
+    revert j,
+    rw fin.forall_fin_succ,
+    split,
+    { apply (binary_fan.is_limit.lift' t₂ _ _).2.1 },
+    { intro i,
+      dsimp only [build_prod_π_app],
+      rw [fin.cases_succ, ← assoc, (binary_fan.is_limit.lift' t₂ _ _).2.2, t₁.fac],
+      refl }
+  end,
+  uniq' := λ s m w,
+  begin
+    apply binary_fan.is_limit.hom_ext t₂,
+    { rw (binary_fan.is_limit.lift' t₂ _ _).2.1,
+      apply w ⟨0⟩ },
+    { rw (binary_fan.is_limit.lift' t₂ _ _).2.2,
+      apply t₁.uniq ⟨_, _⟩,
+      rintro ⟨j⟩,
+      rw assoc,
+      dsimp only [discrete.nat_trans_app],
+      rw ← w ⟨j.succ⟩,
+      dsimp only [build_prod_π_app],
+      rw fin.cases_succ }
   end }
 
 variables (F : C ⥤ D) [preserves_limits_of_shape (discrete walking_pair) F] [preserves_limits_of_shape (discrete pempty) F]
@@ -119,90 +169,61 @@ variables [has_finite_products.{v} C] [has_finite_products.{v} D]
 def fin0_equiv_pempty : fin 0 ≃ pempty :=
 equiv.equiv_pempty (λ a, a.elim0)
 
+lemma has_scalar.ext {R M : Type*} : ∀ (a b : has_scalar R M), a.smul = b.smul → a = b
+| ⟨_⟩ ⟨_⟩ rfl := rfl
+
 noncomputable def preserves_fin_of_preserves_binary_and_terminal  :
-  Π (n : ℕ), preserves_limits_of_shape (discrete (ulift (fin n))) F :=
-sorry
--- | 0 := preserves_limit_of_equiv (discrete.equivalence (equiv.ulift.trans fin0_equiv_pempty).symm) F
--- | (n+1) :=
---   begin
---     -- Register the instance from n.
---     haveI p := preserves_fin_of_preserves_binary_and_terminal n,
---     refine ⟨λ K, _⟩,
---     let K' : discrete (ulift (fin n)) ⥤ C := discrete.functor (λ (i : ulift _), K.obj ⟨i.down.succ⟩),
---     have p' : preserves_limit K' F,
---       apply_instance,
---     let c : cone K,
---       refine ⟨K.obj ⟨0⟩ ⨯ limit K', _⟩,
---       apply discrete.nat_trans _,
---       rintro ⟨i⟩,
---       revert i,
---       refine fin.cases _ _,
---       { apply limits.prod.fst },
---       { intro i,
---         apply limits.prod.snd ≫ limit.π K' ⟨i⟩ },
---     have : is_limit c,
---     { refine ⟨λ s, prod.lift (s.π.app ⟨0⟩) _, λ s, _, _⟩,
---       { refine limit.lift K' ⟨s.X, _⟩,
---         apply discrete.nat_trans (λ i, _),
---         apply s.π.app ⟨i.down.succ⟩ },
---       { rintro ⟨j⟩,
---         revert j,
---         refine fin.cases _ _,
---         apply prod.lift_fst,
---         intro i,
---         dsimp, rw fin.cases_succ,
---         rw prod.lift_snd_assoc,
---         apply limit.lift_π },
---       { intros s m w,
---         apply prod.hom_ext,
---         rw prod.lift_fst,
---         apply w ⟨0⟩,
---         rw prod.lift_snd,
---         apply limit.hom_ext,
---         rintro ⟨j⟩,
---         simpa using w ⟨j.succ⟩ } },
---     apply preserves_limit_of_preserves_limit_cone this,
---     have q : is_limit (F.map_cone (limit.cone K')),
---       apply p'.preserves, apply limit.is_limit,
---     -- haveI := category_theory.limits.prod_comparison_iso_of_preserves_binary_prods F (K.obj ⟨0⟩) (limit K'),
---     refine ⟨λ s, _, _, _⟩,
---     { apply _ ≫ inv (prod_comparison F (K.obj ⟨0⟩) (limit K')),
---       apply prod.lift (s.π.app ⟨0⟩) (q.lift ⟨_, discrete.nat_trans (λ i, _)⟩),
---       exact s.π.app ⟨i.down.succ⟩ },
---     { rintro s ⟨j⟩,
---       revert j,
---       refine fin.cases _ _,
---       { dsimp,
---         rw [assoc, thingy, prod.lift_fst] },
---       { intro i,
---         dsimp,
---         rw [fin.cases_succ, F.map_comp, assoc, thingy2_assoc, prod.lift_snd_assoc],
---         apply q.fac } },
---     { intros s m w,
---       dsimp at m,
---       erw [(as_iso (prod_comparison F _ _)).eq_comp_inv, as_iso_hom, prod_comparison],
---       apply prod.hom_ext,
---       { rw [assoc, prod.lift_fst, prod.lift_fst], refine w ⟨0⟩ },
---       { rw [assoc, prod.lift_snd, prod.lift_snd], apply q.hom_ext, intro j,
---         rw [q.fac, assoc], dsimp,
---         rw [← F.map_comp],
---         have z : m ≫ F.map _ = _ := w ⟨j.down.succ⟩,
---         dsimp at z,
---         rw [fin.cases_succ] at z,
---         convert z,
---         ext1,
---         refl } }
---   end
+  Π (n : ℕ) (f : ulift (fin n) → C), preserves_limit (discrete.functor f) F
+| 0 := λ f,
+  begin
+    letI : preserves_limits_of_shape (discrete (ulift (fin 0))) F :=
+      preserves_limit_of_equiv (discrete.equivalence (equiv.ulift.trans fin0_equiv_pempty).symm) _,
+    apply_instance,
+  end
+| (n+1) :=
+  begin
+    haveI := preserves_fin_of_preserves_binary_and_terminal n,
+    intro f,
+    refine preserves_limit_of_preserves_limit_cone
+      (build_limit f (limit.is_limit _) (limit.is_limit _)) _,
+    apply (is_limit_map_cone_fan_mk_equiv _ _ _).symm _,
+    let := build_limit (λ i, F.obj (f i))
+              (is_limit_of_has_product_of_preserves_limit F _)
+              (is_limit_of_has_binary_product_of_preserves_limit F _ _),
+    refine is_limit.of_iso_limit this _,
+    apply cones.ext _ _,
+    apply iso.refl _,
+    rintro ⟨j⟩,
+    revert j,
+    refine fin.cases _ _,
+    { symmetry,
+      apply category.id_comp _ },
+    { intro i,
+      symmetry,
+      dsimp,
+      rw [fin.cases_succ, fin.cases_succ],
+      change 𝟙 _ ≫ F.map _ = F.map _ ≫ F.map _,
+      rw [id_comp, ← F.map_comp],
+      refl }
+  end
 
+def preserves_ulift_fin_of_preserves_binary_and_terminal (n : ℕ) :
+  preserves_limits_of_shape (discrete (ulift (fin n))) F :=
+{ preserves_limit := λ K,
+  begin
+    let : discrete.functor K.obj ≅ K := discrete.nat_iso (λ i, iso.refl _),
+    haveI := preserves_fin_of_preserves_binary_and_terminal F n K.obj,
+    apply preserves_limit_of_iso_diagram F this,
+  end }
 
-def preserves_finite_limits_of_preserves_binary_and_terminal (J : Type v) [fintype J] [decidable_eq J] :
+def preserves_finite_products_of_preserves_binary_and_terminal (J : Type v) [fintype J] :
   preserves_limits_of_shape.{v} (discrete J) F :=
 begin
+  classical,
   refine trunc.rec_on_subsingleton (fintype.equiv_fin J) _,
   intro e,
-  replace e := e.trans equiv.ulift.symm,
-  haveI := preserves_fin_of_preserves_binary_and_terminal F (fintype.card J),
-  apply preserves_limit_of_equiv (discrete.equivalence e).symm,
+  haveI := preserves_ulift_fin_of_preserves_binary_and_terminal F (fintype.card J),
+  apply preserves_limit_of_equiv (discrete.equivalence (e.trans equiv.ulift.symm)).symm,
 end
 
 end

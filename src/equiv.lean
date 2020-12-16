@@ -3,7 +3,7 @@ import category_theory.limits.shapes.pullbacks
 import category_theory.limits.shapes.binary_products
 import category_theory.limits.shapes.finite_limits
 import category_theory.limits.shapes.finite_products
-import category.kernel_pair
+-- import category.kernel_pair
 import power
 
 universes v u
