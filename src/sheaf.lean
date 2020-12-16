@@ -520,11 +520,12 @@ def closed_class_equiv {B B' : C} (m : B' ⟶ B) [closure.dense j m] :
 lemma closed_class_equiv_forward {B B' : C} (m : B' ⟶ B) [closure.dense j m] (f : B ⟶ closed_classifier j) :
   m ≫ f = closed_class_equiv j m f :=
 begin
-  dsimp [closed_class_equiv, eq_equiv, closed_equiv, action, closure_equiv, equiv.subtype_congr],
-  ext1,
-  rw equalizer.lift_ι,
-  change _ = quotient.lift _ _ (quotient.mk _),
-  dsimp,
+  sorry
+  -- dsimp [closed_class_equiv, eq_equiv, closed_equiv, action, closure_equiv, equiv.subtype_congr],
+  -- ext1,
+  -- rw equalizer.lift_ι,
+  -- change _ = quotient.lift _ _ (quotient.mk _),
+  -- dsimp,
   -- change _ = classifier_of ((sub.pullback m).obj (sub.mk' (get_subobject (f ≫ equalizer.ι j (𝟙 (Ω C)))))),
 
   -- change _ = classify ((subq.pullback m).obj ⟦_⟧),
