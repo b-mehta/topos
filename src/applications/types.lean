@@ -55,7 +55,7 @@ lemma get_unique_property {α : Sort u} (p : α → Prop) (h₁ : ∃ a, p a) (h
 noncomputable def invert_mono {U X : Type u} (m : U ⟶ X) [mon : mono m] (t : X) (h : ∃ i, m i = t) : {i : U // m i = t} :=
 begin
   apply get_unique _ h _,
-  intros,
+  intros _ _ a_1 a_2,
   rw mono_iff_injective at mon,
   apply mon,
   rw [a_1, a_2]
@@ -69,7 +69,7 @@ lemma set_classifier_u {U X : Type u} {f : U ⟶ X} {χ₁ : X ⟶ ulift Prop} (
 begin
   obtain ⟨ka, la, ma⟩ := q,
   intro x,
-  split, rintro,
+  split, rintro a,
   { let g := ma.lift (pullback_cone.mk (𝟙 _) (λ _, x) (by simp [ulift.ext_iff, function.funext_iff, a, truth])),
     refine ⟨g punit.star, _⟩,
     have : (g ≫ f) _ = (λ _, x) _ := congr_fun (ma.fac _ walking_cospan.right) punit.star,
@@ -102,16 +102,16 @@ noncomputable instance types_has_subobj_classifier : @has_subobject_classifier (
       rw set_classifier_u fst x,
     end } }
 
-@[simps]
-def currying_equiv (A X Y : Type u) : ((prod_functor.obj A).obj X ⟶ Y) ≃ (X ⟶ A → Y) :=
-{ to_fun := λ f b a,
-  begin
-    refine f ⟨λ j, walking_pair.cases_on j a b, λ j₁ j₂, _⟩,
-    rintros ⟨⟨rfl⟩⟩, refl
-  end,
-  inv_fun := λ g ab, g (ab.1 walking_pair.right) (ab.1 walking_pair.left),
-  left_inv := λ f, by { ext ⟨ba⟩, dsimp, congr, ext ⟨j⟩, simp },
-  right_inv := λ _, rfl }
+-- @[simps]
+-- def currying_equiv (A X Y : Type u) : ((prod_functor.obj A).obj X ⟶ Y) ≃ (X ⟶ A → Y) :=
+-- { to_fun := λ f b a,
+--   begin
+--     refine f ⟨λ j, walking_pair.cases_on j a b, λ j₁ j₂, _⟩,
+--     rintros ⟨⟨rfl⟩⟩, refl
+--   end,
+--   inv_fun := λ g ab, g (ab.1 walking_pair.right) (ab.1 walking_pair.left),
+--   left_inv := λ f, by { ext ⟨ba⟩, dsimp, congr, ext ⟨j⟩, simp },
+--   right_inv := λ _, rfl }
 
 -- instance type_exponentiable (A : Type u) : exponentiable A :=
 -- { is_adj :=

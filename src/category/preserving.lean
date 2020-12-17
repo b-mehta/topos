@@ -75,7 +75,7 @@ def preserves_binary_prods_of_preserves_pullbacks_and_terminal :
   preserves_limits_of_shape (discrete walking_pair) T :=
 { preserves_limit := λ K,
   begin
-    apply preserves_limit_of_iso _ (diagram_iso_pair K).symm,
+    apply preserves_limit_of_iso_diagram _ (diagram_iso_pair K).symm,
     apply preserves_pair
   end }
 
@@ -139,7 +139,7 @@ def preserves_equalizers_of_preserves_pullbacks_and_prods :
   preserves_limits_of_shape walking_parallel_pair T :=
 { preserves_limit := λ K,
   begin
-    apply preserves_limit_of_iso _ (diagram_iso_parallel_pair K).symm,
+    apply preserves_limit_of_iso_diagram _ (diagram_iso_parallel_pair K).symm,
     apply preserves_parallel_pair
   end }
 
