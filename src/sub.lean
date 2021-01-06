@@ -486,17 +486,24 @@ def sub_slice {A : C} {f : over A} (h₁ h₂) : sub f ≌ sub f.left :=
   unit_iso := restrict_to_sub_id.symm ≪≫ restrict_to_sub_iso _ _ f.iterated_slice_equiv.unit_iso ≪≫ (restrict_to_sub_comp _ _ _ _).symm,
   counit_iso := restrict_to_sub_comp _ _ _ _ ≪≫ restrict_to_sub_iso _ _ f.iterated_slice_equiv.counit_iso ≪≫ restrict_to_sub_id }
 
+@[simps]
 def subq.equiv {A : C} {B : D} (e : sub A ≌ sub B) : subq A ≌ subq B :=
 { functor := lower_sub e.functor,
   inverse := lower_sub e.inverse,
   unit_iso :=
   begin
     apply eq_to_iso,
-    dunfold lower_map,
-  end
-  -- skel_map_id.symm ≪≫ skel_map_iso e.unit_iso ≪≫ skel_map_comp _ _
-  ,
-  counit_iso := (skel_map_comp _ _).symm ≪≫ skel_map_iso e.counit_iso ≪≫ skel_map_id }
+    convert thin_skeleton.map_iso_eq e.unit_iso,
+    { exact thin_skeleton.map_id_eq.symm },
+    { exact (thin_skeleton.map_comp_eq _ _).symm },
+  end,
+  counit_iso :=
+  begin
+    apply eq_to_iso,
+    convert thin_skeleton.map_iso_eq e.counit_iso,
+    { exact (thin_skeleton.map_comp_eq _ _).symm },
+    { exact thin_skeleton.map_id_eq.symm },
+  end }
 
 def sub_one_over (A : C) [has_terminal (over A)] : subq A ≌ subq (⊤_ (over A)) :=
 begin
@@ -539,19 +546,19 @@ begin
 end
 
 def subq.intersection [has_pullbacks.{v} C] {A : C} : subq A ⥤ subq A ⥤ subq A :=
-skel_map₂ sub.intersection
+thin_skeleton.map₂ sub.intersection
 
 lemma subq.inf_le_left [has_pullbacks.{v} C] {A : C} (f g : subq A) :
   (subq.intersection.obj f).obj g ≤ f :=
-quotient.induction_on₂ f g (λ a b, ⟨sub.inter_le_left _ _⟩)
+quotient.induction_on₂' f g (λ a b, ⟨sub.inter_le_left _ _⟩)
 
 lemma subq.inf_le_right [has_pullbacks.{v} C] {A : C} (f g : subq A) :
   (subq.intersection.obj f).obj g ≤ g :=
-quotient.induction_on₂ f g (λ a b, ⟨sub.inter_le_right _ _⟩)
+quotient.induction_on₂' f g (λ a b, ⟨sub.inter_le_right _ _⟩)
 
 lemma subq.le_inf [has_pullbacks.{v} C] {A : C} (h f g : subq A) :
   h ≤ f → h ≤ g → h ≤ (subq.intersection.obj f).obj g :=
-quotient.induction_on₃ h f g
+quotient.induction_on₃' h f g
 begin
   rintros f g h ⟨k⟩ ⟨l⟩,
   exact ⟨sub.le_inter _ _ _ k l⟩,
@@ -615,15 +622,15 @@ begin
 end
 
 def subq.union [has_images.{v} C] [has_finite_coproducts.{v} C] {A : C} : subq A ⥤ subq A ⥤ subq A :=
-skel_map₂ sub.union
+thin_skeleton.map₂ sub.union
 
 lemma sub.intersection_eq_post_pull [has_pullbacks.{v} C] {A : C} (f₁ f₂ : sub A) :
   (sub.intersection.obj f₁).obj f₂ = (sub.post f₁.arrow).obj ((sub.pullback f₁.arrow).obj f₂) :=
 rfl
 lemma subq.intersection_eq_post_pull [has_pullbacks.{v} C] {A : C} (f₁ : sub A) (f₂ : subq A) :
-  (subq.intersection.obj ⟦f₁⟧).obj f₂ = (subq.post f₁.arrow).obj ((subq.pullback f₁.arrow).obj f₂) :=
+  (subq.intersection.obj (quotient.mk' f₁)).obj f₂ = (subq.post f₁.arrow).obj ((subq.pullback f₁.arrow).obj f₂) :=
 begin
-  apply quotient.induction_on f₂,
+  apply quotient.induction_on' f₂,
   intro f₂,
   refl,
 end
@@ -636,18 +643,18 @@ instance [has_pullbacks.{v} C] {B : C} : semilattice_inf_top (subq B) :=
   ..category_theory.subq.order_top }
 
 lemma subq.inf_eq_post_pull [has_pullbacks.{v} C] {A : C} (f₁ : sub A) (f₂ : subq A) :
-  (⟦f₁⟧ ⊓ f₂ : subq A) = (subq.post f₁.arrow).obj ((subq.pullback f₁.arrow).obj f₂) :=
+  (quotient.mk' f₁ ⊓ f₂ : subq A) = (subq.post f₁.arrow).obj ((subq.pullback f₁.arrow).obj f₂) :=
 begin
-  apply quotient.induction_on f₂,
+  apply quotient.induction_on' f₂,
   intro f₂,
   refl,
 end
 
 instance [has_finite_coproducts.{v} C] [has_images.{v} C] {B : C} : semilattice_sup (subq B) :=
 { sup := λ m n, (subq.union.obj m).obj n,
-  le_sup_left := λ m n, quotient.induction_on₂ m n (λ a b, ⟨sub.le_union_left _ _⟩),
-  le_sup_right := λ m n, quotient.induction_on₂ m n (λ a b, ⟨sub.le_union_right _ _⟩),
-  sup_le := λ m n k, quotient.induction_on₃ m n k (λ a b c ⟨i⟩ ⟨j⟩, ⟨sub.union_le _ _ _ i j⟩),
+  le_sup_left := λ m n, quotient.induction_on₂' m n (λ a b, ⟨sub.le_union_left _ _⟩),
+  le_sup_right := λ m n, quotient.induction_on₂' m n (λ a b, ⟨sub.le_union_right _ _⟩),
+  sup_le := λ m n k, quotient.induction_on₃' m n k (λ a b c ⟨i⟩ ⟨j⟩, ⟨sub.union_le _ _ _ i j⟩),
   ..category_theory.subq.partial_order B }
 
 lemma prod_eq_inter {A : C} [has_pullbacks.{v} C] {f₁ f₂ : subq A} : (f₁ ⨯ f₂) = f₁ ⊓ f₂ :=
@@ -663,12 +670,12 @@ le_antisymm
 lemma inf_eq_intersection {B : C} (m m' : subq B) [has_pullbacks.{v} C] :
   m ⊓ m' = (subq.intersection.obj m).obj m' := rfl
 
-lemma top_eq_id {B : C} : (⊤ : subq B) = ⟦sub.mk' (𝟙 B)⟧ := rfl
+lemma top_eq_id {B : C} : (⊤ : subq B) = subq.mk (𝟙 B) := rfl
 
 /-- Intersection plays well with pullback. -/
 lemma inf_pullback [has_pullbacks.{v} C] {X Y : C} (g : X ⟶ Y) (f₂) :
   ∀ f₁, (subq.pullback g).obj (f₁ ⊓ f₂) = (subq.pullback g).obj f₁ ⊓ (subq.pullback g).obj f₂ :=
-quotient.ind begin
+quotient.ind' begin
   intro f₁,
   erw [inf_eq_intersection, inf_eq_intersection, subq.intersection_eq_post_pull,
        subq.intersection_eq_post_pull, ← subq.pullback_comp,
@@ -679,7 +686,7 @@ end
 
 lemma inf_post [has_pullbacks.{v} C] {X Y : C} (g : Y ⟶ X) [mono g] (f₂) :
   ∀ f₁, (subq.post g).obj (f₁ ⊓ f₂) = (subq.post g).obj f₁ ⊓ (subq.post g).obj f₂ :=
-quotient.ind begin
+quotient.ind' begin
   intro f₁,
   erw [inf_eq_intersection, inf_eq_intersection, subq.intersection_eq_post_pull,
        subq.intersection_eq_post_pull, ← subq.post_comp],
@@ -697,8 +704,8 @@ def sub.pullback_self {A B : C} (f : A ⟶ B) [mono f] [has_pullbacks.{v} C] :
 iso_of_both_ways (to_top _) (sub.top_le_pullback_self _)
 
 lemma subq.pullback_self {A B : C} (f : A ⟶ B) [mono f] [has_pullbacks.{v} C] :
-  (subq.pullback f).obj ⟦sub.mk' f⟧ = ⊤ :=
-quotient.sound ⟨sub.pullback_self f⟩
+  (subq.pullback f).obj (subq.mk f) = ⊤ :=
+quotient.sound' ⟨sub.pullback_self f⟩
 
 section
 variable [has_binary_products.{v} C]
@@ -782,7 +789,7 @@ lower_sub (sub.exp f)
 
 def subq.exp (f : subq (⊤_ C)) [cartesian_closed C] : subq (⊤_ C) ⥤ subq (⊤_ C) :=
 begin
-  apply quotient.lift_on f subq.exp_aux _,
+  apply quotient.lift_on' f subq.exp_aux _,
   rintros f₁ f₂ ⟨h⟩,
   apply lower_sub_iso,
   have hi : h.hom.left ≫ h.inv.left = 𝟙 _,
@@ -806,9 +813,9 @@ def top_cc [cartesian_closed C] : cartesian_closed (subq (⊤_ C)) :=
         begin
           change (_ ⨯ _ ⟶ _) ≃ (_ ⟶ _),
           rw prod_eq_inter,
-          apply quotient.rec_on_subsingleton₂ f₁ f₂,
+          apply @@quotient.rec_on_subsingleton₂ (is_isomorphic_setoid _) (is_isomorphic_setoid _) _ _ f₁ f₂,
           intros f₁ f₂,
-          apply quotient.rec_on_subsingleton f₃,
+          apply @@quotient.rec_on_subsingleton (is_isomorphic_setoid _) _ _ f₃,
           intro f₃,
           refine ⟨_, _, _, _⟩,
           { rintro k,
